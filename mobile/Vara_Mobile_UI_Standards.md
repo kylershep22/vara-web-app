@@ -938,8 +938,10 @@ Know these before writing code. They fail the build or the suite.
 
 | Where | Enforces |
 |---|---|
-| `mobile/.eslintrc.js` | No raw hex literals (`no-restricted-syntax`, error). `max-lines` 300 (warn). No `console` except error/warn. No unused vars (error). |
-| `src/__tests__/brandCompliance.test.ts` | Tree walk over all of `src/`: prohibited copy (streak as user-visible text, confetti, urgency phrases). Reasoned allowlist with existence check. |
+| `mobile/.eslintrc.js` | No raw hex literals (`no-restricted-syntax`, error), **with four exemptions added in R1b-ii: the four palette source files, test files, `App.tsx`'s Metro asset `require()`s, and RN `Text`/`TextInput` barred in `App.tsx` as well as `src/`**. `max-lines` 300 (warn). No `console` except error/warn. No unused vars (error). |
+| `mobile/package.json` `lint` | **Scope, and it is load-bearing.** `eslint src/ App.tsx --ext .ts,.tsx`. `App.tsx` was outside the command until R1b-ii, which is how a `fontError` assigned and never read sat in the app's root component uncaught by a rule that would have flagged it. A rule not pointed at a file does not enforce anything. |
+| `src/__tests__/brandCompliance.test.ts` | Tree walk over all of `src/`: prohibited copy (streak as user-visible text, confetti, urgency phrases). Reasoned allowlist with existence check. **Its integrity check is existence only** — see the debt note under 7 below. |
+| `src/__tests__/legacyIcons.test.ts` | Tree walk over all of `src/`: Lucide and Ionicons imports outside the 28-file allowlist (7). Detection is over parsed import statements, not text mentions, and Ionicons is matched at the specifier so the ~150 MaterialCommunityIcons files never trip it. **Reasoned allowlist checked BOTH ways**: an entry naming a missing file fails, and an entry whose file no longer imports the set fails. |
 | `src/__tests__/brandCopyGuard.test.ts` | Tree walk: em dashes and the optimize family in any user-facing string. |
 | `src/__tests__/copyDraftSentinel.test.ts` | Pinned count of unapproved drafted strings; any change is named in the commit. |
 | `src/screens/Focus/__tests__/blocksBrandGuard.test.ts` | Soft Coral barred from routine destructive controls in the blocks feature. |
@@ -955,7 +957,7 @@ Know these before writing code. They fail the build or the suite.
 
 | Debt | Count | Rule it violates |
 |---|---|---|
-| Raw hex literals | **501 errors in 97 files** (385 outside `src/constants/`, in 85 files) | 3.1 |
+| Raw hex literals | **431 errors**, re-measured in R1b-ii under the palette and test exemptions (was 501; 54 palette definitions and 16 test assertions were never debt). **46 of the 431 are inside `src/constants/`** and are debt, not tokens. | 3.1 |
 | `fontWeight` without a per-weight `fontFamily` | **0**, closed in R1a (was 975 sites in 277 files) | 5.1 |
 | Literal pixel `lineHeight` values | **114 in 91 files** (corrected in R1a from 149) | 5.2 |
 | Off-scale radius literals | **164 in 99 files** | 6.3 |
@@ -963,7 +965,7 @@ Know these before writing code. They fail the build or the suite.
 | Uppercase or tracked-out labels above headings | **24 in 20 files**, three at 14pt | 5.4 |
 | Visible numeric progress, fractions or "X of Y" | **13 sites** | 10.7 |
 | Soft Coral outside genuine errors | **4 sites** (2 routine destructive controls, 2 count badges) | 4.4 |
-| Files on a legacy icon set | **28** (11 Lucide, 17 Ionicons) | 7 |
+| Files on a legacy icon set | **28** (11 Lucide, 17 Ionicons), held by `src/__tests__/legacyIcons.test.ts` since R1b-ii | 7 |
 
 **THE `fontWeight` ROW IS CLOSED, AND THE MECHANISM IS NAMED SO IT STAYS CLOSED.** R1a
 introduced the shared text primitive (5.1) and pointed all 297 importing files at it, so weight
@@ -980,7 +982,13 @@ base is a literal; they are the correct pattern and are not debt. A further 75 a
 fully token-derived. **114 is the count of true fixed pixels**, and none of them is tighter than
 1.22x its font size, with only six below 1.3x.
 
-**Two further numbers are corrections and are stated as such.** The raw-hex figure is the eslint run's own output (`no-restricted-syntax`, 501 of the 1100 errors in the current lint baseline), not an estimate; an earlier working figure of 331 circulated and is wrong. And the 100 raw-hex errors inside `src/constants/` are the token definitions themselves: the rule has no override for that directory, so the palette is permanently among the errors. **That is a lint-configuration gap, not debt to pay down**, and closing it is an R1 item.
+**Two further numbers are corrections and are stated as such.** The raw-hex figure is the eslint run's own output (`no-restricted-syntax`), not an estimate; an earlier working figure of 331 circulated and is wrong. It read 501 of 1100 errors at `c30671c`; **R1b-ii closed the configuration gap and it now reads 431 of 1033.**
+
+**THE `src/constants/` CLAIM WAS HALF RIGHT, AND THE HALF THAT WAS WRONG IS THE PART WORTH KEEPING.** The sentence above used to say the 100 raw-hex errors inside `src/constants/` "are the token definitions themselves" and were a configuration gap rather than debt. **Only 54 of them are.** The palette lives in four files — `colors.ts` 38, `designTokens.ts` 11, `spacing.ts` 3, `theme.ts` 2 — and those four are now exempt, because a token file cannot import its own tokens. **The other 46 are content files declaring their own colours**: `journalTags.ts` 24, `groupCategories.ts` 9, `brainStateWindows.ts` 8, `featureUnlock.ts` 5. Those are ordinary 3.1 violations that happen to sit in the token directory, and **they stay in the 431 as debt.** The override is scoped to the four named files rather than to the directory precisely so they do: a directory-wide exemption would have retired a finding nobody took, which is the kind of number a later slice reads as progress.
+
+**A FURTHER 16 WERE NEVER DEBT EITHER, AND THE REASON IS RECORDED AT THE OVERRIDE.** Test files are exempt from 3.1. A test asserting a component renders `#1B5E57` is asserting the value, not the name; rewriting it to import the token makes the assertion tautological, so it would pass if the token changed to the wrong colour. 16 hits across 4 files.
+
+**THE ICON ALLOWLIST IS HELD BY A TEST, AND THE REASON IS THE STALE-ENTRY PROPERTY.** An eslint `no-restricted-imports` override gets the shrink-only behaviour of 7 but cannot fail when an allowlisted path stops existing, and cannot fail when an allowlisted file stops importing the set it was waived for. `legacyIcons.test.ts` fails on both. **`brandCompliance.test.ts` today checks only the first**, so a waiver there survives the violation being fixed; the generic `allowlistIntegrity` helper in `legacyIcons.test.ts` is written to be lifted into it unchanged, and that lift is on the backlog.
 
 **The rule, and it is three clauses:**
 
