@@ -233,7 +233,7 @@ When a new token is needed, it is added to the relevant file **and** to this doc
 | Sunrise Amber | `sunriseAmber` | `#F4C542` | The warm point: small highlights, selected-chip fill, illustration detail |
 | Golden Apricot | `goldenApricot` | `#F5B971` | Secondary warmth: illustration, attention (non-error) |
 | Soft Charcoal | `softCharcoal` | `#3E3E3E` | Body text, H3 and below |
-| Muted Sage Gray | `mutedSageGray` | `#6F7F77` | Helper text, captions, inactive icons |
+| Muted Sage Gray | `mutedSageGray` | `#56655D` | Helper text, captions, inactive icons |
 | Soft Coral | `softCoral` | `#D97A6E` | **Genuine errors only.** See 4.4. |
 
 **Derived alpha tokens** (use these instead of composing your own):
@@ -247,6 +247,8 @@ When a new token is needed, it is added to the relevant file **and** to this doc
 | `mistWhiteTransparent` | Mist White at 0 alpha | Hero band scrim endpoint |
 
 Pure black (`#000000`) is never used for text or fills. It appears only inside shadow tokens.
+
+**Three code keys carry the Muted Sage Gray value, not one, and the table row above is only the first of them (recorded at R1b-i).** `Colors.textSecondary`, `Colors.text.secondary` and `ColorTokens.textSecondary` are the same colour written three more times as literals, and they are **not** aliases of `mutedSageGray` in code: R1b-i moved all four by hand to keep them at one value. **`Colors.textSecondary` is the larger consumer of the two** (412 sites across 116 files, against `mutedSageGray`'s 336 across 125), so a reader who greps only the table's key finds under half the surface. **R1d item (1) makes them real aliases**, at which point this note reduces to one declaration and three references. **Until it does, a change to one of the four is a change to one quarter of the colour.** The tab bar's `tabBarInactiveTintColor` reads `Colors.textSecondary`, which is why "inactive icons" in the role column is reached through that key and not through `mutedSageGray`.
 
 ### 4.2 Usage rules
 
@@ -922,7 +924,9 @@ The Brand Voice Copy Guidelines are the authority on every string. This section 
 Supporting capacity means supporting every kind of attention and every kind of body. These are minimums, and they are part of "done," not a phase.
 
 - **Contrast**: WCAG 2.1 AA. 4.5:1 for body, 3:1 for large text (18pt Medium or 24pt Regular and up). Verify every title on a hero band against the scrim, and every string on an immersive surface against the artwork (18(g)).
-- **Muted Sage Gray fails, and "borderline" was the wrong word (corrected in v2.1).** `#6F7F77` measures **4.22:1 on White**. That is **below 4.5:1**, so it fails AA for the 14pt Regular helper text it is used for, everywhere it is used, and it is not a judgment call. v2.0 called it "borderline: 14pt minimum", which read as a caution and licensed the usage it should have stopped. It is used in 336 places. **The fix is deferred to R1** because a palette token change touches every surface at once and is not a documentation edit. **Recorded candidate: `#56655D`** (6.15:1 on White, 4.61:1 on Dew Sage), which passes AA on both grounds at body and helper sizes.
+- **Muted Sage Gray failed AA, and the fix landed in R1b-i (2026-09-13).** The value is **`#56655D`**: **6.15:1 on White**, 5.88:1 on Mist White, **4.61:1 on Dew Sage**, 5.34:1 on `dewSageLight`. It passes AA on every light ground in 4.1 at body and helper sizes. The retired value was `#6F7F77` at **4.22:1 on White**, below 4.5:1, failing for the 14pt Regular helper text it was used for everywhere it was used. v2.0 called that "borderline: 14pt minimum", which read as a caution and licensed the usage it should have stopped; v2.1 corrected the word and recorded `#56655D` as a candidate; R1b-i made it the value.
+- **The count in the v2.1 entry was wrong by more than half, and the correction is why R1b-i widened.** "336 places" counted `mutedSageGray` only. The hex was declared **four times** in the palette, so the real surface was **~834 sites across 263 files**: `mutedSageGray` 336/125, `Colors.textSecondary` 412/116, `ColorTokens.textSecondary` 41/14, `Colors.text.secondary` 10/5, plus 35 raw literals in 23 feature files. Moving the named token alone would have left ~498 sites below AA and put two near-identical greys on screen together in 17 files. **All four declarations moved in R1b-i, and the 35 literals became the token.** See the note under 4.1.
+- **`#56655D` is darker, so it is WORSE on a dark ground, and that is a property of the fix rather than a defect in it.** Below a ground luminance of about **L 0.156** (roughly `#6E6E6E`) the new value has less contrast than the old: on Evergreen Teal it is **1.23:1**, where `#6F7F77` was 1.79:1. Neither is usable, and grey helper text was never specified for a teal ground. **R1b-i's walk checked every dark ground in the app for it.** One reachable instance exists and is booked as its own row, not fixed there: `Focus/components/DurationPresets.tsx` applies `presetTextDisabled` after `presetTextSelected`, so the selected duration renders grey on the teal fill while a Pomodoro timer runs.
 - **Touch targets**: **48 by 48 is the floor** for every interactive element (Apple's 44 is the minimum; Vara adds margin). 8 minimum between adjacent targets. Small text links get hit slop to 48. **In code all three already read 48 (corrected in v2.1):** `SizeTokens.touchTargetMin` (`src/constants/designTokens.ts:131`), `SizeTokens.inputHeight` (`designTokens.ts:161`), and `MIN_TOUCH_TARGET_SIZE` (**`src/utils/accessibility.ts:22`**, not `src/constants/`). v2.0 said two of them "still read 44 and are corrected as part of adopting this document" and named the wrong directory. **The work is done; the sentence was describing it as outstanding.**
 - **Screen reader**: every pressable carries `accessibilityRole` and a meaningful `accessibilityLabel` that names the action, not the appearance ("Save reflection," not "Green button"). Checkboxes carry `accessibilityState`. Decorative images are `accessible={false}`. Progress indicators are `progressbar` with a value. Use the builders in `src/utils/accessibility.ts` (`buttonA11yProps`, `checkboxA11yProps`, `progressA11yProps`, `switchA11yProps`, `headerA11yProps`) so labels are consistent; reading order matches visual order; nothing relies on position alone.
 - **Dynamic Type**: per 5.3.
@@ -957,7 +961,7 @@ Know these before writing code. They fail the build or the suite.
 
 | Debt | Count | Rule it violates |
 |---|---|---|
-| Raw hex literals | **431 errors**, re-measured in R1b-ii under the palette and test exemptions (was 501; 54 palette definitions and 16 test assertions were never debt). **46 of the 431 are inside `src/constants/`** and are debt, not tokens. | 3.1 |
+| Raw hex literals | **396 errors** (was 431; **R1b-i retired 35** by pointing the `#6F7F77` literals at `Colors.mutedSageGray`). Re-measured in R1b-ii under the palette and test exemptions (was 501 before those; 54 palette definitions and 16 test assertions were never debt). **46 of the 396 are inside `src/constants/`** and are debt, not tokens. | 3.1 |
 | `fontWeight` without a per-weight `fontFamily` | **0**, closed in R1a (was 975 sites in 277 files) | 5.1 |
 | Literal pixel `lineHeight` values | **114 in 91 files** (corrected in R1a from 149) | 5.2 |
 | Off-scale radius literals | **164 in 99 files** | 6.3 |
@@ -982,7 +986,9 @@ base is a literal; they are the correct pattern and are not debt. A further 75 a
 fully token-derived. **114 is the count of true fixed pixels**, and none of them is tighter than
 1.22x its font size, with only six below 1.3x.
 
-**Two further numbers are corrections and are stated as such.** The raw-hex figure is the eslint run's own output (`no-restricted-syntax`), not an estimate; an earlier working figure of 331 circulated and is wrong. It read 501 of 1100 errors at `c30671c`; **R1b-ii closed the configuration gap and it now reads 431 of 1033.**
+**Two further numbers are corrections and are stated as such.** The raw-hex figure is the eslint run's own output (`no-restricted-syntax`), not an estimate; an earlier working figure of 331 circulated and is wrong. It read 501 of 1100 errors at `c30671c`; **R1b-ii closed the configuration gap and it read 431 of 1033; R1b-i retired 35 of them and it now reads 396 of 995.**
+
+**R1b-i's 35 ARE REAL RETIREMENT, NOT A RE-MEASUREMENT, AND THE DISTINCTION IS THE POINT OF THIS ROW.** R1b-ii's 501-to-431 move was a configuration correction: the literals were always tokens and the rule was pointed at the wrong files. R1b-i's 431-to-396 move deleted 35 literals from 23 feature files and replaced each with `Colors.mutedSageGray`. **The other raw hex in those same files stayed** - `journalTags.ts`, the `VARA_COLORS` blocks in the insights components, `AIChatModal`'s brand consts - because the row's fence was the one colour, not the files it lived in. **A later reader counting 396 should not read a tidied directory.** The lint total fell 1033 to 995, and the 3 beyond the 35 are `@typescript-eslint/no-unused-vars`: three screens imported `Colors` and never used it, preferring their own local hex, and the local const now reads the token.
 
 **THE `src/constants/` CLAIM WAS HALF RIGHT, AND THE HALF THAT WAS WRONG IS THE PART WORTH KEEPING.** The sentence above used to say the 100 raw-hex errors inside `src/constants/` "are the token definitions themselves" and were a configuration gap rather than debt. **Only 54 of them are.** The palette lives in four files — `colors.ts` 38, `designTokens.ts` 11, `spacing.ts` 3, `theme.ts` 2 — and those four are now exempt, because a token file cannot import its own tokens. **The other 46 are content files declaring their own colours**: `journalTags.ts` 24, `groupCategories.ts` 9, `brainStateWindows.ts` 8, `featureUnlock.ts` 5. Those are ordinary 3.1 violations that happen to sit in the token directory, and **they stay in the 431 as debt.** The override is scoped to the four named files rather than to the directory precisely so they do: a directory-wide exemption would have retired a finding nobody took, which is the kind of number a later slice reads as progress.
 
@@ -1143,6 +1149,23 @@ The design-authority reconciliation for the visual redesign, journey roadmap row
   recorded as the correct pattern rather than as debt. **No rule in this document changed**: R1a
   implements 5.1 and 5.3 as written and corrects two figures in the debt table it is measured
   against.
+
+- **R1b-i: Muted Sage Gray stops failing AA (September 2026).** **4.1's palette row moves from
+  `#6F7F77` to `#56655D`** and **16's Muted Sage Gray bullet stops being a deferral and becomes a
+  record**: the candidate v2.1 recorded is now the value. **No rule in this document changed.**
+  R1b-i implements 16's contrast minimum against a value that had been failing it everywhere it
+  was used.
+  - **4.1 gains a note that the value has four code keys, not one**, and 16's "336 places" is
+    corrected to **~834 sites across 263 files**. That correction is the whole reason the row
+    widened: `Colors.textSecondary` alone is a bigger consumer than `mutedSageGray`, and moving
+    only the key this table names would have left the majority of the surface below AA and put
+    two near-identical greys on screen together in 17 files.
+  - **16 gains the dark-ground property**, because the fix has a direction: `#56655D` is darker,
+    so below a ground luminance of about **L 0.156** it is worse than what it replaced. Stated
+    here so a later slice putting helper text on a dark surface does not read 6.15:1 and assume
+    it travels.
+  - **17's raw-hex row drops 431 to 396**, with the 35 named as retired literals rather than as
+    a re-measurement, per 17's third clause that the delta belongs to the slice that acts.
 
 ### What changed from v1.0 to v2.0 (August 2026)
 
