@@ -17,7 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
-import { Colors, Spacing, TextStyles, Typography } from '../../constants';
+import { Colors, SizeTokens, Spacing, TextStyles, Typography } from '../../constants';
 import { ROUTES } from '../../navigation/routes';
 import type { ProtocolBrowseCategory } from '../../types/models';
 import { ScreenHeader, BAND_STRONG_SCRIM } from '../../components/shared/ScreenHeader';
@@ -27,7 +27,6 @@ import { GuidePill } from '../../components/ai/GuidePill';
 // (WebP) rendered via ScreenHeader's expo-image layer, never an SVG icon.
 const energyHeader = require('../../../assets/images/energyHeader.webp');
 
-const MIN_TOUCH_TARGET = 48;
 // How far the first category card rides up onto the header's bottom (mist) seam
 // — matches Focus so the overlap reads identically across heroes.
 const CARD_OVERLAP = Spacing.xl;
@@ -221,7 +220,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   card: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.lg,
@@ -253,7 +252,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   secondaryRow: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.sm,

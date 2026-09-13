@@ -36,7 +36,7 @@ import { StyleSheet, TouchableOpacity, View, Switch } from 'react-native';
 import Text from '../../components/shared/Text';
 import TextInput from '../../components/shared/TextInput';
 
-import { Colors, Layout, Spacing, Typography } from '../../constants';
+import { Colors, Layout, SizeTokens, Spacing, Typography } from '../../constants';
 import { EnhancedModal } from '../../components/shared/EnhancedModal';
 import { SelectChip } from '../../components/shared/SelectChip';
 import {
@@ -81,7 +81,6 @@ import {
   suggestionText,
 } from './blocksCopy';
 
-const MIN_TOUCH_TARGET = 48;
 const INPUT_ACCESSORY_ID = 'add-block-title';
 
 /** The durations offered at MVP. Stored as a plain number on the block. */
@@ -654,7 +653,7 @@ const styles = StyleSheet.create({
     borderRadius: Layout.borderRadius.md,
     backgroundColor: Colors.surface,
     paddingHorizontal: Spacing.sm,
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     fontSize: Typography.fontSize.base,
     color: Colors.softCharcoal,
   },
@@ -719,7 +718,7 @@ const styles = StyleSheet.create({
   },
   invitationRow: {
     marginTop: Spacing.base,
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     justifyContent: 'center',
   },
   invitationText: {
@@ -735,7 +734,7 @@ const styles = StyleSheet.create({
   },
   timeRow: {
     marginTop: Spacing.md,
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     justifyContent: 'center',
     paddingHorizontal: Spacing.sm,
     borderWidth: 1.5,
@@ -753,7 +752,7 @@ const styles = StyleSheet.create({
   },
   toggleRow: {
     marginTop: Spacing.base,
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -764,7 +763,7 @@ const styles = StyleSheet.create({
     color: Colors.softCharcoal,
   },
   primary: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: Layout.borderRadius.lg,
     backgroundColor: Colors.evergreenTeal,
     alignItems: 'center',
@@ -797,7 +796,7 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.divider,
   },
   removeButton: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: Layout.borderRadius.lg,
     backgroundColor: Colors.mutedSageGray,
     alignItems: 'center',
@@ -810,7 +809,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   textButton: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     alignItems: 'center',
     justifyContent: 'center',
   },

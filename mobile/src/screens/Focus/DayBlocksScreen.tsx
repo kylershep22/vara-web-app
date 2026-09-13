@@ -38,7 +38,7 @@ import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/nativ
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { Colors, Layout, Spacing, TextStyles, Typography } from '../../constants';
+import { Colors, Layout, SizeTokens, Spacing, TextStyles, Typography } from '../../constants';
 import { ROUTES } from '../../navigation/routes';
 import { useAuth } from '../../context/AuthContext';
 import { logger } from '../../utils/logger';
@@ -86,8 +86,6 @@ function anchorFor(tab: DayTab, now: Date): Date {
   if (tab === 'tomorrow') d.setDate(d.getDate() + 1);
   return d;
 }
-
-const MIN_TOUCH_TARGET = 48;
 
 /**
  * The daily cap. The mockup's decisions block said three; the round-3 device
@@ -684,7 +682,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   tab: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     justifyContent: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
@@ -723,7 +721,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   cta: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: Layout.borderRadius.lg,
     backgroundColor: Colors.evergreenTeal,
     alignItems: 'center',

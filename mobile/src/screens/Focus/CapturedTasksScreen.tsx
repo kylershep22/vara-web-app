@@ -56,7 +56,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { Colors, Layout, Spacing, TextStyles, Typography } from '../../constants';
+import { Colors, Layout, SizeTokens, Spacing, TextStyles, Typography } from '../../constants';
 import { ROUTES } from '../../navigation/routes';
 import { useAuth } from '../../context/AuthContext';
 import { logger } from '../../utils/logger';
@@ -86,8 +86,6 @@ import {
   TASKS_INTRO,
   TASKS_TITLE,
 } from './tasksCopy';
-
-const MIN_TOUCH_TARGET = 48;
 
 /**
  * The window the "Blocked" chip cares about: from local midnight today to local
@@ -451,7 +449,7 @@ const styles = StyleSheet.create({
   // placeholder's muted text. It reads as somewhere to type; the role tells
   // assistive tech the truth.
   captureTarget: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     justifyContent: 'center',
     paddingHorizontal: Spacing.sm,
     borderWidth: 1.5,

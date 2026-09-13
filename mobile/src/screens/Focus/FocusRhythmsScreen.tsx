@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
-import { Colors, Spacing, TextStyles, Typography } from '../../constants';
+import { Colors, SizeTokens, Spacing, TextStyles, Typography } from '../../constants';
 import { FOCUS_RHYTHM_OPTIONS } from '../../constants/focusRhythms';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -23,8 +23,6 @@ import {
   saveFocusRhythms,
 } from '../../services/firebase/focusRhythms.service';
 import { logger } from '../../utils/logger';
-
-const MIN_TOUCH_TARGET = 48;
 
 export function FocusRhythmsScreen() {
   const navigation = useNavigation<{ goBack: () => void }>();
@@ -143,7 +141,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   option: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
@@ -179,7 +177,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   saveButton: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: 14,
     backgroundColor: Colors.evergreenTeal,
     alignItems: 'center',

@@ -25,7 +25,7 @@ import TextInput from '../../components/shared/TextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
-import { Colors, Spacing, TextStyles, Typography } from '../../constants';
+import { Colors, SizeTokens, Spacing, TextStyles, Typography } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 import {
   FLOOR_COMMITMENT_MAX_CHARS,
@@ -35,8 +35,6 @@ import { logEvent } from '../../services/firebase/analyticsEvents.service';
 import { logger } from '../../utils/logger';
 import { ROUTES } from '../../navigation/routes';
 import { FLOOR_COPY } from './copy';
-
-const MIN_TOUCH_TARGET = 48;
 
 export function FloorCommitmentScreen() {
   const navigation = useNavigation<{ replace: (route: string) => void }>();
@@ -163,7 +161,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   input: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.divider,
@@ -181,7 +179,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   saveButton: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: 14,
     backgroundColor: Colors.evergreenTeal,
     alignItems: 'center',

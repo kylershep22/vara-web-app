@@ -22,7 +22,7 @@ import {
 import Text from '../../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
-import { Colors, Spacing, Typography } from '../../../constants';
+import { Colors, SizeTokens, Spacing, Typography } from '../../../constants';
 import type { PracticePointer, Quadrant, ResolvedPlan } from '../../../engine';
 import type { Protocol } from '../../../types/models';
 import {
@@ -30,8 +30,6 @@ import {
   formatProtocolDuration,
 } from '../../../utils/protocolDisplay';
 import { classifyPlanShape, type PlanShape } from './planShape';
-
-const MIN_TOUCH_TARGET = 48;
 
 function pointerNoun(pointer: PracticePointer): string {
   return pointer.type === 'focus-session' ? 'focus session' : 'plan';
@@ -499,14 +497,14 @@ const styles = StyleSheet.create({
     height: 56,
   },
   headerButton: {
-    width: MIN_TOUCH_TARGET,
-    height: MIN_TOUCH_TARGET,
+    width: SizeTokens.touchTargetMin,
+    height: SizeTokens.touchTargetMin,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerSpacer: {
-    width: MIN_TOUCH_TARGET,
-    height: MIN_TOUCH_TARGET,
+    width: SizeTokens.touchTargetMin,
+    height: SizeTokens.touchTargetMin,
   },
   scroll: {
     paddingHorizontal: Spacing.lg,
@@ -669,7 +667,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   primaryButton: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: 12,
     backgroundColor: Colors.evergreenTeal,
     alignItems: 'center',
@@ -682,7 +680,7 @@ const styles = StyleSheet.create({
     color: Colors.surface,
   },
   offeredButton: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.silverSage,
@@ -701,7 +699,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.silverSage,
@@ -720,7 +718,7 @@ const styles = StyleSheet.create({
     color: Colors.softCharcoal,
   },
   secondaryLink: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     alignItems: 'center',
     justifyContent: 'center',
   },

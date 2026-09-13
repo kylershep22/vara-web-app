@@ -71,7 +71,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { PhasePath } from '../../components/journey/PhasePath';
 import { StartHereRow } from '../../components/journey/StartHereRow';
-import { Colors, Spacing, TextStyles, Typography } from '../../constants';
+import { Colors, SizeTokens, Spacing, TextStyles, Typography } from '../../constants';
 import { PHASE_STATE_LABELS } from '../../constants/journeyCopy';
 import { useAuth } from '../../context/AuthContext';
 import { derivePhaseStates } from '../../journey/phaseStates';
@@ -81,8 +81,6 @@ import { getRenderableJourneyState } from '../../services/firebase/journeyState.
 import type { JourneyState } from '../../types/models';
 import type { JourneyPhaseParams } from './JourneyPhaseScreen';
 import { logger } from '../../utils/logger';
-
-const MIN_TOUCH_TARGET = 48;
 
 // EVERY CARD STRING BELOW IS DRAFT and carries the `COPY: draft` sentinel, as
 // it did on the launcher. The strings MOVED with their surface; none was
@@ -371,7 +369,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   card: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.lg,

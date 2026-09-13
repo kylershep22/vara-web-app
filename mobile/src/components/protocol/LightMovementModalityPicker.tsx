@@ -43,7 +43,7 @@ import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
-import { Colors, Spacing, Typography } from '../../constants';
+import { Colors, SizeTokens, Spacing, Typography } from '../../constants';
 import type {
   MovementModality,
   Protocol,
@@ -51,7 +51,6 @@ import type {
 } from '../../types/models';
 import { formatProtocolDuration } from '../../utils/protocolDisplay';
 
-const MIN_TOUCH_TARGET = 48;
 const TIME_LEFT_LINE = "You'll have time left in your window.";
 
 export interface LightMovementModalityPickerProps {
@@ -216,7 +215,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xl,
   },
   card: {
-    minHeight: MIN_TOUCH_TARGET * 2,
+    minHeight: SizeTokens.touchTargetMin * 2,
     paddingVertical: Spacing.xl,
     paddingHorizontal: Spacing.xl,
     borderRadius: 16,

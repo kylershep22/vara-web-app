@@ -24,15 +24,13 @@ import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Text from './Text';
 
-import { Colors, Layout, Spacing, Typography } from '../../constants';
+import { Colors, Layout, SizeTokens, Spacing, Typography } from '../../constants';
 import { withAlpha } from '../dashboard/brainStateCheckin/colorUtils';
 import {
   WEEKDAY_INDEXES,
   WEEKDAY_NAMES,
   WEEKDAY_SHORT_NAMES,
 } from '../../utils/weekdayLabels';
-
-const MIN_TOUCH_TARGET = 48;
 
 export interface WeekStartPickerProps {
   /** 0 = Sunday … 6 = Saturday. Null when nothing is chosen yet. */
@@ -79,8 +77,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   chip: {
-    minHeight: MIN_TOUCH_TARGET,
-    minWidth: MIN_TOUCH_TARGET + Spacing.md,
+    minHeight: SizeTokens.touchTargetMin,
+    minWidth: SizeTokens.touchTargetMin + Spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.base,

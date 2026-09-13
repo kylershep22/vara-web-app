@@ -31,7 +31,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { Colors, Spacing, Typography } from '../../constants';
+import { Colors, SizeTokens, Spacing, Typography } from '../../constants';
 import { getAllProtocols } from '../../constants/brainStateProtocols';
 import {
   eligiblePractices,
@@ -49,8 +49,6 @@ import type {
   Protocol,
   ProtocolTimeWindow,
 } from '../../types/models';
-
-const MIN_TOUCH_TARGET = 48;
 
 const STATE_LABEL: Record<BrainState, string> = {
   wired: 'Wired',
@@ -264,7 +262,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   card: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     padding: Spacing.lg,
     borderRadius: 16,
     borderWidth: 1,

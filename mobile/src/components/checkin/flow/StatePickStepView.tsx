@@ -34,13 +34,11 @@ import {
 import Text from '../../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
-import { Colors, Spacing, Typography } from '../../../constants';
+import { Colors, SizeTokens, Spacing, Typography } from '../../../constants';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import type { Arousal, Situation, Valence } from '../../../engine';
 import { StepIndicator } from '../../onboarding/StepIndicator';
 import { FEELING_COPY } from './feelingCopy';
-
-const MIN_TOUCH_TARGET = 48;
 
 // Recap of the situation the user already picked, shown in the anchor chip at
 // the top of the state read. Mirrors the action phrasing from
@@ -271,14 +269,14 @@ const styles = StyleSheet.create({
     height: 56,
   },
   headerButton: {
-    width: MIN_TOUCH_TARGET,
-    height: MIN_TOUCH_TARGET,
+    width: SizeTokens.touchTargetMin,
+    height: SizeTokens.touchTargetMin,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerSpacer: {
-    width: MIN_TOUCH_TARGET,
-    height: MIN_TOUCH_TARGET,
+    width: SizeTokens.touchTargetMin,
+    height: SizeTokens.touchTargetMin,
   },
   scroll: {
     // Top-down read: the chip anchors under the nav row and the questions follow
@@ -340,7 +338,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xl,
   },
   option: {
-    minHeight: MIN_TOUCH_TARGET + 16,
+    minHeight: SizeTokens.touchTargetMin + 16,
     justifyContent: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,

@@ -51,14 +51,13 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
-import { Colors, Spacing, Typography } from '../../constants';
+import { Colors, SizeTokens, Spacing, Typography } from '../../constants';
 import { PHASE_DISPLAY, PHASE_ORDER } from '../../constants/journey';
 import type { PhaseState } from '../../constants/journey';
 import type { PhaseStates } from '../../journey/phaseStates';
 import type { DestinationKey, PhaseKey } from '../../types/models';
 
 const MARKER_SIZE = 12;
-const MIN_TOUCH_TARGET = 48;
 const RAIL_WIDTH = 24;
 
 /**
@@ -254,7 +253,7 @@ const styles = StyleSheet.create({
   // Only when the row is a button. UI Standards 16: every touch target 48 or
   // larger. A short title on a one-line row falls under that on its own.
   rowPressable: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     alignItems: 'center',
   },
   rail: {

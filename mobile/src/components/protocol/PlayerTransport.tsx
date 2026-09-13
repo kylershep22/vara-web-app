@@ -36,10 +36,8 @@ import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
-import { Colors, Spacing, Typography } from '../../constants';
+import { Colors, SizeTokens, Spacing, Typography } from '../../constants';
 import { EndEarlyConfirmModal } from './EndEarlyConfirmModal';
-
-const MIN_TOUCH_TARGET = 48;
 
 export type TransportAudioErrorPhase = 'none' | 'error';
 
@@ -206,7 +204,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     paddingHorizontal: Spacing.sm,
   },
   buttonLabel: {

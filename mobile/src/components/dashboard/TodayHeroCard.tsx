@@ -25,7 +25,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Text from '../shared/Text';
 import { Check } from 'lucide-react-native';
 
-import { Colors, Layout, Spacing, Typography } from '../../constants';
+import { Colors, Layout, SizeTokens, Spacing, Typography } from '../../constants';
 import type { ResolvedProtocolVariant } from '../../protocolEngine';
 import { OUTCOME_LABELS } from '../../screens/weekly/copy';
 import { DESTINATION_SUMMARY_LABELS } from '../../constants/journeyCopy';
@@ -35,8 +35,6 @@ import type { DestinationKey, WeeklyCycle } from '../../types/models';
 import { resolveWeekEnd } from '../../utils/weekStart';
 import { weekdayNameForIso } from '../../utils/weekdayLabels';
 import { CardHeading } from './CardHeading';
-
-const MIN_TOUCH_TARGET = 48;
 
 /**
  * Consistent days after which the done-state stops using the variant's own
@@ -290,7 +288,7 @@ const styles = StyleSheet.create({
     lineHeight: Typography.fontSize.sm * Typography.lineHeight.normal,
   },
   cta: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: Layout.borderRadius.lg,
     backgroundColor: Colors.evergreenTeal,
     alignItems: 'center',
@@ -304,7 +302,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   doneRow: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,

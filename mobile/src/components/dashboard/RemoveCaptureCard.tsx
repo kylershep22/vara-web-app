@@ -24,11 +24,9 @@ import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Text from '../shared/Text';
 
-import { Colors, Layout, Spacing, Typography } from '../../constants';
+import { Colors, Layout, SizeTokens, Spacing, Typography } from '../../constants';
 import { CAPTURE_CARD_COPY } from '../../screens/journey/removeCapture/copy';
 import { CardHeading } from './CardHeading';
-
-const MIN_TOUCH_TARGET = 48;
 
 export interface RemoveCaptureCardProps {
   onOpen: () => void;
@@ -83,7 +81,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.base,
   },
   cta: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: Layout.borderRadius.lg,
     backgroundColor: Colors.evergreenTeal,
     alignItems: 'center',
@@ -96,7 +94,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   dismiss: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     alignItems: 'center',
     justifyContent: 'center',
   },

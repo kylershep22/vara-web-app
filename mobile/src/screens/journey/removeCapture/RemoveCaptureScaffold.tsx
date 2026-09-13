@@ -20,9 +20,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Text from '../../../components/shared/Text';
 
 import { OnboardingScaffold } from '../../../components/onboarding/OnboardingScaffold';
-import { Colors, Spacing, Typography } from '../../../constants';
-
-const MIN_TOUCH_TARGET = 48;
+import { Colors, SizeTokens, Spacing, Typography } from '../../../constants';
 
 interface RemoveCaptureScaffoldProps {
   title: string;
@@ -79,7 +77,7 @@ export const RemoveCaptureScaffold: React.FC<RemoveCaptureScaffoldProps> = ({
 
 const styles = StyleSheet.create({
   tertiary: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: Spacing.base,

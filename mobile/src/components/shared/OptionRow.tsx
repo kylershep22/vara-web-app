@@ -20,11 +20,10 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import Text from './Text';
-import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { Colors, SizeTokens, Spacing, Typography, Layout } from '../../constants';
 import { withAlpha } from '../dashboard/brainStateCheckin/colorUtils';
 
 const CONTROL_SIZE = 22;
-const MIN_TOUCH_TARGET = 48;
 
 interface OptionRowProps {
   label: string;
@@ -65,7 +64,7 @@ export const OptionRow: React.FC<OptionRowProps> = ({
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,

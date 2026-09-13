@@ -32,7 +32,7 @@ import Text from '../../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
-import { Colors, Spacing, TextStyles, Typography } from '../../constants';
+import { Colors, SizeTokens, Spacing, TextStyles, Typography } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 import { getFloorCommitment } from '../../services/firebase/userPrivate.service';
 import { getLatestWeeklyCycle } from '../../services/firebase/weeklyCycle.service';
@@ -42,8 +42,6 @@ import { toIsoDate } from '../../utils/weekStart';
 import { ROUTES } from '../../navigation/routes';
 import { ENTRY_COPY } from './copy';
 import { resolveWeeklyEntry, type WeeklyEntryTarget } from './weeklyEntry';
-
-const MIN_TOUCH_TARGET = 48;
 
 interface Navigator {
   replace: (route: string) => void;
@@ -210,7 +208,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   retryButton: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: 14,
     backgroundColor: Colors.evergreenTeal,
     alignItems: 'center',
