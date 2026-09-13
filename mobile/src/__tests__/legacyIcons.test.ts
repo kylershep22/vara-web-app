@@ -11,8 +11,9 @@
  * path stops existing, and it cannot fail when an allowlisted file stops
  * importing the thing it was waived for. Both are how a waiver outlives what it
  * waived. `brandCompliance.test.ts` already carries the first half of that
- * contract; this suite carries both halves - see ASSERTION 3 below, which is
- * written to be lifted into `brandCompliance.test.ts` unchanged.
+ * contract; this suite carries both halves. ASSERTION 3's engine was lifted to
+ * `./allowlistIntegrity` in R1d and both suites now run it; its own behaviour is
+ * pinned in `allowlistIntegrity.test.ts`, not here.
  *
  * DETECTION IS OVER IMPORT STATEMENTS, NOT MENTIONS, and every clause below was
  * earned by a real file in this tree:
@@ -45,6 +46,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { allowlistIntegrity } from './allowlistIntegrity';
 
 const mobileRoot = path.resolve(__dirname, '../..');
 
@@ -252,40 +254,6 @@ function readRel(relPath: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// LIFTABLE: generic allowlist integrity
-// ---------------------------------------------------------------------------
-
-/**
- * ASSERTION 3's engine, written generically so it can be lifted into
- * `brandCompliance.test.ts` unchanged. That suite's allowlist has the same
- * `Record<path, reason>` shape and today checks only existence, which means a
- * waiver there survives the violation being fixed.
- *
- * Pass `stillViolates` as the calling suite's own detector:
- *   this suite      -> (p) => legacyIconSetsIn(read(p)).length > 0
- *   brandCompliance -> (p) => scan(p).length > 0
- *
- * Returns `missing` (allowlisted paths that no longer exist) and `clean`
- * (allowlisted paths that exist but no longer violate).
- */
-export function allowlistIntegrity(
-  allowlist: Record<string, string>,
-  root: string,
-  stillViolates: (relPath: string) => boolean
-): { missing: string[]; clean: string[] } {
-  const missing: string[] = [];
-  const clean: string[] = [];
-  for (const relPath of Object.keys(allowlist)) {
-    if (!fs.existsSync(path.join(root, relPath))) {
-      missing.push(relPath);
-    } else if (!stillViolates(relPath)) {
-      clean.push(relPath);
-    }
-  }
-  return { missing, clean };
-}
-
-// ---------------------------------------------------------------------------
 // The three assertions
 // ---------------------------------------------------------------------------
 
@@ -437,18 +405,5 @@ describe('Legacy icon sets - detector sanity', () => {
     ].join('\n');
     const mods = parseImports(src).map((i) => i.module);
     expect(mods).toEqual(['@expo/vector-icons', 'react-native']);
-  });
-
-  it('allowlistIntegrity separates a missing path from a path that stopped violating', () => {
-    const fake = {
-      'src/__tests__/legacyIcons.test.ts': 'exists; detector says it violates',
-      'src/does/not/exist.tsx': 'missing',
-    };
-    const r = allowlistIntegrity(fake, mobileRoot, (p) => p.endsWith('legacyIcons.test.ts'));
-    expect(r.missing).toEqual(['src/does/not/exist.tsx']);
-    expect(r.clean).toEqual([]);
-
-    const r2 = allowlistIntegrity(fake, mobileRoot, () => false);
-    expect(r2.clean).toEqual(['src/__tests__/legacyIcons.test.ts']);
   });
 });
