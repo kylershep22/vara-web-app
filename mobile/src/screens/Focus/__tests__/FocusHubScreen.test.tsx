@@ -313,14 +313,19 @@ describe('FocusHubScreen', () => {
       mockGetFocusRhythms.mockResolvedValue(['afternoon']);
       const { findByText } = render(<FocusHubScreen />);
       const body = await findByText(IN_WINDOW_BODY);
-      // softCharcoal (10.7:1 on the card), not mutedSageGray (4.22:1, under AA).
+      // softCharcoal (10.7:1 on the card). Still not the default's
+      // mutedSageGray, which is 6.15:1 since R1b-i: the two differ on
+      // hierarchy now, not on AA. See the note on primaryBodyInWindow.
       expect(StyleSheet.flatten(body.props.style).color).toBe('#3E3E3E');
     });
 
-    it('leaves the default body color untouched', () => {
+    it('leaves the default body on the helper-text token', () => {
       const { getByText } = render(<FocusHubScreen />);
-      // The app-wide mutedSageGray contrast issue is NOT closed by this slice.
-      expect(StyleSheet.flatten(getByText(DEFAULT_BODY).props.style).color).toBe('#6F7F77');
+      // #56655D since R1b-i, which DID close the app-wide mutedSageGray
+      // contrast issue this line used to say was open. The literal is
+      // deliberate: importing the token here would make the assertion
+      // tautological and pass if the token moved to the wrong colour.
+      expect(StyleSheet.flatten(getByText(DEFAULT_BODY).props.style).color).toBe('#56655D');
     });
 
     it('reads the invitation to assistive tech as part of the one CTA', async () => {
