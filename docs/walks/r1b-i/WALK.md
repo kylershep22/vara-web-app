@@ -8,6 +8,41 @@ slice commits its walk script.
 
 ---
 
+## RESULT — walked 2026-09-13 (Kyle)
+
+One device, dev client, default Dynamic Type. **The device model is not recorded**: the walk
+result carried a `<MODEL>` placeholder that was never filled in, and §18(d) asks a walk to
+say which device it ran on. One device, not both.
+
+**PASSED:** 1, 2, 3, 4 · 5 · 6 · 7 · 10 · 11 · 12 · 13 (Today and Energy) · 18 (chevrons and
+menus).
+
+**NOT RUN:** 8 · 9 (no pending request on the account) · 13 on the Focus hub · 14, 15, 16, 17
+(the Step 0 static sweep cleared all *declared* grounds) · 19 (the slice adds no animation) ·
+20 (a hex value does not change layout) · the second matrix device.
+
+**Qualifications worth carrying:**
+
+- **Step 11 passed but the distinction is weaker than before**, via hue and label. That is the
+  risk the AMENDED block predicted. **The fallback token is NOT built** — the pass condition was
+  distinguishability and it was met — and R2 fixes it structurally when it restyles the bar.
+- **Step 13** also surfaced a teal eyebrow over the Today artwork. Pre-existing §4.5 item; R3
+  removes the band from Today, so it resolves there.
+- **Step 18** produced debt item (e): the People empty-state glyph reads heavy. Measured after
+  the walk it is 64px, not 48.
+- **Steps 19 and 14–17 have the weakest reasons.** §18(e) is explicit that Reduce Motion covers
+  every animation on a touched surface, not only the ones a slice added; and 14–17 exist
+  precisely to reach what a static sweep cannot (raster artwork, user imagery, call-site
+  grounds). Not re-argued, not blocking, but **they roll forward to R2's walk** rather than
+  counting as closed.
+
+**Seven debt items logged**, none fixed here: (a) and (c) extend standards §17 rows; (b), (d),
+(e), (f), (g) are `docs/DESIGN_BACKLOG.md` items 7–11.
+
+**Step 18's subject became its own row.** DURATION-PRESETS, in §5 before R3.
+
+---
+
 ## How to run this
 
 Both matrix devices — **iPhone SE (3rd gen), 375 × 667 pt @2x** and **iPhone 16 Pro Max,

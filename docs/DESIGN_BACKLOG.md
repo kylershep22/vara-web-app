@@ -10,7 +10,7 @@ to focus on launch-blockers, or (b) been flagged during device
 verification as polish opportunities, or (c) raised architectural
 questions that need an investigation before implementation can begin.
 
-Last updated: 2026-05-11
+Last updated: 2026-09-13
 
 ---
 
@@ -208,3 +208,191 @@ behavior impact, no user impact, only readability for future
 maintainers reading the rules file.
 
 **Priority:** Low; docs-only follow-up.
+
+---
+
+## 7. Placeholders with no colour fall through to the platform default
+
+**Source:** R1b-i device walk, 2026-09-13 (Kyle, debt item b).
+
+**The note said two Journal strings. It is 34, across 16 files.**
+`JournalScreen.tsx:275` ("Write your thoughts or use voice input...")
+and `:296` ("Add a tag") set no `placeholderTextColor`, so React
+Native falls back to the platform default — on iOS
+`rgba(60,60,67,0.3)`, which composites to about `#C1C1C0` over the
+Mist White ground and measures **1.72:1**. Well below AA, and not a
+token, which is why R1b-i did not touch it.
+
+Counting every input that renders a `placeholder` and never sets
+`placeholderTextColor` gives **34 sites in 16 files**:
+
+```
+5  screens/community/ChallengesScreen.tsx
+5  components/community/CreateChallengeFromGroupModal.tsx
+4  components/onboarding/FirstActionCard.tsx
+3  screens/JournalScreen.tsx
+3  screens/HabitDetailScreen.tsx
+3  components/habits/wizard/ScalingStep.tsx
+2  components/habits/SimpleHabitCreateScreen.tsx
+1  each: ProfileScreen, community/GroupsScreen,
+   community/CommunityScreen, habits/wizard/TriggerStep,
+   habits/wizard/ReviewStep, habits/wizard/IdentityStep,
+   habits/wizard/ActionStep, community/CreatePostModal,
+   brain/AMCCChallengeCard
+```
+
+**This is why R1b-i's walk step 10 passed and this is still true.**
+Step 10 walked five placeholders — Community, Groups and People
+search, Capture, Add-a-block — and all five set
+`placeholderTextColor={Colors.mutedSageGray}` explicitly. The two
+sets do not overlap. 52 sites set it; these 34 do not.
+
+**Scope:** decide whether the shared `TextInput` primitive
+(`components/shared/TextInput.tsx`) should default
+`placeholderTextColor` to the helper-text token, which would close
+all 34 at once, or whether each site sets it. The primitive already
+resolves `fontFamily` centrally and its header notes that
+`placeholderTextColor` "appears at 51 sites. That is unrelated and
+untouched" — this item is the decision that comment defers.
+
+**Priority:** Accessibility. Ahead of cosmetic items; it is an AA
+failure on every unlabelled input in the app.
+
+---
+
+## 8. "Clear" and "Remove" are filled buttons where 10.1 says tertiary
+
+**Source:** R1b-i device walk, 2026-09-13 (Kyle, debt item d).
+
+**Citation correction first:** the walk note cites §7.1. There is no
+§7.1 — §7 is Iconography and has no subsections. The governing rule
+is **§10.1's tertiary clause**: "no fill, Teal text, 40 tall with hit
+slop to 48. For skip, cancel, 'Maybe later,' and adjust actions.
+Destructive tertiary buttons use Soft Charcoal text, not Coral."
+
+**Two buttons, not one, because they are the same shape:**
+
+- `screens/Focus/CaptureTaskSheet.tsx:339` `clearButton` — a Clear
+  action, which is a cancel-family action under 10.1.
+- `screens/Focus/AddBlockSheet.tsx:799` `removeButton` — a
+  destructive action, which 10.1 routes to tertiary with a Soft
+  Charcoal label.
+
+Both are `backgroundColor: Colors.mutedSageGray` with a White 16pt
+semibold label and `minHeight: MIN_TOUCH_TARGET`.
+
+**Note the interaction with R1b-i.** That slice darkened both fills
+to fix a 4.22:1 White-on-grey label, and walk steps 5 and 6 confirmed
+the result reads correctly. **If this item is actioned, the fill R1b-i
+fixed stops existing.** The two are not independent: do this one
+before spending more effort on the fill.
+
+`blocksBrandGuard.test.ts:83` pins `AddBlockSheet`'s remove button to
+`Colors.mutedSageGray` by token name, so it will need updating with
+the style — that test exists to keep Soft Coral off routine controls,
+and a tertiary Soft Charcoal label still satisfies its intent.
+
+**Priority:** Design decision, then a small change. Bundle with any
+Focus-sheet pass.
+
+---
+
+## 9. Empty-state glyphs carry a text colour at display size
+
+**Source:** R1b-i device walk, 2026-09-13 (Kyle, debt item e).
+Walk step 18 passed for chevrons and menus and flagged this.
+
+**Measured after the walk: the People glyph is `size={64}`, not the
+48 the note records.** `screens/community/PeopleScreen.tsx:465`.
+
+Six empty-state glyphs render at 48 or 64 in a colour chosen for
+14pt helper text:
+
+```
+screens/community/PeopleScreen.tsx:465          64  mutedSageGray
+screens/ConversationsScreen.tsx:368             48  mutedSageGray
+components/messaging/EmptyState.tsx:30          48  mutedSageGray
+screens/community/MessagesScreen.tsx:277        48  textSecondary
+components/brain/WeeklyBrainMetricsChart.tsx:209 48 textSecondary
+screens/Time/ActiveRoutinePlayer.tsx:418        48  ColorTokens
+                                                    .textSecondary
+```
+
+A 64px glyph at the helper-text value is a different decision from a
+14pt caption at the same value: the colour was picked to sit quietly
+behind body copy, and at display size it reads as weight rather than
+as quiet. R1b-i darkened all six together, which is what made it
+visible.
+
+**Scope:** an empty-state icon colour — lighter than the helper-text
+token, or the same token at a reduced opacity. Non-text contrast
+floor is 3:1 (16), which both the old and new values clear, so this
+is a hierarchy decision and not an accessibility one.
+
+**Priority:** Cosmetic. Bundle with the empty-state pass.
+
+---
+
+## 10. Add-a-block sheet sits inside the top safe-area inset
+
+**Source:** R1b-i device walk, 2026-09-13 (Kyle, debt item f).
+
+**The note asks to check the SE. The SE is the better case.**
+
+`screens/Focus/AddBlockSheet.tsx:378` passes
+`maxHeightPercent={0.98}` where `EnhancedModal` defaults to `0.92`.
+The override is deliberate and its reason is in the comment above it:
+fitting a sixth row (Remove) below the five without reintroducing a
+scroll. The shell caps height at `screenHeight * maxHeightPercent`,
+so the top gap is `screenHeight * (1 - maxHeightPercent)`:
+
+| Device | 0.92 top gap | 0.98 top gap | Top inset | At 0.98 |
+|---|---|---|---|---|
+| iPhone SE (3rd gen), 667pt | 53.4pt | 13.3pt | 20pt status bar | **6.7pt inside** |
+| iPhone 16 Pro Max, 932pt | 74.6pt | 18.6pt | 59pt Dynamic Island | **40.4pt inside** |
+
+The shell's header adds `paddingTop: Spacing.lg` (24pt), which covers
+the SE's 6.7pt overlap and does **not** cover the Pro Max's 40.4pt.
+**So the Dynamic Island device is the binding case**, and it is the
+one that was walked.
+
+This is a §18(c) safe-area failure with a stated trade-off behind it,
+not an oversight. **Any fix has to keep the sixth row reachable** —
+returning to 0.92 without addressing content height puts the scroll
+back, which is what the override existed to remove. Options: clamp
+against `insets.top` rather than a flat percentage, or let the sheet
+scroll and keep the cap.
+
+**Priority:** Accessibility / safe areas. Ahead of the cosmetic items.
+
+---
+
+## 11. Two adjacent warm chips on the routine list
+
+**Source:** R1b-i device walk, 2026-09-13 (Kyle, debt item g).
+
+§4.2: warm accents "stay at or under 10 to 15% of the visual field"
+and "never sit adjacent to each other." §2.2 is the one-warm-point
+rule.
+
+`screens/Time/components/activityColors.ts:38-42` maps **four**
+legacy colour names — `orange`, `yellow`, `amber`, `brown` — onto
+`ActivityColors.apricot` (Golden Apricot `#F5B971`).
+`ActivityListItem.tsx:58-59` renders each activity's icon in that
+colour on a 0.15-alpha fill of it. **Two adjacent activities drawn
+from any of those four names therefore produce two adjacent warm
+chips** on the Time routine list.
+
+The four-to-one collapse is why this is easy to hit rather than rare:
+the map was written to get blue and red off the palette, and it
+funnelled every warm legacy name into one accent without a rule about
+adjacency.
+
+**Scope:** either the list enforces separation (no two warm chips in
+sequence), or fewer legacy names map to apricot, or the accent moves
+off the icon chip entirely. The neutral fallback in the same map,
+`gray: ColorTokens.textSecondary`, moved with R1b-i and is unaffected
+by this item.
+
+**Priority:** Cosmetic, Time surface. Bundle with the routine-list
+pass.

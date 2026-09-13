@@ -966,8 +966,8 @@ Know these before writing code. They fail the build or the suite.
 | Literal pixel `lineHeight` values | **114 in 91 files** (corrected in R1a from 149) | 5.2 |
 | Off-scale radius literals | **164 in 99 files** | 6.3 |
 | Animated components not importing `useReducedMotion` | **26 files** | 9.4 |
-| Uppercase or tracked-out labels above headings | **24 in 20 files**, three at 14pt | 5.4 |
-| Visible numeric progress, fractions or "X of Y" | **13 sites** | 10.7 |
+| Uppercase or tracked-out labels above headings | **24 in 20 files**, three at 14pt. **One of the three is also a contrast failure** (added 2026-09-13 from R1b-i's walk): Journal's `TODAY` date header, `components/journal/RelativeDateHeader.tsx:158`, is `Colors.silverSage` uppercase at 14pt with `letterSpacing: 0.5`, measuring **1.61:1 on Mist White and 1.68:1 on White**. It violates 5.4 and 16 at once, and the 5.4 fix alone would leave the contrast one. | 5.4, 16 |
+| Visible numeric progress, fractions or "X of Y" | **13 sites, NEVER ENUMERATED** - the figure was measured at `c30671c` and no list of the sites exists anywhere, so a new sighting cannot be told from one already inside the 13. **Enumerating them is the next step on this row.** Named 2026-09-13 from R1b-i's walk: `screens/Time/components/ChecklistPlayer.tsx` renders BOTH a count and a filling bar in one header - "{completedCount} of {totalCount} complete" at `:63` and a width-driven `progressBarFill` at `:65-71` - which is two violations, not one. | 10.7 |
 | Soft Coral outside genuine errors | **4 sites** (2 routine destructive controls, 2 count badges) | 4.4 |
 | Files on a legacy icon set | **28** (11 Lucide, 17 Ionicons), held by `src/__tests__/legacyIcons.test.ts` since R1b-ii | 7 |
 
