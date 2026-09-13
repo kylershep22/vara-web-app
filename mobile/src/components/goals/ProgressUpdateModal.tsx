@@ -9,12 +9,12 @@ import {
   View,
   Modal,
   TouchableOpacity,
-  TextInput,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Text,
 } from 'react-native';
+import Text from '../shared/Text';
+import TextInput from '../shared/TextInput';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,

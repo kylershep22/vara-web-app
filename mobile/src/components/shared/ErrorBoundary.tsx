@@ -23,7 +23,8 @@
  */
 
 import React, { Component, ReactNode } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import Text from './Text';
 import { logError } from '../../services/crashReporting.service';
 import { Colors } from '../../constants';
 

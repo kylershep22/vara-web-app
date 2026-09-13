@@ -10,8 +10,8 @@ import {
   Platform,
   ActivityIndicator,
   Linking,
-  Text,
 } from 'react-native';
+import Text from '../components/shared/Text';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -745,6 +745,21 @@ const SettingsScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Developer (dev builds only)</Text>
           <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => navigation.navigate('DevTypography' as never)}
+              accessibilityRole="button"
+              accessibilityLabel="Dev: Typography diagnostic"
+              testID="settings-dev-typography"
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingLabel}>Dev: Typography</Text>
+                <Text style={styles.settingDescription}>
+                  Primitive against the system font, for the R1a walk
+                </Text>
+              </View>
+              <Ionicons name="open-outline" size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.settingRow}
               onPress={() => navigation.navigate('DevVideoPlayer' as never)}

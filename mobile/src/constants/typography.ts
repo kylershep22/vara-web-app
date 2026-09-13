@@ -65,6 +65,20 @@ export const Typography = {
     normal: 0,        // Body text (default)
     wide: 0.5,        // Captions and labels
   },
+
+  // ===========================================
+  // DYNAMIC TYPE CEILING (UI Standards 5.3, 5.1)
+  // ===========================================
+  // The single source of the `maxFontSizeMultiplier` every Text carries.
+  // 5.3 requires the ceiling on every Text and calls 1.3 a launch-time
+  // constraint, not the end state: raising it post-launch is a one-line edit
+  // HERE and nowhere else. Before this token there were 17 hardcoded sites,
+  // seven module-local `MAX_FONT_SCALE` consts and ten inline `1.3` literals,
+  // and no way to raise the ceiling without finding all of them.
+  //
+  // Applied by the shared Text primitive (components/shared/Text.tsx), so a
+  // caller only passes `maxFontSizeMultiplier` to OVERRIDE it.
+  maxFontScale: 1.3,
 } as const;
 
 // ===========================================

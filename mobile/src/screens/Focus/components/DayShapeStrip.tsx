@@ -15,7 +15,8 @@
  * Reduce Motion has nothing to respect here.
  */
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Text from '../../../components/shared/Text';
 
 import { Colors, Layout, Spacing, Typography } from '../../../constants';
 import { DAY_SHAPE_ZONES, blockPill, rhythmBands } from '../dayShape';

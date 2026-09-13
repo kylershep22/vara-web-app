@@ -6,7 +6,6 @@
 import React, { useCallback } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -15,6 +14,7 @@ import {
   InputAccessoryView,
   Platform,
 } from 'react-native';
+import Text from '../../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { LoadingSpinner, Button, PostCard } from '../../components';

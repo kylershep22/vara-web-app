@@ -13,7 +13,8 @@
 // player handles whatever aspect ratio real content arrives in.
 
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Text from '../../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors, Spacing, TextStyles, Typography } from '../../constants';

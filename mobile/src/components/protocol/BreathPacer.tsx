@@ -19,7 +19,8 @@
 // Motion > Reduce Motion).
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Platform, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
+import Text from '../shared/Text';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,

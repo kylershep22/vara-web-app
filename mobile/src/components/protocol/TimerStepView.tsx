@@ -12,7 +12,8 @@
 // pick (Walk vs Stretch); the catalog's static hint is a fallback.
 
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Text from '../shared/Text';
 
 import { Colors, Spacing, Typography } from '../../constants';
 import { useStepCountdown } from '../../hooks/useStepCountdown';

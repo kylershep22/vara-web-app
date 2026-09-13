@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Keyboard,
@@ -14,9 +13,10 @@ import {
   Modal,
   KeyboardAvoidingView,
   ActivityIndicator,
-  TextInput,
   Platform,
 } from 'react-native';
+import Text from '../shared/Text';
+import TextInput from '../shared/TextInput';
 import { Colors, Spacing } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';

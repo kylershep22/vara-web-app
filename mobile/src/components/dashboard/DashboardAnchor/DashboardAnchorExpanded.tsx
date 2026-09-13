@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import Text from '../../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Typography } from '../../../constants';
 import { BrainState } from '../../../types';

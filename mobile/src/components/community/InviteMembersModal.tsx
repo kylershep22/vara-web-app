@@ -6,15 +6,15 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
   Image,
   Alert,
-  TextInput,
   ActivityIndicator,
 } from 'react-native';
+import Text from '../shared/Text';
+import TextInput from '../shared/TextInput';
 import CommunityAvatar from '../shared/CommunityAvatar';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';

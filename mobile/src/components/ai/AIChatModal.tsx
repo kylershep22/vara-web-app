@@ -13,12 +13,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  TextInput,
   ScrollView,
   Animated,
   Easing,
-  Text,
 } from 'react-native';
+import Text from '../shared/Text';
+import TextInput from '../shared/TextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';

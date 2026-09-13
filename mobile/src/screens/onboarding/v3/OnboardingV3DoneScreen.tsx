@@ -39,7 +39,8 @@
  * are not meant to be re-run.
  */
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
+import Text from '../../../components/shared/Text';
 import { CheckCircle2 } from 'lucide-react-native';
 
 import { OnboardingScaffold } from '../../../components/onboarding/OnboardingScaffold';

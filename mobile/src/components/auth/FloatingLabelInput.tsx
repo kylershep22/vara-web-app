@@ -11,14 +11,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
-  TextInput,
   StyleSheet,
   Animated,
   TouchableWithoutFeedback,
   TextInputProps,
   ViewStyle,
-  Text,
 } from 'react-native';
+import Text, { AnimatedText } from '../shared/Text';
+import TextInput, { type TextInputInstance } from '../shared/TextInput';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 
@@ -49,7 +49,7 @@ const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
   ...props
 }) => {
   const [isFocused, setIsFocused] = useState(false);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const reduceMotion = useReducedMotion();
 
   // Animated values
@@ -144,7 +144,7 @@ const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
             {/* Input area */}
             <View style={styles.inputWrapper}>
               {/* Floating label */}
-              <Animated.Text
+              <AnimatedText
                 style={[
                   styles.label,
                   {
@@ -158,7 +158,7 @@ const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
                 numberOfLines={1}
               >
                 {label}
-              </Animated.Text>
+              </AnimatedText>
 
               {/* Text input */}
               <TextInput

@@ -13,7 +13,8 @@
 // focus so it reflects routines added/deactivated on the Rhythms tab).
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import Text from '../shared/Text';
 
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { CardHeading } from './CardHeading';

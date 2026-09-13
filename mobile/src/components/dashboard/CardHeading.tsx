@@ -14,7 +14,8 @@
 // announcement is unchanged by adopting this component.
 
 import React from 'react';
-import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type ViewStyle } from 'react-native';
+import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { Colors, Layout, Spacing, Typography } from '../../constants';

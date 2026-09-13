@@ -18,7 +18,8 @@
  * original so its rendering is unchanged.
  */
 import React, { type ComponentType } from 'react';
-import { Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet, TouchableOpacity } from 'react-native';
+import Text from './Text';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 
 // Minimal shape of a Lucide icon component (size / color / strokeWidth). Kept

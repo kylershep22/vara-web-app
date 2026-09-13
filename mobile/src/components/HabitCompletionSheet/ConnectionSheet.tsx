@@ -7,11 +7,11 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Animated,
 } from 'react-native';
+import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { HabitCompletionSheetProps, CONNECTION_AFFIRMING_COPY, CONNECTION_OPTIONS } from './types';
 import { getCompletionInsight } from '../../constants/brainInsightsCopy';

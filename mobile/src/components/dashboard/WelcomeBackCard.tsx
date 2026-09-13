@@ -7,7 +7,8 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { TouchableOpacity, StyleSheet, Platform, Text, View, LayoutAnimation, UIManager } from 'react-native';
+import { TouchableOpacity, StyleSheet, Platform, View, LayoutAnimation, UIManager } from 'react-native';
+import Text from '../shared/Text';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,

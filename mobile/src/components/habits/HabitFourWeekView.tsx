@@ -26,7 +26,8 @@
 // is the schedule that was actually in force.
 
 import React, { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Text from '../shared/Text';
 
 import { Colors, Typography, Spacing } from '../../constants';
 import { resolveWeekStart } from '../dashboard/habitWeekState';

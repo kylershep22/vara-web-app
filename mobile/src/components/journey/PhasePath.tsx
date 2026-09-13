@@ -47,7 +47,8 @@
  * brandCopyGuard enforces it on the source.
  */
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { Colors, Spacing, Typography } from '../../constants';
@@ -69,7 +70,6 @@ const MARKER_TOP_OFFSET =
   (Typography.fontSize.base * Typography.lineHeight.normal) / 2 - MARKER_SIZE / 2;
 
 /** UI Standards 5.3: text scales, capped so a long title cannot break the rail. */
-const MAX_FONT_SCALE = 1.3;
 
 export interface PhasePathProps {
   destination: DestinationKey;
@@ -205,14 +205,14 @@ export const PhasePath: React.FC<PhasePathProps> = ({
             <View style={styles.headingRow}>
               <Text
                 style={[styles.primary, state === 'current' && styles.primaryCurrent]}
-                maxFontSizeMultiplier={MAX_FONT_SCALE}
+                maxFontSizeMultiplier={Typography.maxFontScale}
               >
                 {primary}
               </Text>
               {showStateLabels && stateLabel ? (
                 <Text
                   style={[styles.state, state === 'current' && styles.stateCurrent]}
-                  maxFontSizeMultiplier={MAX_FONT_SCALE}
+                  maxFontSizeMultiplier={Typography.maxFontScale}
                   testID={`${testID}-${phase}-state`}
                 >
                   {stateLabel}
@@ -220,7 +220,7 @@ export const PhasePath: React.FC<PhasePathProps> = ({
               ) : null}
             </View>
             {gloss ? (
-              <Text style={styles.gloss} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+              <Text style={styles.gloss} maxFontSizeMultiplier={Typography.maxFontScale}>
                 {gloss}
               </Text>
             ) : null}

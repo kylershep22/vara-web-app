@@ -18,8 +18,9 @@
  */
 
 import React, { useRef, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, Animated } from 'react-native';
+import { StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
+import Text from '../shared/Text';
 import Svg, { Path } from 'react-native-svg';
 
 import { Colors, Spacing, Layout, Typography } from '../../constants';

@@ -12,7 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StyleSheet, View, Text, ActivityIndicator, ScrollView } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 
@@ -31,6 +31,29 @@ import { AudioMiniPlayer } from './src/components/library/AudioMiniPlayer';
 import { AudioExpandedPlayer } from './src/components/library/AudioExpandedPlayer';
 import { useAudioPlayer } from './src/context/AudioPlayerContext';
 import ErrorBoundary from './src/components/shared/ErrorBoundary';
+import { logger } from './src/utils/logger';
+
+// HOLD THE NATIVE SPLASH UNTIL THE FONTS RESOLVE (R1a, UI Standards 5.1).
+//
+// This call did not exist before R1a and neither did the gate below. The splash
+// auto-hid as soon as the bundle mounted, and `hideAsync` in the effect was
+// hiding something already gone. That cost nothing while Inter was loaded and
+// rendered nowhere. It costs a flash of system-font text on every cold start
+// the moment the primitive makes the faces load-bearing, and a layout shift
+// with it, because Inter's metrics are not the system font's.
+//
+// The promise is caught: it rejects harmlessly if the splash is already hidden.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+/**
+ * How long the app waits for the four bundled Inter faces before giving up and
+ * rendering in the system font.
+ *
+ * The files are local, not network, so no real device should ever reach this.
+ * It exists so that a font subsystem failure costs a typeface rather than the
+ * whole app: a gate with no timeout is a hang.
+ */
+const FONT_TIMEOUT_MS = 3000;
 
 function AudioPlayerOverlay() {
   const { currentTrack, isExpanded } = useAudioPlayer();
@@ -46,14 +69,47 @@ export default function App() {
     'Inter_18pt-Bold': require('./assets/fonts/Inter_18pt-Bold.ttf'),
   });
 
-  // Hide native splash once fonts are loaded
+  // THE TIMEOUT ARM. Starts on mount, cleared the moment the fonts resolve
+  // either way, so a fast load never leaves a timer running.
+  const [timedOut, setTimedOut] = useState(false);
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontsLoaded || fontError) return undefined;
+    const id = setTimeout(() => setTimedOut(true), FONT_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [fontsLoaded, fontError]);
+
+  // READY MEANS "STOP WAITING", NOT "THE FONTS LOADED". An error or a timeout
+  // proceeds in the system font rather than holding the user on a splash.
+  const ready = fontsLoaded || !!fontError || timedOut;
+
+  // `logger.warn`, not `logger.log`: log is __DEV__-gated and invisible on a
+  // device, which is exactly where this diagnostic is needed.
+  useEffect(() => {
+    if (fontError) {
+      logger.warn(
+        '[fonts] Inter failed to load; rendering in the system font.',
+        fontError
+      );
+    }
+  }, [fontError]);
+
+  useEffect(() => {
+    if (timedOut && !fontsLoaded) {
+      logger.warn(
+        `[fonts] Inter did not resolve within ${FONT_TIMEOUT_MS}ms; rendering in the system font.`
+      );
+    }
+  }, [timedOut, fontsLoaded]);
+
+  // Hide the native splash on the READY transition, not on `fontsLoaded`
+  // alone: gating on the latter leaves the splash up forever on a font error.
+  useEffect(() => {
+    if (ready) {
       SplashScreen.hideAsync().catch((e) =>
         console.warn('SplashScreen.hideAsync failed (non-fatal):', e)
       );
     }
-  }, [fontsLoaded]);
+  }, [ready]);
 
   // Initialize optional services after mount.
   //
@@ -109,6 +165,10 @@ export default function App() {
       }
     })();
   }, []);
+
+  // Hold the tree until `ready`. The native splash is still up at this point,
+  // so the user sees the splash rather than a blank frame.
+  if (!ready) return null;
 
   return (
     // THE BACKSTOP, NOT THE ONLY BOUNDARY ANY MORE (slice 7g). Every screen and

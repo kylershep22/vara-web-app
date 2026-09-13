@@ -4,7 +4,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Keyboard, KeyboardAvoidingView, Platform, Modal, TextInput as RNTextInput } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Keyboard, KeyboardAvoidingView, Platform, Modal } from 'react-native';
+import TextInput from '../shared/TextInput';
+import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { FourThreeTwoOneEntry, BodyFuelOption } from '../../types';
@@ -356,7 +358,7 @@ export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChan
               showsVerticalScrollIndicator={false}
             >
               <Text style={styles.inputLabel}>Win #1</Text>
-              <RNTextInput
+              <TextInput
                 value={win1}
                 onChangeText={setWin1}
                 style={styles.input}
@@ -365,7 +367,7 @@ export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChan
                 returnKeyType="next"
               />
               <Text style={styles.inputLabel}>Win #2</Text>
-              <RNTextInput
+              <TextInput
                 value={win2}
                 onChangeText={setWin2}
                 style={styles.input}
@@ -374,7 +376,7 @@ export const FourThreeTwoOneCard: React.FC<FourThreeTwoOneCardProps> = ({ onChan
                 returnKeyType="next"
               />
               <Text style={styles.inputLabel}>Win #3</Text>
-              <RNTextInput
+              <TextInput
                 value={win3}
                 onChangeText={setWin3}
                 style={styles.input}

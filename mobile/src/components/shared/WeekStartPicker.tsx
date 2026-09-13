@@ -21,7 +21,8 @@
  * so nothing between this control and Firestore has to convert.
  */
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Text from './Text';
 
 import { Colors, Layout, Spacing, Typography } from '../../constants';
 import { withAlpha } from '../dashboard/brainStateCheckin/colorUtils';

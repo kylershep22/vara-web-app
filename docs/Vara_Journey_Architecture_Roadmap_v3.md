@@ -269,6 +269,7 @@ deploy. Deploy state lives on Kyle's checklist.
 | 7n | **[READY. Split out of 7j on 2026-09-12, because 7j resolved with NO CODE and would otherwise have taken the rename down with it.]** The Journey rename *(row added 2026-09-12 at 7j's resolution)* | **THIS IS THE BUILD HALF OF WHAT 7j USED TO CARRY, and it survives 7j's resolution untouched.** 7j coupled two things in one row: the four labels and the rename. The labels question dissolved; **the rename did not**, and it is still Jen's approved content. **Bottom nav becomes "Journey". The map screen reads "Your journey".** **"Practices" SURVIVES** as the name of the runnable content library wherever that library itself appears; the hierarchy is **Journey -> destination -> today's protocol -> supporting practice**. **Remove / Recover / Rewire / Refocus stay INTERNAL architecture terms** and do not become customer-facing taxonomy. **In scope:** the audit of every "Practices" string (`AppNavigator.tsx:592`, `:856`, `:943`, `:1024`, `:1141`, `routes.ts:113`, and `JourneyMapScreen.tsx`'s title), deciding which are the TAB and which are the LIBRARY. `AppNavigator.tsx:588` carries a comment reading "whether the tab keeps the word Practices is Jen's call" - it does not, and this row closes that comment. **ROUTE AND CONSTANT NAMES ARE NOT COPY** and must not be renamed for a label change; 7b's note on why 7c was not renumbered applies. **NOT IN SCOPE: the four phase descriptors.** They are resolved in 7j, they render on explanatory surfaces that do not exist yet, and pulling them in here would re-open the collision 7j just closed. | **No gate.** Content delivered 2026-09-12. Independent of 7k and 7l; sequence by preference. | Yes: bottom nav and the map screen together on one account, confirming no surface says "Practices" where it means the tab, and none says "Journey" where it means the library. |
 | SENTRY | **[PRE-LAUNCH, not built. Row added 2026-09-12 at slice 7g's close, from its Step 0 finding.]** Wire `@sentry/react-native` so a caught render throw is reported to something | **NOTHING IN THE APP REPORTS ANYTHING TODAY, AND THIS WAS ESTABLISHED BY READING THE CODE RATHER THAN INFERRED.** `crashReporting.service.ts` is a stub: every `Sentry.*` call is commented out (`:28-59`, `:70`, `:79`, `:87`, `:98`, `:106`, `:114`, `:122`, `:133`) and `isInitialized` (`:20`) is only ever set true INSIDE that commented block, so it is permanently false. `logError` (`:93-99`) therefore reduces to a `__DEV__`-only console line and an early return. `initializeCrashReporting()` IS called (`App.tsx:66-67`) and only logs "awaiting @sentry/react-native setup". **`@sentry/react-native` is not in `package.json` at all**, nor is `sentry-expo`. The ErrorBoundary is that service's ONLY caller in the app. The other path, `setupGlobalErrorHandler.ts` (wired first at `index.ts:5`), only `console.error`s. **WHY IT IS ROWED NOW RATHER THAN LEFT ON THE BACKLOG:** slice 7g scoped the boundaries, so a render throw stopped being loud. Before 7g a throw killed the app and the user noticed; after it, a throw is a small panel inside an otherwise working app that a user can simply navigate away from, and no one is listening. That is a deliberate, accepted trade (Kyle, 2026-09-12) and this row is the other half of it. **Scope:** install `@sentry/react-native` at current stable, add the `@sentry/react-native/expo` config plugin to `app.json`, uncomment and update `Sentry.init`, set the DSN via `EXPO_PUBLIC_SENTRY_DSN`, **and rebuild with EAS - it is a native module, so this cannot land as a JS-only change.** The `beforeSend` PII strip in the commented block is already written and should be reviewed rather than re-derived. **Decide at Step 0:** whether scoped boundaries report separately from the app-level one (they should be distinguishable - a dead tab and a dead app are different incidents), and whether `ErrorBoundary`'s app-level copy regains a notification sentence once the claim is true again; `ErrorBoundary.test.tsx` pins its absence as a negative for exactly that reason. **Cross-references:** `docs/TECH_DEBT_BACKLOG.md:308-340` records the same state retrospectively from Phase 2, and the forward-looking "Observability - `logger` is `console.*` in production" entry above it; both close when this lands. | None in the repo. **Kyle runs EAS builds**, so the rebuild is a hand-off, not a step this slice can take. | Yes: force a throw with `DEV_CRASH_ROUTE` and confirm the event ARRIVES in the Sentry project, which is the only proof that matters here |
 | SAFETY | **[PRE-LAUNCH BLOCKER, scope TBD]** Safety pre-check: semantic classification before free text enters normal routing *(row added 2026-09-12 at Jen's instruction)* | **RE-CLASSIFIED FROM A REVISIT ITEM TO A BLOCKER BY JEN, 2026-09-12**, and it is rowed here rather than left in the content pack's §safety-precheck so the board carries it. Her position, unchanged since the Sept 5 pack: literal keyword matching will always have gaps - *"I don't feel safe at home right now"* is her example - so the phrase list may remain a guardrail but must not be the primary safety model. Before launch she would use (1) a small set of obvious local patterns as the immediate fast path, (2) a **semantic safety classification** before free text can enter normal routing, and (3) the existing safety screen when that classification fires. **SCOPE IS GENUINELY TBD** and is pending a mechanism question Kyle is asking separately; the row exists now so the blocker is visible on the board while its scope is open, which is the opposite of the usual rule that a row waits for its scope. **It does not sit in the numbered sequence** because it does not queue behind 7c or 8: it gates LAUNCH, not the next slice. | Mechanism decision, then scope | Yes |
+| ANDROID | **[PRE-LAUNCH, not built. Row added 2026-09-12 at R1a's close, from its own Step 0 and build findings.]** Android behaviour that no walk has ever exercised *(row added 2026-09-12 with R1a's rulings)* | **THE APP HAS NEVER BEEN WALKED ON ANDROID AND THE §18 DEVICE MATRIX IS TWO iPhones**, so every Android-specific code path in the app is asserted by unit tests or by nothing. This row collects them; it is not a port and not a redesign. **FIRST ITEM, AND IT IS R1a's: THE SYNTHETIC-BOLD GUARD IN THE TEXT PRIMITIVE.** `components/shared/Text.tsx` strips `fontWeight` on Android once a family resolves, because Android applies SYNTHETIC emboldening on top of an already-bold face and the result reads as a smeared double-bold. iOS keeps the weight as a hint. **Both branches are held by unit tests with `Platform.OS` mocked and NEITHER is walked on a device.** A mocked `Platform.OS` proves the branch is taken; it proves nothing about what the Android text engine then draws. **If the guard is wrong in either direction the failure is app-wide**: leave the weight on and every bold face is smeared, strip it where no family resolved and nested emphasis collapses. **Walk it on the first Android build**, on a real device rather than an emulator, against the same `DevTypography` diagnostic R1a added: the four weights must be four distinguishable faces and none of them doubled. **THE SAME UNWALKED SHAPE APPLIES TO THE REST OF THE ROW AS IT FILLS**, which is why the row is collective rather than a one-item fix: §12.2's opaque tab-bar fallback is Android's default path since `expo-blur` is iOS-only here, and §13 says Android follows the same tokens and templates with no separate design system. None of that has been seen running. **FROZEN:** journey phase derivation; `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; phase advancement; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement; ahead rows remain tappable; no streaks, scores or completion percentages. | **Pre-launch, scope TBD.** The gate is a device, not a suite: nothing in jest or tsc can close this row. | **Yes, and it is the first Android walk of any kind.** Start with `DevTypography` for the guard above, then the standing §18 walk with an Android device substituted, recording which assertions do not translate. |
 | 8 | **Moments of joy** | `moments/{uid}_{ts}` collection (rules, deleteAccount), one-tap entry sheet from D1 below-fold row, single-line input, no list surface on Today; feeds nothing until Insights ships. **IN SCOPE, ADDED 2026-09-12 (Kyle's correction to the Step-0 toast finding): `showNotificationToast` RETURNS SILENTLY when an unlock toast is visible** (`ToastContext.tsx:130`), so a successful save would confirm nothing. **That is not a caveat, it is the case Jen's copy exists to prevent** - her whole reason for wanting "Saved." is removing uncertainty about whether the save landed, and a success that shows nothing is precisely the uncertainty she was designing against. A silent success is also WORSE than no toast at all, because the user has been told elsewhere to expect one. Slice 8 owns the fix: a fallback path, a queue for this toast class, or a different confirmation surface. **Also settle:** the API takes a title AND a body, and "Saved." is title-only, so decide what a title-only notification toast renders as rather than passing an empty string and finding out on device. **The toast CANNOT stack and CANNOT count** - verified at Step 0, `showNotificationToast` holds one object rather than a queue, and the queue that does stack is the separate feature-unlock path - so that half needs nothing. | rules; ~~**[Content-gated]** copy~~ **GATE CLEARED 2026-09-12: Jen delivered the prompt, the "Saved." line and the failure line (see the 2026-09-12 Jen-feedback entry, item 3). Marker struck rather than deleted because contradiction (E) in that entry predicted it would be found stale in three places; this is one of them, and the rename of this row from "Moments of joy" to "Good moments" plus the other two citations are still row 8's own to do.** | Yes |
 | 9 | **Behavioral protocol screen + remind-later** | The Daily Action Launcher behavioral screen (protocol, why, mark done, remind me later) for `remove` protocols; one-off later-today notification (`scheduleLocalNotification` DATE trigger), `scheduledAt` on `DailyLog`, third card state, cancellation bookkeeping; OS-settings redirect after denial. | Completion semantics decision (mockup v1 E1 open item) | Yes |
 | R0 | **[DONE `a6a221b`, 2026-09-12; docs only, no walk per the row; attested by Kyle before the merge and re-verified at `ce3fb8b` and `10112a4`]** *(was **[Next]**, promoted at 7m's merge, 2026-09-12)* **[READY. Row added 2026-09-12 when the visual redesign was approved. DOCS ONLY, NO CODE. ALL THREE OPEN INPUTS SETTLED BY KYLE 2026-09-12 - the eyebrow, the accent cap and the device matrix; see the RESOLVED block at the end of the scope cell.]** Design authority reconciliation: `Vara_Mobile_UI_Standards.md` goes to v2.1 *(row added 2026-09-12 with the R-series)* | **UPDATED IN PLACE, AND THERE IS NO PARALLEL DOCUMENT.** The v2.0 header already retired `mobile/docs/DESIGN_SYSTEM.md` and §0 states "There is now one design document"; a redesign spec living beside the standards is that retirement undone, and the tombstone at `docs/DESIGN_SYSTEM.md` is what it looks like eighteen months later. Version line becomes **v2.1, September 2026**, superseding v2.0 August 2026. **SECTIONS TOUCHED:** 2 (add **2.8 surface treatments**, naming the tiers a screen may use and which screens may use which); 5 (typography implementation, plus the **eyebrow rule** below); 7 (icon set); 8 (**restructured** into environmental backgrounds, hero bands, atmospheric accents, spot illustrations - today's 8.1-8.4 assume the hero band is the only art a screen can carry, which the redesign makes false); 10.2 (immersive surface card); 11E (Today rewritten); 11F (hubs no longer MANDATE a hero band); **11H, new** (journey / wayfinding, which has no template today and is why `PhasePath` was specified in a component header rather than a screen template); 12.2 (navigation); 17 (a migration clause on raw values); 18 (checklist); Appendix B (**extended** with a v2.0 -> v2.1 changelog, not replaced - Appendix B today is "What changed from v1.0" and that record stays). **THREE THINGS THIS ROW RESOLVES AND DOES NOT DEFER, each with its Step-0 finding recorded so it is not re-derived:** **(1) THE EYEBROW CONTRADICTION, AND IT IS THREE DOCUMENTS DEEP, NOT TWO.** 7j resolved that the four phase descriptors do NOT sit above the sixteen per-(phase, destination) titles and are used only where Vara explains the journey model; Content Pack v1 `§phase-descriptors` records the same in point 2 of its "three things they are not", in the words "**Not a line above the cell copy. No map row, phase page or eyebrow gains a second line.**" **THE THIRD DOCUMENT IS THIS ONE.** `Vara_Mobile_UI_Standards.md` §5.4 already carries a standing ban: *"Do not add small tracked-out labels above headings ("FOCUS" over "Your focus session"). If a category needs naming, the heading names it."* A phase descriptor above a phase title is exactly that shape, so §5.4 bans it independently of 7j and the pack. All three agree, and the redesign's typography change would contradict all three at once. **THE RECONCILIATION, AND IT NEEDS NO AMENDMENT ANYWHERE:** the eyebrow rule in §5 is written to permit **STATE AND CONTEXT ONLY, NEVER A PHASE DESCRIPTOR AND NEVER A CATEGORY NAME.** That is what ships today and it is not what 7j prohibits: `JourneyPhaseScreen.tsx`'s eyebrow renders `PHASE_STATE_LABELS[state]` (Complete / Where you are / Ahead / Skipped) and `JourneyLine.tsx`'s renders `JOURNEY_LINE_LABEL` ("Where you are"); a word for the user's POSITION is not a name for a CATEGORY, and 7j's prohibition is on the descriptor, not on the slot. **SO R0 SHIPS ONE READING: the eyebrow stays, the descriptor never enters it, and §5.4's ban stands for category labels with a stated, narrow state-and-context exception written into it.** **A SECOND STEP-0 FINDING RIDES ON THAT EXCEPTION AND IS THE REASON IT MUST BE WRITTEN DOWN RATHER THAN ASSUMED:** the two eyebrows above ship TODAY and §5.4 as written bans them, with no recorded exception anywhere. The redesign did not create that tension, it inherited it, and R0 is the first pass that can close it in the document rather than in a code comment. **THE ONE BRANCH THAT IS KYLE'S, FLAGGED RATHER THAN TAKEN:** if the design intent is specifically that the eyebrow carry the PHASE NAME (Create space / Restore capacity / Build new patterns / Focus on what matters), the reconciliation above does not cover it and three dated amendments are required together - roadmap row 7j's scope cell, Content Pack v1 `§phase-descriptors` point 2, and §5.4 - **and Jen is in that decision, because both string sets are hers.** **DEFAULT IF NO RULING: do not ship it.** The eyebrow carries state, and the phase descriptor waits for the explanatory surfaces 7j already assigned it to. **DO NOT SHIP BOTH READINGS.** **(2) THE ACCENT-COVERAGE RULE, AND THE PREMISE NEEDS CORRECTING BEFORE IT CAN BE ANSWERED.** The 10 to 15% cap is **NOT in `docs/Vara_Refactor_Plan.md` and NOT in `docs/brand/Vara_Brand_Voice_Copy_Guidelines.md`** - both were searched at Step 0 and neither states it. **It lives in exactly one place, `Vara_Mobile_UI_Standards.md` §4.2**, which is the document this row updates in place, so there is no second doc to reconcile and no cross-document conflict to escalate. **WHAT §4.2 ACTUALLY SAYS, VERBATIM:** *"Warm accents (Amber, Apricot) stay at or under 10 to 15% of the visual field"*, and one line above it, *"Washes are not accents. Dew Sage and `dewSageLight` may cover large areas (a section background, a highlight card, a full hub band under the hero) and do not count toward the accent ceiling."* §2.1 says the same of section washes in its own words. **SO THE CAP IS ABOUT WARM PIGMENT, NOT ABOUT COVERAGE**, and a full-viewport background in the mist and sage families is not an accent under the rule's own definition and is not capped by it. **THE REAL QUESTION, WHICH IS NARROWER AND MEASURABLE:** how much WARM pigment `todayBackground.webp` carries, because that fraction IS capped and the one-warm-point rule in §2.2 applies to it. **R0 STATES THE POSITION AND DOES NOT TAKE A DECISION QUIETLY:** Immersive surfaces are **not** proposed as a blanket exception to §4.2; the artwork respects the cap on its warm content, and the wash content is out of scope of the cap because §4.2 already puts it there. **If Kyle wants Immersive named as an explicit exception instead, that is a decision to record in §4.2 and §2.8 together**, and R0 carries it rather than inventing it. **Measuring the warm fraction of the asset is an R1 item, listed there.** **(3) WHAT A REDESIGN WALK ASSERTS.** Every slice this sprint was gated by a device walk with numbered steps and pass conditions, and that gate caught something on nearly every one - 7e's coverage claim, 7f's severity, 7i's five unwalkable strings, 7k's arithmetic. **"Does it look right" is not that gate and will not catch what those caught.** R0 defines the **STANDING REDESIGN WALK** in §18, as numbered steps with pass conditions, binding on R2 through R6+: **(a) surface type is the one §2.8 assigns to that screen**, and the screen is not quietly running a second treatment; **(b) no doubled artwork** - an environmental background and a hero band never appear in one viewport, which is the failure mode R3 creates by construction if `ScreenHeader` is not removed from Today; **(c) safe areas** - top, bottom, Dynamic Island and home indicator, with content and controls clear of all four; **(d) the floating bar is clear of content on the smallest AND the largest supported device**, scrolled fully to the bottom, on every tab, **and R0 must first WRITE DOWN what those two devices are** - there is no device matrix in any document today, which is why this assertion has never been checkable; **(e) Reduce Motion** on, every animation the slice added confirmed absent or reduced; **(f) Reduce Transparency** on, confirming the designed fallback renders rather than a degraded accident - §12.2 already promises "an opaque bar that looks intentional: White with a `divider` hairline top border" and that promise has never been walked; **(g) text contrast measured against the ACTUAL background asset**, not against a token or a flat swatch, at the darkest region the text can sit over; **(h) no numeric progress on any journey surface** - no count, no fraction, no percentage, no filling bar, per §10.7 and roadmap §8. **FROZEN THROUGHOUT THE R-SERIES, and this row changes none of it because it changes no code:** journey phase derivation (`derivePhaseStates`, `phaseStatesForRoute`); `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved (phase, destination) strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; phase advancement; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement; ahead rows remain tappable; no streaks, scores or completion percentages. **RESOLVED 2026-09-12 (Kyle). THE SCOPE ABOVE IS LEFT UNEDITED; this block settles its three open inputs and supersedes them wherever they differ.** **1. THE EYEBROW: THE READING ABOVE IS TAKEN.** §5.4 is scoped to **state and context only**. **No amendment to 7j, to Content Pack v1 `§phase-descriptors`, or anywhere else** - the reconciliation holds as written and nothing outside this standards document moves for it. **THE BRANCH NOT TAKEN, RECORDED SO A LATER READER SEES A DECISION RATHER THAN AN OMISSION.** Putting the PHASE NAME in the eyebrow slot - Create space / Restore capacity / Build new patterns / Focus on what matters - was considered and **REJECTED**. Its price was three dated amendments that have to land together, because the prohibition is recorded in three places: **roadmap row 7j's scope cell, Content Pack v1 `§phase-descriptors` point 2, and §5.4 of the standards** - plus **Jen in the decision, because both string sets are hers**. It is not blocked, not deferred, and not waiting on anything. If it is ever revisited it is revisited as a NEW decision against that stated cost, and the three amendments are still the price. **AND R0 CLOSES THE INHERITED TENSION RATHER THAN LEAVING IT OPEN.** The two eyebrows the app already ships - `PHASE_STATE_LABELS` on the phase page, `JOURNEY_LINE_LABEL` on Today - are banned by §5.4 **as it is written today**, with no exception recorded anywhere. That predates the redesign and was not caused by it. **R0 is what makes them legal:** the state-and-context exception is written into §5.4 in the same pass, so the app stops standing in undocumented violation of its own authority document. That is a fix R0 performs, not a side effect it tolerates, and the Appendix B changelog names it as one. **2. THE ACCENT CAP: THE CORRECTION IS ACCEPTED, AND IT IS RECORDED HERE SO THE FALSE PREMISE CANNOT RESURFACE.** The 10 to 15% cap was believed to live in `docs/Vara_Refactor_Plan.md` and `docs/brand/Vara_Brand_Voice_Copy_Guidelines.md`. **It does not, and neither document has ever contained it.** Both were searched at Step 0; the cap appears in neither. **It exists in §4.2 of this standards document and nowhere else** - the document R0 updates in place - so there was never a cross-document conflict to escalate and there is no second authority to reconcile. **§4.2 ALSO ALREADY CARVES OUT THE CASE:** one line above the cap it says washes are not accents and that Dew Sage and `dewSageLight` may cover large areas, and the cap itself names **warm** accents, Amber and Apricot. A full-viewport mist-and-sage environmental background was therefore never capped by the rule as written. **THERE IS NO IMMERSIVE EXCEPTION.** §4.2 is not amended to carve one out and §2.8 does not claim one. Immersive surfaces are subject to §4.2 exactly as every other surface is: the wash content is outside the cap because §4.2 already put it there, and the **warm pigment inside the artwork is capped like any other warm accent** and carries the one-warm-point rule in §2.2 with it. Measuring the warm fraction of the background asset stays an R1 item. **IF A LATER READER FINDS A 10 TO 15% CLAIM CITED TO THE REFACTOR PLAN OR THE BRAND GUIDELINES, THAT IS THE FALSE PREMISE RESURFACING AND NOT A SOURCE THIS BLOCK MISSED.** **3. THE DEVICE MATRIX FOR §18 ASSERTION (d), WRITTEN DOWN SO THE ASSERTION IS CHECKABLE.** **Smallest: iPhone SE (3rd generation), 375 x 667 pt at @2x, 750 x 1334 px. Largest: iPhone 16 Pro Max, 430 x 932 pt at @3x, 1290 x 2796 px.** **Physical or simulator, either is acceptable**, because **(d) is geometry and not rendering fidelity**: a simulator reproduces point dimensions, scale factor and safe-area insets exactly, and those are the whole of what the assertion tests. **WHY THESE TWO.** The SE is the narrowest AND the shortest current iPhone, so a single device is the binding case for horizontal layout at 375pt - hub card rows, nav labels, and §5.4's 65 to 75 character line length - and for the floating bar's content clearance at 667pt scrolled fully to the bottom, at the same time. The 16 Pro Max is the tallest and the widest, and its 0.461 viewport aspect against the background asset's 0.563 is exactly where the 18% width crop appears. **The matrix also spans both scale factors, @2x and @3x**, which assertion (g) needs: a raster background resolves differently at each, and the contrast measurement has to hold on both rather than on whichever one was convenient. **IPAD IS OUT OF THE WALK, AND THE CONSEQUENCE IS STATED RATHER THAN LEFT IMPLICIT.** `app.json:21` declares `supportsTablet: true` and the app has **no tablet layouts**, so an iPad renders a stretched phone layout today. The redesign does not change that, and **no step of the standing walk would catch it**. **That is now a RECORDED KNOWN GAP rather than an oversight:** either the flag is flipped to false, or tablet layout becomes its own work with its own rows. **R0 records the gap in §18 beside the matrix and does not resolve it**, because flipping a shipped capability flag is a product decision and not a design one. Note for whoever picks it up: `PRE_SUBMISSION_CHECKLIST.md:172` names an iPad Air 11-inch as a test device, which is **App Review's** device and not a Vara support claim, and it should not be read as one. | **No gate.** Docs only. **Blocks R1 through R6+**: every later R row cites a section number this row writes, and building against a section that does not exist yet is how the parallel document gets created by accident. | **No.** No runtime surface. The walk this row DEFINES is first run by R2. |
@@ -1018,6 +1019,84 @@ deploy. Deploy state lives on Kyle's checklist.
 >
 > **R1a AND R1b ARE INDEPENDENT AND EITHER MAY GO FIRST.** R1c is the one that may not exist.
 >
+> **AMENDED 2026-09-12 (R1a built, branch `design/slice-r1a-text-primitive`, unmerged). SIX
+> THINGS THE BUILD ESTABLISHED OR CHANGED.** The R1a row's text is unedited; this block
+> supersedes it wherever the two differ.
+>
+> **1. THE COUNT IS 297, NOT 197, AND THE TRAP IS WORTH NAMING BECAUSE IT CAUGHT THREE STEP
+> 0s IN A ROW.** R1a's scope cell says 197 in three places. The real figure is **297**, and the
+> codemod's dry run confirmed it exactly. **100 files write their `react-native` import across
+> MULTIPLE LINES**, including four of the five `_dev` screens and the whole `checkin/flow`
+> directory, and a single-line regex cannot see them. That regex produced the 197 in R0's Step
+> 0, in R1's Step 0 and in this row. **The codemod uses the TypeScript compiler API for exactly
+> this reason.** Total files changed is **300**: 297 importing `Text` plus three that import
+> only `TextInput`.
+>
+> **AND THE DRY RUN CORRECTED STEP 0 AGAIN.** Step 0 found ONE import declaration that empties
+> (`SwipeableGoalCard`, whose second `react-native` import is `Text` alone). There are **two**:
+> `PeopleScreen`'s second declaration is `{ Text, TextInput }`, both of which the codemod
+> removes. Unhandled, that file would have been left `import {} from 'react-native';`.
+>
+> **2. THE FROZEN LIST IS CLARIFIED, DATED HERE (Kyle, ruling 4). "Route names" MEANS
+> PRODUCTION ROUTES.** The `__DEV__` block in `AppNavigator.tsx` is outside the freeze: it is
+> gated so those routes do not exist in a release build, and `DevVideoPlayer` set the precedent.
+> R1a adds `DevTypography` under it. **Renaming or removing an existing route, production or
+> dev, is still frozen**; this clarifies what the freeze covers, it does not relax it.
+>
+> **3. THE DYNAMIC TYPE CAP IS NOW AN APP-WIDE BEHAVIOUR CHANGE, AND IT IS NAMED AS ONE RATHER
+> THAN LEFT AS A TOKEN EDIT.** Before R1a, `maxFontSizeMultiplier` was set at 17 sites, all of
+> them journey or weekly surfaces. The primitive applies `Typography.maxFontScale` to **every
+> `Text` in the app**, so **every screen now caps at 1.3x where most previously scaled without
+> limit**. That is what §5.3 asks for and it is a real change in what a large-text user sees
+> app-wide, not a refactor. **Walk step 14 is the one that can fail it**, and a screen that
+> clipped only above 1.3x will now clip at 1.3x instead of further up.
+>
+> **4. THE ANDROID SYNTHETIC-BOLD GUARD SHIPS UNWALKED, AND THERE IS NO ANDROID ROW TO LOG IT
+> AGAINST.** The primitive strips `fontWeight` on Android once a family resolves, because
+> Android applies synthetic emboldening on top of an already-bold face. Both branches are held
+> by unit tests with `Platform.OS` mocked. **Neither is walked on a device**: §18's matrix is
+> two iPhones, and no row in the R-series walks Android at all. **The build prompt asked for
+> this to be logged against "the Android row"; no such row exists**, so it is recorded here.
+> **This is a real gap, not a formality:** the guard is the one piece of R1a whose correctness
+> is asserted only by a mocked test, and if it is wrong every bold face on Android is smeared.
+>
+> **5. SIX FILES USED AN ALIASED `TextInput as RNTextInput`, WHICH STEP 0 MISSED AND THE NEW
+> LINT CAUGHT ON ITS FIRST RUN.** Step 0 checked for `Text as X` and found none; it never
+> checked the `TextInput` spelling. The codemod skips aliased specifiers by design, so those six
+> inputs would have rendered in the system font while every other input moved to Inter.
+> **Fixed in the slice rather than logged**, which cost an alias rename at 11 JSX identifiers -
+> the only JSX the slice touches, against a fence that said JSX untouched. Recorded because a
+> reader counting diffs will see JSX in one.
+>
+> **6. TWO THINGS HANDED FORWARD.** **`App.tsx` lint goes to R1b-ii at 7 errors** (from 13):
+> the six fixed are all on lines R1a touched. The remainder are the `Colors` import, four
+> `expo-font` `require()` calls and two unused catch params, plus the standing question of
+> whether `npm run lint`, which is scoped to `src/`, should cover `App.tsx` at all. **And the
+> snapshot gate had nothing to act on: the repo contains ZERO snapshot tests**, so no
+> `jest -u` ran and no snapshot commit exists.
+>
+> **WALK OUTSTANDING 2026-09-13. The §18 walk (14 steps, both matrix devices, default and 1.3x)
+> was not run before the merge. Step 4 (Paper text) and step 11 (paywall) are the highest-risk
+> unwalked steps; step 14 gates the app-wide Dynamic Type cap. To be closed before R2's walk,
+> which runs on the full matrix; before-state for step 10 reachable at `0091ce5`.**
+>
+> **RULINGS (Kyle, 2026-09-12), taken AHEAD of the walk so the branch is not carrying two open
+> questions into it.**
+>
+> **(a) THE `RNTextInput` FIX AND ITS 11 JSX RENAMES ARE APPROVED, AS A WIDENING OF THE "JSX
+> UNTOUCHED" FENCE.** **Reason: six inputs in the system font is the two-typeface state this row
+> forbids.** The fence was written to stop the codemod restructuring 1,906 render sites, not to
+> protect an alias in six files from being renamed. **The widening is recorded rather than
+> waived**: it was a fence, it moved, and the diff shows JSX because of it.
+>
+> **(b) A PRE-LAUNCH `ANDROID` ROW IS ADDED TO {S}5, BESIDE SENTRY AND SAFETY.** **Its first item
+> is R1a's synthetic-bold guard**, which strips `fontWeight` on Android once a family resolves
+> and is **asserted by mocked unit tests only**. A mocked `Platform.OS` proves the branch is
+> taken and proves nothing about what the Android text engine draws. **It is walked on the first
+> Android build.** R1a's Step 0 flagged that there was no Android row to log this against; there
+> is one now, and the gap it names is older than R1a: the app has never been walked on Android
+> at all, and {S}18's matrix is two iPhones.
+
 > **(c) THE CORRECTED BASELINES IN THIS ROW'S GATE CELL ARE THE FIGURES R1 MEASURES AGAINST**,
 > not the originals beside them: **tsc 148** (not 149; a gate at 149 admits one new type error
 > and reports green) and **501 raw-hex errors, 385 of them outside `src/constants/`** (not
@@ -2742,6 +2821,124 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the map route still offers it. **Record the result in this entry when observed. Until then
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
+
+### 2026-09-12 - R1a built: the text primitive, and Inter renders for the first time (branch `design/slice-r1a-text-primitive`, six commits, UNMERGED and unwalked)
+
+**WHAT SHIPPED.** A shared `Text` primitive and a `TextInput` sibling, 300 files pointed at
+them, the Paper theme given a family, the Dynamic Type ceiling collapsed onto one token, a lint
+barring the old import, a splash gate that did not previously exist, and a `__DEV__` diagnostic
+that replaces the walk's font check. **The app has loaded four Inter faces at boot since
+`b843421` and rendered none of them. After this branch it renders all four.**
+
+**COMMITS:** `f912016` the primitives · `0115d90` token and Paper · `481cce7` the codemod ·
+`544af1c` the lint · `b80ecd9` the splash gate and the diagnostic · this entry.
+
+**FIGURES:** tsc **147** (the gate: 148 minus the `fontWeight.normal` fix) · jest **3535 of
+224** (+30, the primitive's own suite) · sentinel **149** unchanged · lint **1100 / 1358**, the
+baseline exactly. **Snapshots: 0. The repo has no snapshot tests**, so the snapshot STOP gate
+had nothing to act on and no `jest -u` ran.
+
+**THE COUNT WAS 297, NOT 197, AND THIS IS THE THIRD STEP 0 THE SAME TRAP CAUGHT.** 100 files
+write their `react-native` import across multiple lines. The single-line regex that produced
+"197" ran in R0's Step 0, in R1's Step 0 and into R1a's scope cell. **The dry run confirmed 297
+before a byte was written**, which is what a dry run is for, and it also found a SECOND import
+declaration that empties (`PeopleScreen`, not just `SwipeableGoalCard`) which would otherwise
+have been left as `import {} from 'react-native';`.
+
+**THREE FINDINGS THAT CHANGED THE BUILD.**
+
+**(1) SIX FILES USED AN ALIASED `TextInput as RNTextInput`.** Step 0 checked for `Text as X` and
+found none; it never checked the `TextInput` spelling, and the codemod skips aliases by design.
+**The new lint caught all six on its first run** - the rule earning its place before it had
+guarded anything. Left alone, six inputs would have rendered in the system font while every
+other input moved to Inter.
+
+**(2) THE SPLASH GATE DID NOT EXIST TO BE REPAIRED.** `preventAutoHideAsync()` was never called
+anywhere, so the native splash auto-hid on mount and the `hideAsync` in the effect was hiding
+something already gone. It is built here: `ready = fontsLoaded || fontError || timedOut`, a
+3000ms timeout, `logger.warn` on either failure, and `hideAsync` on the **ready** transition
+rather than on `fontsLoaded`, which would have left the splash up forever on a font error.
+
+**(3) `TextInput` IS BOTH A VALUE AND A TYPE IN REACT NATIVE.** Six files hold
+`useRef<TextInput>(null)`, which stopped compiling the moment the value came from a const. The
+shared module exports `TextInputInstance` for them. Surfaced by tsc as six TS2749s, fixed, and
+tsc returned to 147.
+
+**THE DYNAMIC TYPE CAP IS AN APP-WIDE BEHAVIOUR CHANGE AND IS NAMED AS ONE.** The ceiling was
+set at 17 sites, all journey or weekly. The primitive applies it to **every `Text` in the app**,
+so every screen now caps at 1.3x where most previously scaled without limit. That is §5.3 as
+written, and it is a real change for a large-text user rather than a refactor.
+
+**WHAT IS ASSERTED ONLY BY A MOCKED TEST, SAID PLAINLY.** The Android synthetic-bold strip is
+held by unit tests with `Platform.OS` mocked and **is walked on no device**: §18's matrix is two
+iPhones and no R-series row walks Android. If the guard is wrong, every bold face on Android is
+smeared. Recorded in the R1a amendment block; there is no Android row to log it against.
+
+**MUTATION-CHECKED, AND THE FAILURE SET IS THE POINT.** Removing the primitive's nesting context
+provider fails exactly four tests: both shape B cases, the dynamic-nesting case and the Android
+inherit case. **Shapes A, C and D stay green, correctly** - they set explicit weights and do not
+depend on the provider, so a test suite that went all-red would have been testing the wrong
+thing. Reverting one file's import to the `react-native` form takes lint 1100 to 1101 with
+exactly one `no-restricted-imports` hit. Both restored from scratchpad backups and verified
+byte-identical, never `git checkout --`.
+
+**ONE FENCE DEVIATION, NAMED.** Fixing the six aliased inputs renamed **11 JSX identifiers**
+(`RNTextInput` to `TextInput`). The fence said JSX untouched; that was about the 1,906 `Text`
+render sites and the shape of the transform, and this is an alias rename in six files. Flagged
+because a reader counting diffs will see JSX in one.
+
+**HANDED TO R1b-ii:** `App.tsx` sits at **7 lint errors**, down from 13, all six fixed being on
+lines R1a touched. The remainder are the `Colors` import, four `expo-font` `require()` calls and
+two unused catch params - plus the standing question of whether `npm run lint`, scoped to
+`src/`, should cover `App.tsx` at all.
+
+**THE WALK HAS NOT RUN AND ONE STEP CANNOT YET.** Step 10 compares the two hub screens' vertical
+rhythm against a pre-change build, and **the pre-change screenshots were not captured**: CC has
+no device or simulator. `docs/walks/r1a/README.md` records exactly what is needed and from which
+commit. **The before state is still reachable** - `git checkout 0115d90` is the last commit
+before the codemod - so nothing is lost, but step 10 cannot be reported as passed until they
+exist.
+
+**STANDARDS UPDATED, BOTH AS NAMED DELIVERABLES OF THIS ROW:** §3.3 gains the
+`Typography.maxFontScale` row, and §17's `fontWeight`-without-family row closes at **0** with
+its two holding machines named, while the `lineHeight` row is corrected **149 -> 114** with the
+35 `fontSize` x multiplier sites recorded as the correct pattern rather than as debt. **No rule
+in the standards changed.**
+
+**MANIFEST: NO CHANGE, VERIFIED BY READING** `functions/src/lib/accountDeletion.js:60-160`, not
+carried. R1a touches no Firestore read or write and introduces no collection: it is a text
+primitive, an import swap, two token files, a lint rule and a `__DEV__` screen.
+
+**TWO RULINGS TAKEN AHEAD OF THE WALK (Kyle, 2026-09-12), so the branch does not carry open
+questions into it.**
+
+**(a) THE ALIASED-`TextInput` FIX IS APPROVED AND THE FENCE IS WIDENED, NOT WAIVED.** The six
+files using `TextInput as RNTextInput` are fixed in this slice and the 11 JSX identifier renames
+that cost stand. **Reason: six inputs in the system font is the two-typeface state the row
+forbids.** "JSX untouched" was written to stop the codemod restructuring 1,906 render sites; it
+was not written to protect an alias. **Recorded as a widening** so that a later reader finds a
+decision rather than an unexplained JSX diff in an import-swap slice.
+
+**(b) AN `ANDROID` PRE-LAUNCH ROW IS ADDED TO §5, BESIDE SENTRY AND SAFETY.** Its first item is
+R1a's synthetic-bold guard, **asserted by mocked unit tests only and walked on no device**. R1a's
+Step 0 reported there was no Android row to log it against; the row exists now. **The gap it
+names is older and wider than R1a:** the app has never been walked on Android at all, §18's
+device matrix is two iPhones, and §12.2's opaque tab-bar fallback is Android's default path that
+nobody has seen run. **The gate on that row is a device, not a suite** - nothing in jest or tsc
+can close it.
+
+**NO MERGE, AND THE `[Next]` MARKER HAS NOT MOVED.** R1a still carries it. Kyle walks first.
+
+**ATTESTATIONS (Kyle, 2026-09-13):**
+- Suites green at tsc 147 / jest 3535 of 224 / sentinel 149 /
+  lint 1100 errors, 1358 warnings. ATTESTED.
+- Device walk NOT run. Merged on Kyle's visual check of the
+  DevTypography diagnostic on a physical device via dev client:
+  primitive rows render a different typeface from the System rows,
+  all four weights distinct. Steps 1-14 of the walk script are
+  OUTSTANDING; the six before-screenshots were not captured and
+  0091ce5 remains the capture point. Kyle's decision, recorded as
+  such.
 
 ### 2026-09-12 - R1 Step 0, and the row splits four ways (read-only; no code moved. Split recorded in `caa4bb9`'s successor commit on `main`, docs only)
 

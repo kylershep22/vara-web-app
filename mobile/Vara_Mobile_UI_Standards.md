@@ -207,6 +207,7 @@ Tokens are semantic: `category-role-variant`. Code exposes them as PascalCase ob
 |---|---|---|
 | Colors, derived alpha colors | `src/constants/colors.ts` | `Colors` |
 | Font sizes, weights, presets | `src/constants/typography.ts` | `Typography`, `TextStyles` |
+| Dynamic Type ceiling | `src/constants/typography.ts` | `Typography.maxFontScale` (1.3). Applied by the shared text primitive (5.1); a caller passes `maxFontSizeMultiplier` only to OVERRIDE it. Added in R1a, collapsing 17 hardcoded sites: seven module-local `MAX_FONT_SCALE` consts and ten inline `1.3` literals |
 | Spacing scale, layout constants, radius, button heights | `src/constants/spacing.ts` | `Spacing`, `Layout` (radius is `Layout.borderRadius`, heights are `Layout.buttonHeight`) |
 | Flat token mirrors and animation values | `src/constants/designTokens.ts` | `RadiusTokens` (alias of `Layout.borderRadius`), `SizeTokens`, `TypographyTokens`, `AnimationTokens` |
 | Step transition duration | `src/constants/motion.ts` | `STEP_TRANSITION_DURATION_MS` (250) |
@@ -955,8 +956,8 @@ Know these before writing code. They fail the build or the suite.
 | Debt | Count | Rule it violates |
 |---|---|---|
 | Raw hex literals | **501 errors in 97 files** (385 outside `src/constants/`, in 85 files) | 3.1 |
-| `fontWeight` without a per-weight `fontFamily` | **975 sites in 277 files** (every weight site in the app) | 5.1 |
-| Literal pixel `lineHeight` values | **149 in 91 files** | 5.2 |
+| `fontWeight` without a per-weight `fontFamily` | **0**, closed in R1a (was 975 sites in 277 files) | 5.1 |
+| Literal pixel `lineHeight` values | **114 in 91 files** (corrected in R1a from 149) | 5.2 |
 | Off-scale radius literals | **164 in 99 files** | 6.3 |
 | Animated components not importing `useReducedMotion` | **26 files** | 9.4 |
 | Uppercase or tracked-out labels above headings | **24 in 20 files**, three at 14pt | 5.4 |
@@ -964,7 +965,22 @@ Know these before writing code. They fail the build or the suite.
 | Soft Coral outside genuine errors | **4 sites** (2 routine destructive controls, 2 count badges) | 4.4 |
 | Files on a legacy icon set | **28** (11 Lucide, 17 Ionicons) | 7 |
 
-**Two numbers are corrections and are stated as such.** The raw-hex figure is the eslint run's own output (`no-restricted-syntax`, 501 of the 1100 errors in the current lint baseline), not an estimate; an earlier working figure of 331 circulated and is wrong. And the 100 raw-hex errors inside `src/constants/` are the token definitions themselves: the rule has no override for that directory, so the palette is permanently among the errors. **That is a lint-configuration gap, not debt to pay down**, and closing it is an R1 item.
+**THE `fontWeight` ROW IS CLOSED, AND THE MECHANISM IS NAMED SO IT STAYS CLOSED.** R1a
+introduced the shared text primitive (5.1) and pointed all 297 importing files at it, so weight
+resolves to a registered Inter face wherever it is set. **Two machines hold it**: an eslint
+`no-restricted-imports` rule barring `Text` and `TextInput` from `react-native` outside the
+primitive's own module and the test suites, and the primitive's own tests, which pin the mapping
+for every weight value in use and all four nesting shapes. **The number cannot drift back up one
+file at a time**, which is what a prose standard could not prevent.
+
+**THE `lineHeight` ROW IS A CORRECTION, NOT PROGRESS: 149 was wrong and 114 is right.** The
+original count matched `lineHeight: <digit>`, which also matches `lineHeight: 14 * 1.45`. **35 of
+the 149 are the `fontSize` x multiplier pattern** `typography.ts:75` prescribes, where only the
+base is a literal; they are the correct pattern and are not debt. A further 75 assignments are
+fully token-derived. **114 is the count of true fixed pixels**, and none of them is tighter than
+1.22x its font size, with only six below 1.3x.
+
+**Two further numbers are corrections and are stated as such.** The raw-hex figure is the eslint run's own output (`no-restricted-syntax`, 501 of the 1100 errors in the current lint baseline), not an estimate; an earlier working figure of 331 circulated and is wrong. And the 100 raw-hex errors inside `src/constants/` are the token definitions themselves: the rule has no override for that directory, so the palette is permanently among the errors. **That is a lint-configuration gap, not debt to pay down**, and closing it is an R1 item.
 
 **The rule, and it is three clauses:**
 
@@ -1110,6 +1126,15 @@ The design-authority reconciliation for the visual redesign, journey roadmap row
   - **2.2**: an environmental background is named as a content source of the warm point.
   - **Twelve ambiguities scoped rather than rewritten**: 0 (the precedence list gains `Vara_Journey_Architecture_Roadmap_v3.md` above the Today IA roadmap, matching `mobile/CLAUDE.md`; and "arrival" no longer keys band placement), 2.3 (Inter marked normative against 5.1's finding), 2.7, 4.2, **4.5** (scoped to hero bands, with text over an environmental background sent to 10.2 and 18(g), which is the opposite instruction on purpose), 5.2, 10.8's position row, the five FOCUS templates 11A/B/C/D/G (prohibiting **any** environmental art, not only hero bands), 12.3's title rule, and 13's safe-area and Increase Contrast lines.
   - **3.3 is deliberately unchanged.** It has no row for `MAX_FONT_SCALE` (5.1) or the immersive-card opacity token (10.2). 3.3's own rule is that a token is added to the file **and** to this document in the same commit, and that an entry here with no token in code is a promise the build cannot keep. Both tokens land in R1 and R3; their rows land with them.
+
+- **R1a: the text primitive, and Inter renders for the first time (September 2026).** 5.1's
+  implementation rule is built. **3.3** gains the `Typography.maxFontScale` row, since 3.3's own
+  contract is that a token lands in the file and in this document in the same commit. **17** has
+  the `fontWeight`-without-family row closed at **0**, with the two machines that hold it named,
+  and the `lineHeight` row corrected from **149 to 114** with the 35 `fontSize` x multiplier sites
+  recorded as the correct pattern rather than as debt. **No rule in this document changed**: R1a
+  implements 5.1 and 5.3 as written and corrects two figures in the debt table it is measured
+  against.
 
 ### What changed from v1.0 to v2.0 (August 2026)
 

@@ -4,7 +4,9 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, TextInput, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import Text from '../shared/Text';
+import TextInput from '../shared/TextInput';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Spacing, Typography, Layout } from '../../constants';

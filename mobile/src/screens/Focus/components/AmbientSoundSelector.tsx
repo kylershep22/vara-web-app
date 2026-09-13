@@ -10,7 +10,8 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, Animated, LayoutAnimation, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Animated, LayoutAnimation } from 'react-native';
+import Text from '../../../components/shared/Text';
 import * as Haptics from 'expo-haptics';
 import {
   ColorTokens,

@@ -11,7 +11,8 @@
 // used to sit directly above it. The insight leads with its own title.
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Text from '../shared/Text';
 
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { getDashboardInsight, type DashboardInsight } from './dashboardInsights';

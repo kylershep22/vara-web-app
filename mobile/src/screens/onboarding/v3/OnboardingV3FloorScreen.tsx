@@ -19,10 +19,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
+import Text from '../../../components/shared/Text';
+import TextInput from '../../../components/shared/TextInput';
 import { useNavigation } from '@react-navigation/native';
 
 import { OnboardingScaffold } from '../../../components/onboarding/OnboardingScaffold';

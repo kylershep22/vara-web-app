@@ -6,13 +6,13 @@
 import React, { useState, useEffect, memo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   Modal,
   Alert,
 } from 'react-native';
+import Text from '../shared/Text';
+import TextInput from '../shared/TextInput';
 import { Colors, Spacing } from '../../constants';
 import { createGroupPrompt } from '../../services/firebase/community.service';
 import { logger } from '../../utils/logger';

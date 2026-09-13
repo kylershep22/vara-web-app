@@ -23,7 +23,8 @@
 //     CTA, which is exactly the anticipation mechanic this card avoids.
 
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Text from './Text';
 
 import { Colors, Spacing, TextStyles, Typography } from '../../constants';
 import { Tag } from './Tag';

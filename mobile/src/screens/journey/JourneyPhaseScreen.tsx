@@ -42,7 +42,8 @@
 // surface designed for them.
 
 import React, { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Text from '../../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
@@ -70,7 +71,6 @@ import type { AdjustChoiceId, JourneyState } from '../../types/models';
 import { logger } from '../../utils/logger';
 import { labelForReplacement } from './removeCapture/routing';
 
-const MAX_FONT_SCALE = 1.3;
 const MIN_TOUCH_TARGET = 48;
 
 export interface JourneyPhaseParams {
@@ -325,7 +325,7 @@ export function JourneyPhaseScreen() {
         {stateLabel ? (
           <Text
             style={styles.state}
-            maxFontSizeMultiplier={MAX_FONT_SCALE}
+            maxFontSizeMultiplier={Typography.maxFontScale}
             testID="journey-phase-state"
           >
             {stateLabel}
@@ -334,25 +334,25 @@ export function JourneyPhaseScreen() {
 
         {cell ? (
           <>
-            <Text style={styles.title} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+            <Text style={styles.title} maxFontSizeMultiplier={Typography.maxFontScale}>
               {cell.title}
             </Text>
-            <Text style={styles.gloss} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+            <Text style={styles.gloss} maxFontSizeMultiplier={Typography.maxFontScale}>
               {cell.gloss}
             </Text>
           </>
         ) : null}
 
-        <Text style={styles.body} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+        <Text style={styles.body} maxFontSizeMultiplier={Typography.maxFontScale}>
           {PHASE_PAGE_BODIES[phase]}
         </Text>
 
         {replacement ? (
           <View style={styles.intention} testID="journey-phase-replacement">
-            <Text style={styles.intentionLead} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+            <Text style={styles.intentionLead} maxFontSizeMultiplier={Typography.maxFontScale}>
               {PHASE_PAGE_COPY.replacementLeadIn}
             </Text>
-            <Text style={styles.intentionValue} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+            <Text style={styles.intentionValue} maxFontSizeMultiplier={Typography.maxFontScale}>
               {replacement}
             </Text>
           </View>
@@ -373,14 +373,14 @@ export function JourneyPhaseScreen() {
             {chosen ? (
               <Text
                 style={styles.doorConfirmation}
-                maxFontSizeMultiplier={MAX_FONT_SCALE}
+                maxFontSizeMultiplier={Typography.maxFontScale}
                 testID="journey-phase-adjust-confirmation"
               >
                 {ADJUST_COPY.confirmation}
               </Text>
             ) : doorOpen ? (
               <>
-                <Text style={styles.doorIntro} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+                <Text style={styles.doorIntro} maxFontSizeMultiplier={Typography.maxFontScale}>
                   {ADJUST_COPY.alternativesIntro}
                 </Text>
 
@@ -405,13 +405,13 @@ export function JourneyPhaseScreen() {
                   >
                     <Text
                       style={styles.optionLabel}
-                      maxFontSizeMultiplier={MAX_FONT_SCALE}
+                      maxFontSizeMultiplier={Typography.maxFontScale}
                     >
                       {option.label}
                     </Text>
                     <Text
                       style={styles.optionBody}
-                      maxFontSizeMultiplier={MAX_FONT_SCALE}
+                      maxFontSizeMultiplier={Typography.maxFontScale}
                     >
                       {option.body}
                     </Text>
@@ -421,7 +421,7 @@ export function JourneyPhaseScreen() {
                 {chooseFailed ? (
                   <Text
                     style={styles.error}
-                    maxFontSizeMultiplier={MAX_FONT_SCALE}
+                    maxFontSizeMultiplier={Typography.maxFontScale}
                     testID="journey-phase-adjust-error"
                   >
                     {ADJUST_COPY.failed}
@@ -440,7 +440,7 @@ export function JourneyPhaseScreen() {
               >
                 <Text
                   style={styles.doorCtaLabel}
-                  maxFontSizeMultiplier={MAX_FONT_SCALE}
+                  maxFontSizeMultiplier={Typography.maxFontScale}
                 >
                   {ADJUST_COPY.primary}
                 </Text>
@@ -468,7 +468,7 @@ export function JourneyPhaseScreen() {
               accessibilityLabel={ADVANCE_PREVIEW_COPY.startThis}
               testID="journey-phase-start"
             >
-              <Text style={styles.ctaLabel} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+              <Text style={styles.ctaLabel} maxFontSizeMultiplier={Typography.maxFontScale}>
                 {ADVANCE_PREVIEW_COPY.startThis}
               </Text>
             </TouchableOpacity>
@@ -482,7 +482,7 @@ export function JourneyPhaseScreen() {
               accessibilityLabel={ADVANCE_PREVIEW_COPY.notYet}
               testID="journey-phase-not-yet"
             >
-              <Text style={styles.secondaryLabel} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+              <Text style={styles.secondaryLabel} maxFontSizeMultiplier={Typography.maxFontScale}>
                 {ADVANCE_PREVIEW_COPY.notYet}
               </Text>
             </TouchableOpacity>
@@ -490,7 +490,7 @@ export function JourneyPhaseScreen() {
             {commitFailed ? (
               <Text
                 style={styles.error}
-                maxFontSizeMultiplier={MAX_FONT_SCALE}
+                maxFontSizeMultiplier={Typography.maxFontScale}
                 testID="journey-phase-commit-error"
               >
                 {ADVANCE_PREVIEW_COPY.failed}

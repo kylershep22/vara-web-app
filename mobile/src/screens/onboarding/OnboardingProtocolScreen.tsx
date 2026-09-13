@@ -9,7 +9,8 @@
  * fallback protocol (spec Edge Case 8).
  */
 import React, { useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Text from '../../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { GuidedSessionPlayer } from '../../components/protocol/GuidedSessionPlayer';

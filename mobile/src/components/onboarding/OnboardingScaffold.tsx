@@ -6,7 +6,8 @@
  * since Typography.lineHeight.normal is 1.5.
  */
 import React, { useEffect, useRef, type ComponentType } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Animated } from 'react-native';
+import Text from '../shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
 import { Colors, Spacing, Typography, Layout } from '../../constants';

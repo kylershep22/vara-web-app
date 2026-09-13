@@ -2,11 +2,9 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   View,
-  Text,
   FlatList,
   TouchableOpacity,
   Image,
-  TextInput,
   StyleSheet,
   ActivityIndicator,
   Platform,
@@ -18,6 +16,8 @@ import {
   TouchableWithoutFeedback,
   PanResponder,
 } from 'react-native';
+import Text from '../components/shared/Text';
+import TextInput from '../components/shared/TextInput';
 import { Ionicons, MaterialCommunityIcons as MCIcon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

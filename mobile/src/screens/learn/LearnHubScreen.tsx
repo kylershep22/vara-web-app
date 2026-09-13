@@ -10,7 +10,8 @@
 // thing.
 
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import Text from '../../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors, Spacing, TextStyles } from '../../constants';

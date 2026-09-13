@@ -8,7 +8,8 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Platform, Alert, Text } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform, Alert } from 'react-native';
+import Text from '../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';

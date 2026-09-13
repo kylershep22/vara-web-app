@@ -31,10 +31,10 @@ import {
   Platform,
   StatusBar,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import Text from '../shared/Text';
 import {
   SafeAreaProvider,
   SafeAreaView,

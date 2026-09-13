@@ -36,14 +36,14 @@
  * component never asks whether it should be here.
  */
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Text from '../shared/Text';
 
 import { Colors, Layout, Spacing, Typography } from '../../constants';
 import { ADJUST_COPY } from '../../constants/journeyCopy';
 import { CardHeading } from './CardHeading';
 
 const MIN_TOUCH_TARGET = 48;
-const MAX_FONT_SCALE = 1.3;
 
 export interface AdjustmentCardProps {
   /**
@@ -74,7 +74,7 @@ export const AdjustmentCard: React.FC<AdjustmentCardProps> = ({
           exactly the inference the copy is written to avoid. */}
       <CardHeading icon="compass-outline" title={ADJUST_COPY.title} />
 
-      <Text style={styles.body} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+      <Text style={styles.body} maxFontSizeMultiplier={Typography.maxFontScale}>
         {body}
       </Text>
 
@@ -87,7 +87,7 @@ export const AdjustmentCard: React.FC<AdjustmentCardProps> = ({
         accessibilityHint="Opens this part of your journey to choose a different approach"
         testID="home-adjustment-try-different"
       >
-        <Text style={styles.ctaLabel} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+        <Text style={styles.ctaLabel} maxFontSizeMultiplier={Typography.maxFontScale}>
           {ADJUST_COPY.primary}
         </Text>
       </TouchableOpacity>
@@ -102,7 +102,7 @@ export const AdjustmentCard: React.FC<AdjustmentCardProps> = ({
         accessibilityLabel={ADJUST_COPY.decline}
         testID="home-adjustment-keep-going"
       >
-        <Text style={styles.dismissLabel} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+        <Text style={styles.dismissLabel} maxFontSizeMultiplier={Typography.maxFontScale}>
           {ADJUST_COPY.decline}
         </Text>
       </TouchableOpacity>

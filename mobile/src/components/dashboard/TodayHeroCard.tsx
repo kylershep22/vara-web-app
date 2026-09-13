@@ -21,7 +21,8 @@
  * and the entry guard can never read the boundary differently.
  */
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Text from '../shared/Text';
 import { Check } from 'lucide-react-native';
 
 import { Colors, Layout, Spacing, Typography } from '../../constants';

@@ -5,7 +5,8 @@
  */
 
 import React, { useMemo } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Text from '../shared/Text';
 import { Habit } from '../../types';
 
 interface IntentionsSummaryCardProps {

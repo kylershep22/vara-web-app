@@ -16,10 +16,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import Text from '../shared/Text';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 
 import { Colors, Spacing, Typography } from '../../constants';

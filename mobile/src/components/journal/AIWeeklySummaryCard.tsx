@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
+import Text from '../shared/Text';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,

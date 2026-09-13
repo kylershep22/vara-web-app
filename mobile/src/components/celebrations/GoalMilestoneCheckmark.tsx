@@ -4,7 +4,8 @@
  */
 
 import React, { useEffect } from 'react';
-import { StyleSheet, View, Dimensions, Text } from 'react-native';
+import { StyleSheet, View, Dimensions } from 'react-native';
+import Text from '../shared/Text';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,

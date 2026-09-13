@@ -7,16 +7,16 @@
 import React, { useState, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
   Animated,
-  TextInput,
   KeyboardAvoidingView,
   Platform,
   Modal,
 } from 'react-native';
+import Text from '../shared/Text';
+import TextInput, { type TextInputInstance } from '../shared/TextInput';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -98,7 +98,7 @@ const QuickStartModal: React.FC<QuickStartModalProps> = ({
 }) => {
   const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
 
   const handleSave = async () => {
     if (!value.trim()) return;

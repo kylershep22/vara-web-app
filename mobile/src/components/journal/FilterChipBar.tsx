@@ -4,7 +4,8 @@
  */
 
 import React, { useCallback } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity, Platform, Text } from 'react-native';
+import { View, ScrollView, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import Text from '../shared/Text';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Layout, Typography } from '../../constants';
 import { JOURNAL_TAGS } from '../../constants/journalTags';

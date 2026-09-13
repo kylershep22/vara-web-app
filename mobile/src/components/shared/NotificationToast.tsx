@@ -15,8 +15,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
-  Text,
 } from 'react-native';
+import Text from './Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants';

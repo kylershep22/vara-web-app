@@ -5,7 +5,8 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import Text from '../shared/Text';
 import { EnhancedModal } from '../shared/EnhancedModal';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 

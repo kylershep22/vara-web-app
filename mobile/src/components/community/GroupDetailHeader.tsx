@@ -7,11 +7,11 @@
 import React, { memo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import Text from '../shared/Text';
 import Button from '../Button';
 import { ChallengeCard } from './ChallengeCard';
 import { Badge } from '../shared/Badge';

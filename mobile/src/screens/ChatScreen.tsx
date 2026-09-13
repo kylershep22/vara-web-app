@@ -2,9 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
-  Text,
   FlatList,
-  TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
@@ -14,6 +12,8 @@ import {
   Keyboard,
   InputAccessoryView,
 } from 'react-native';
+import Text from '../components/shared/Text';
+import TextInput from '../components/shared/TextInput';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';

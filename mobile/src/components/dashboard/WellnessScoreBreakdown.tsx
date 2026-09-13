@@ -13,8 +13,8 @@ import {
   Modal,
   TouchableOpacity,
   Dimensions,
-  Text,
 } from 'react-native';
+import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';

@@ -31,7 +31,8 @@
  * chip here would say the same word twice within 40 pixels.
  */
 import React, { useCallback } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Text from '../../../components/shared/Text';
 
 import { Colors, Layout, Spacing, TextStyles, Typography } from '../../../constants';
 import type { CapturedTask } from '../../../types/models';

@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   Alert,
@@ -14,10 +13,11 @@ import {
   ScrollView,
   Platform,
   TouchableOpacity,
-  TextInput,
   Switch,
   Modal as RNModal,
 } from 'react-native';
+import Text from '../../components/shared/Text';
+import TextInput from '../../components/shared/TextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Button, LoadingSpinner, Input, GroupCard } from '../../components';

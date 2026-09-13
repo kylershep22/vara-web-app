@@ -7,11 +7,11 @@
 import React from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   AccessibilityInfo,
 } from 'react-native';
+import Text from '../shared/Text';
 import { Colors, Spacing, Typography } from '../../constants';
 
 interface PricingSelectorProps {
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   },
   period: {
     fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.normal,
+    fontWeight: Typography.fontWeight.regular,
   },
   equivalent: {
     fontSize: Typography.fontSize.xs,

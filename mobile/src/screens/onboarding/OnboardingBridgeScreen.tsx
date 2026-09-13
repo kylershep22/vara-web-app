@@ -5,7 +5,8 @@
  * guide. One primary action.
  */
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Text from '../../components/shared/Text';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Repeat } from 'lucide-react-native';
 import { OnboardingScaffold } from '../../components/onboarding/OnboardingScaffold';

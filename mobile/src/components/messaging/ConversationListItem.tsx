@@ -7,12 +7,12 @@
 import React from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   Image,
   StyleSheet,
   Platform,
 } from 'react-native';
+import Text from '../shared/Text';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import type { ConversationWithUser } from '../../hooks/useConversations';
 

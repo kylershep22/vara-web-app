@@ -20,9 +20,9 @@ import {
   Keyboard,
   Dimensions,
   Modal,
-  Text,
   TouchableOpacity,
 } from 'react-native';
+import Text from './Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';

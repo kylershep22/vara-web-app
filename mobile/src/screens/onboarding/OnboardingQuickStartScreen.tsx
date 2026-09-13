@@ -4,7 +4,9 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Alert, Dimensions, TextInput as RNTextInput } from 'react-native';
+import { View, StyleSheet, ScrollView, FlatList, TouchableOpacity, Alert, Dimensions } from 'react-native';
+import TextInput from '../../components/shared/TextInput';
+import Text from '../../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Button } from '../../components';
@@ -385,7 +387,7 @@ const OnboardingQuickStartScreen: React.FC<OnboardingQuickStartScreenProps> = ({
               <Text style={{fontSize: 12, color: Colors.textSecondary, marginBottom: 4}}>
                 {customType === 'goal' ? "What's your goal?" : "What habit do you want to build?"}
               </Text>
-              <RNTextInput
+              <TextInput
                 value={customTitle}
                 onChangeText={setCustomTitle}
                 placeholder={customType === 'goal' ? 'e.g., Run a 5K' : 'e.g., Meditate daily'}

@@ -21,8 +21,9 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
+import Text from './Text';
 import { Image } from 'expo-image';
 import type { ImageProps } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';

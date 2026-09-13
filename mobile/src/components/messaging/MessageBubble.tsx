@@ -6,11 +6,11 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   Image,
   StyleSheet,
   Platform,
 } from 'react-native';
+import Text from '../shared/Text';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 
 interface MessageBubbleProps {

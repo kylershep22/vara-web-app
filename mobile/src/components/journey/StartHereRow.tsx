@@ -96,7 +96,8 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { VideoPlayerModal } from '../video/VideoPlayerModal';
@@ -113,7 +114,6 @@ import {
 } from '../../utils/startHereCollapseMarker';
 
 const MIN_TOUCH_TARGET = 48;
-const MAX_FONT_SCALE = 1.3;
 
 export interface StartHereRowProps {
   /** Which surface is mounting this. Keys both the video and the collapse. */
@@ -217,14 +217,14 @@ export const StartHereRow: React.FC<StartHereRowProps> = ({
         <View style={styles.text}>
           <Text
             style={[styles.label, collapsed && styles.labelCollapsed]}
-            maxFontSizeMultiplier={MAX_FONT_SCALE}
+            maxFontSizeMultiplier={Typography.maxFontScale}
           >
             {START_HERE_LABEL}
           </Text>
           {collapsed ? null : (
             <Text
               style={styles.gloss}
-              maxFontSizeMultiplier={MAX_FONT_SCALE}
+              maxFontSizeMultiplier={Typography.maxFontScale}
               testID={`${testID}-gloss`}
             >
               {gloss}

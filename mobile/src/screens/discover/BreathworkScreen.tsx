@@ -9,14 +9,14 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  TextInput,
   Animated,
   ScrollView,
   LayoutAnimation,
   Platform,
   UIManager,
-  Text,
 } from 'react-native';
+import Text from '../../components/shared/Text';
+import TextInput, { type TextInputInstance } from '../../components/shared/TextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -132,7 +132,7 @@ interface SearchBarProps {
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ visible, value, onChangeText, onClose }) => {
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const animatedHeight = useRef(new Animated.Value(0)).current;
   const animatedOpacity = useRef(new Animated.Value(0)).current;
 

@@ -6,12 +6,12 @@
 import React, { memo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
   Modal,
 } from 'react-native';
+import Text from '../shared/Text';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { UserProfile } from '../../services/firebase/community.service';
 

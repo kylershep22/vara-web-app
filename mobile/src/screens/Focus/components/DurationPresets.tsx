@@ -12,7 +12,9 @@
  */
 
 import React, { useState } from 'react';
-import { View, TouchableOpacity, TextInput, StyleSheet, Text } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import Text from '../../../components/shared/Text';
+import TextInput from '../../../components/shared/TextInput';
 import * as Haptics from 'expo-haptics';
 import {
   ColorTokens,
