@@ -3242,11 +3242,16 @@ buttons read correctly. Debt item (d) then says a Clear action should be tertiar
 rather than a filled button at all. If (d) is actioned, the fill this row fixed stops existing.
 Recorded so the two are not treated as independent.
 
-**ATTESTATIONS (Kyle, 2026-09-13):**
-- Suites green at tsc 147 / jest 3551 of 225 / sentinel 149 / lint 995 errors, 1358 warnings.
-  ATTESTED.
-- Walk Section A passed on the steps listed in item 2, one device, default type; remaining steps
-  not run for the reasons stated. ATTESTED.
+**ATTESTATIONS (Kyle, 2026-09-13), verbatim from the walk result:**
+
+> 5. ATTESTATIONS (Kyle, 2026-09-13): suites green at tsc 147 /
+>    jest 3551 of 225 / sentinel 149 / lint 995 errors, 1358 warnings.
+>    ATTESTED. Walk Section A passed on the steps listed in item 2, one
+>    device, default type; remaining steps not run for the reasons
+>    stated. ATTESTED.
+
+**Re-verified by CC at the docs commit, independently of the attestation:** tsc **147**, jest
+**3551 of 225**, sentinel **149**, lint **995 errors / 1358 warnings**. The figures match.
 
 **NO MERGE. Kyle merges.**
 
