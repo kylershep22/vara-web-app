@@ -239,7 +239,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.mistWhite,
   },
   scrollContent: {
-    paddingBottom: Spacing['4xl'],
+    // Matches SleepScreen's scrollContent, the only other tokenised bottom
+    // padding in discover/. Was `Spacing['4xl']`, not a key.
+    paddingBottom: Spacing['3xl'],
   },
   heroContainer: {
     width: '100%',

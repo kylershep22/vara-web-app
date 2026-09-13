@@ -809,7 +809,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   emptyIcon: {
-    fontSize: Typography.fontSize['5xl'] + 16,
+    // The glyph plays the part of an empty-state icon, so it takes the icon
+    // scale rather than a text size: 48, which is what the one empty state
+    // built the same way renders (RoutinesTab's `emptyEmoji`, a bare Text
+    // emoji above a title). Was `Typography.fontSize['5xl'] + 16`; '5xl' is
+    // not a key, so this evaluated to NaN.
+    fontSize: Layout.iconSize.xl,
     marginBottom: Spacing.base,
   },
   emptyTitle: {

@@ -241,7 +241,9 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing['4xl'],
+    // Matches `completionSection` in BreathworkDetailScreen, the sibling focal
+    // state this timer is swapped out for. Was `Spacing['4xl']`, not a key.
+    paddingVertical: Spacing['3xl'],
   },
   circle: {
     width: 200,

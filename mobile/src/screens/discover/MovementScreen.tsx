@@ -83,7 +83,9 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingVertical: Spacing.base,
-    paddingBottom: Spacing['4xl'],
+    // Matches SleepScreen's scrollContent, the only other tokenised bottom
+    // padding in discover/. Was `Spacing['4xl']`, not a key.
+    paddingBottom: Spacing['3xl'],
   },
   emptyState: {
     flex: 1,
