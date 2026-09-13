@@ -1284,13 +1284,30 @@ deploy. Deploy state lives on Kyle's checklist.
 > **WALKED 2026-09-13 (Kyle). SECTION A PASSED ON THE STEPS LISTED; THE REST ARE REPORTED AS
 > NOT RUN, WITH REASONS.** One device, dev client, default Dynamic Type.
 
-> **THE DEVICE IS NOT NAMED IN THE WALK RESULT, AND THAT IS RECORDED AS A GAP RATHER THAN
-> GUESSED.** The result handed over carries a `<MODEL>` placeholder that was never filled in.
-> §18(d) requires a walk to record which device it ran on, and this entry cannot supply what it
-> was not told. **What is known: one device, not both; dev client; default Dynamic Type.** Step
-> 11's own wording asks for a judgement "on both devices", and step 7's and step 10's findings
-> are size-sensitive, so a later reader needs the model to know what was covered. **Kyle: name
-> the device and this line is replaced by it.**
+> **THE DEVICE WAS AN iPhone 14 Plus (Kyle, supplied 2026-09-13), AND IT IS NOT A MATRIX
+> DEVICE.** §18(d)'s matrix is the **iPhone SE (3rd generation), 375 x 667 pt @2x** and the
+> **iPhone 16 Pro Max, 430 x 932 pt @3x**. The 14 Plus is **428 x 926 pt @3x with a 47pt notch
+> inset**, so **neither matrix device was walked** and the walk stands on a proxy rather than on
+> the matrix. **Recorded as what it is rather than rounded to the nearest matrix entry.**
+>
+> **WHAT THAT PROXY COVERS AND WHAT IT DOES NOT.** At 428pt wide the 14 Plus is within **2pt of
+> the 16 Pro Max**, so for the width-sensitive steps - 7, 10, 11, 12 - the large end is
+> effectively covered. **The small end is not covered at all.** The SE is 375pt wide and 667pt
+> tall, 53pt narrower and 259pt shorter, and it is the binding case for horizontal layout and
+> for bottom clearance scrolled fully down. **And only @3x was walked**, where §18(g) asks for
+> both scale factors because a raster asset resolves differently at each - which is the step 13
+> band-artwork check.
+>
+> **THE TOP INSET IS THE ONE PLACE THE 14 PLUS IS ITS OWN CASE RATHER THAN A PROXY.** It is a
+> **notch** device at 47pt, not a Dynamic Island device at 59pt. That sits between the SE's 20pt
+> and the Pro Max's 59pt, and it is what makes debt item (f) reproduce on the walked device: at
+> `maxHeightPercent={0.98}` the sheet's top edge lands **28.5pt inside the 47pt inset**, and the
+> shell header's 24pt `paddingTop` does not cover 28.5pt. **Kyle's "title tight under the status
+> bar" is that arithmetic**, observed rather than derived.
+>
+> **STILL ONE DEVICE, NOT BOTH**, dev client, default Dynamic Type. Step 11's own wording asks
+> for a judgement "on both devices" and got one. **The SE half of the matrix is open and rolls
+> forward to R2's walk.**
 
 > **PASSED: 1, 2, 3, 4** (helper text on White, Mist White, Dew Sage and `dewSageLight`) · **5**
 > (Remove, the `AddBlockSheet` fill) · **6** (Clear, the `CaptureTaskSheet` fill) · **7** (Focus
@@ -1390,14 +1407,17 @@ deploy. Deploy state lives on Kyle's checklist.
 >   `messaging/EmptyState.tsx:30`, `MessagesScreen.tsx:277`, `WeeklyBrainMetricsChart.tsx:209`,
 >   plus `Time/ActiveRoutinePlayer.tsx:418`. A 64px glyph at body-text weight is a different
 >   decision from a 14pt caption at the same value. `DESIGN_BACKLOG` item 9.
-> - **(f) Add-a-block sheet under the status bar. THE NOTE ASKS FOR THE WRONG DEVICE.**
->   `AddBlockSheet.tsx:378` passes `maxHeightPercent={0.98}` where `EnhancedModal` defaults to
->   0.92, and the comment shows it was deliberate, to fit a sixth row. At 0.98 the sheet's top
->   edge sits **6.7pt inside the SE's 20pt status bar and 40.4pt inside the 16 Pro Max's 59pt
->   Dynamic Island inset**; at 0.92 it clears both, by 33.4pt and 15.6pt. **The Dynamic Island
->   device is the binding case, not the SE**, and the header's 24pt `paddingTop` covers the SE
->   overlap but not the Pro Max one. This is a §18(c) safe-area failure with a stated trade-off
->   behind it, not a typo. `DESIGN_BACKLOG` item 10.
+> - **(f) Add-a-block sheet under the status bar. THE NOTE ASKS FOR THE WRONG DEVICE, AND THE
+>   WALKED ONE SITS BETWEEN THE TWO.** `AddBlockSheet.tsx:378` passes `maxHeightPercent={0.98}`
+>   where `EnhancedModal` defaults to 0.92, and the comment shows it was deliberate, to fit a
+>   sixth row. The shell caps height at `screenHeight x maxHeightPercent`, so the top gap is
+>   `screenHeight x (1 - maxHeightPercent)`. At 0.98 the sheet's top edge sits **6.7pt inside the
+>   SE's 20pt status bar**, **28.5pt inside the walked iPhone 14 Plus's 47pt notch**, and
+>   **40.4pt inside the 16 Pro Max's 59pt Dynamic Island**; at 0.92 it clears all three. **The
+>   header's 24pt `paddingTop` covers the SE's 6.7pt and neither of the others**, which is why
+>   the title reads tight on the 14 Plus - the observation is that arithmetic. **The binding case
+>   is still the Pro Max at 40.4pt, and it was not walked.** A §18(c) safe-area failure with a
+>   stated trade-off behind it, not a typo. `DESIGN_BACKLOG` item 10.
 > - **(g) Two adjacent amber chips.** `Time/components/activityColors.ts:38-42` maps **four**
 >   legacy names - orange, yellow, amber, brown - onto Golden Apricot, so two adjacent
 >   activities drawn from any of those four produce two adjacent warm chips on the routine list
@@ -3201,9 +3221,13 @@ two test literals and documentation.
 the steps listed below; the rest are reported as not run with reasons. Full detail, including the
 reasons and the two that are weaker than the others, is in the R1b-i AMENDED block in §5.
 
-**THE DEVICE MODEL IS NOT RECORDED, AND THAT IS A GAP RATHER THAN AN OMISSION HERE.** The walk
-result carries a `<MODEL>` placeholder that was never filled in. §18(d) requires a walk to say
-which device it ran on; this entry cannot supply what it was not told. One device, not both.
+**THE DEVICE WAS AN iPhone 14 Plus, AND IT IS NOT ONE OF THE TWO IN §18's MATRIX.** 428 x 926 pt
+@3x with a **47pt notch inset**, against a matrix of the SE (3rd gen) at 375 x 667 @2x and the 16
+Pro Max at 430 x 932 @3x. **At 2pt narrower than the Pro Max it is a fair proxy for the large end**
+- steps 7, 10, 11 and 12 are covered there - **and no proxy at all for the small end**, which is
+53pt narrower, 259pt shorter and @2x. **Only @3x was walked**, where §18(g) wants both scale
+factors for exactly the raster-asset check step 13 performs. One device, not both. **The SE half
+of the matrix is open and rolls forward to R2's walk.**
 
 **PASSED:** 1-4 (helper text on all four light grounds) · 5 (Remove fill) · 6 (Clear fill) ·
 7 (unchecked checkbox still reads empty) · 10 (five tokened placeholders still read as
@@ -3244,10 +3268,11 @@ placeholders across 16 files**, not two Journal strings, because they set no `pl
 and fall through to the platform default at 1.72:1 - which is also why step 10 passed, since the
 five it walked all set the token explicitly and the two sets do not overlap; (e)'s People
 empty-state glyph is **64px, not 48**, and is one of six empty-state glyphs carrying a text colour;
-(f)'s sheet inset is **worse on the Dynamic Island device than on the SE the note asks about** -
-`maxHeightPercent={0.98}` against the shell's 0.92 puts the sheet 6.7pt inside the SE status bar
-and **40.4pt inside the 16 Pro Max Dynamic Island inset**, and the header's 24pt padding covers
-the first but not the second. **And (d) cites §7.1, which does not exist**; the governing rule is
+(f)'s sheet inset is **worse on a Dynamic Island device than on the SE the note asks about, and
+it reproduced on the 14 Plus in between** - `maxHeightPercent={0.98}` against the shell's 0.92
+puts the sheet 6.7pt inside the SE's 20pt status bar, **28.5pt inside the walked 14 Plus's 47pt
+notch**, and **40.4pt inside the 16 Pro Max's 59pt Dynamic Island**; the header's 24pt padding
+covers the first and neither of the others. **The worst case, the Pro Max, was not walked.** **And (d) cites §7.1, which does not exist**; the governing rule is
 §10.1's tertiary clause, and `AddBlockSheet`'s Remove is the same shape as the Clear it names.
 
 **THE TWO FILLS PASSED AND MAY NOT SURVIVE.** Steps 5 and 6 confirm the darkened Remove and Clear

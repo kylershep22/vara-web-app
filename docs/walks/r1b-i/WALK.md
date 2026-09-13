@@ -10,9 +10,21 @@ slice commits its walk script.
 
 ## RESULT — walked 2026-09-13 (Kyle)
 
-One device, dev client, default Dynamic Type. **The device model is not recorded**: the walk
-result carried a `<MODEL>` placeholder that was never filled in, and §18(d) asks a walk to
-say which device it ran on. One device, not both.
+**iPhone 14 Plus**, dev client, default Dynamic Type. One device, not both.
+
+**It is not a matrix device.** §18(d)'s matrix is the iPhone SE (3rd gen) at 375 × 667 @2x and
+the iPhone 16 Pro Max at 430 × 932 @3x. The 14 Plus is **428 × 926 @3x with a 47pt notch**.
+
+- **Large end: effectively covered.** At 428pt it is within 2pt of the Pro Max, so the
+  width-sensitive steps — 7, 10, 11, 12 — hold for that end of the matrix.
+- **Small end: not covered at all.** The SE is 53pt narrower, 259pt shorter, and @2x. It is the
+  binding case for horizontal layout and for bottom clearance scrolled fully down.
+- **Only @3x was walked**, where §18(g) wants both scale factors because a raster asset resolves
+  differently at each — which is what step 13 checks.
+- **The top inset is the one place it is its own case, not a proxy:** 47pt sits between the SE's
+  20pt and the Pro Max's 59pt, and it is why debt item (f) reproduced here.
+
+**The SE half of the matrix is open and rolls forward to R2's walk.**
 
 **PASSED:** 1, 2, 3, 4 · 5 · 6 · 7 · 10 · 11 · 12 · 13 (Today and Energy) · 18 (chevrons and
 menus).

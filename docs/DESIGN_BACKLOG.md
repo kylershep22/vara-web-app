@@ -349,12 +349,18 @@ so the top gap is `screenHeight * (1 - maxHeightPercent)`:
 | Device | 0.92 top gap | 0.98 top gap | Top inset | At 0.98 |
 |---|---|---|---|---|
 | iPhone SE (3rd gen), 667pt | 53.4pt | 13.3pt | 20pt status bar | **6.7pt inside** |
+| **iPhone 14 Plus, 926pt — WALKED** | 74.1pt | 18.5pt | 47pt notch | **28.5pt inside** |
 | iPhone 16 Pro Max, 932pt | 74.6pt | 18.6pt | 59pt Dynamic Island | **40.4pt inside** |
 
 The shell's header adds `paddingTop: Spacing.lg` (24pt), which covers
-the SE's 6.7pt overlap and does **not** cover the Pro Max's 40.4pt.
-**So the Dynamic Island device is the binding case**, and it is the
-one that was walked.
+the SE's 6.7pt overlap and covers neither of the other two.
+
+**The walked device was an iPhone 14 Plus** — a notch device at 47pt,
+not a Dynamic Island device at 59pt. It sits between the two matrix
+entries, and 28.5pt against 24pt of header padding is exactly why the
+title read tight. **The binding case is still the 16 Pro Max at
+40.4pt, and it has not been walked**, so the worst instance of this
+item is measured rather than observed.
 
 This is a §18(c) safe-area failure with a stated trade-off behind it,
 not an oversight. **Any fix has to keep the sixth row reachable** —
