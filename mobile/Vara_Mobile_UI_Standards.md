@@ -423,7 +423,7 @@ Shadows are structural: they say which tier a thing is on. Never on text, icons,
 
 **The 1.5px-stroke character rule is retired with Lucide.** It described Lucide's drawing and does not describe MCI, so keeping it would have set a standard no icon in the app meets. Custom icons remain a last resort, drawn to match **MCI's** weight and corner treatment, minimal detail, legible at 16.
 
-**Lucide (11 files) and Ionicons (17 files) are legacy.** Permitted only in files on an allowlist that **shrinks as screens are redesigned**, never grows. R1 adds the lint that holds the allowlist; until then it is a review item. Lucide's 11 files are the onboarding surface plus `TodayHeroCard`, `OnboardingScaffold` and `SelectionRow`, which means the onboarding redesign is where most of it retires.
+**Lucide (11 files) and Ionicons (17 files) are legacy.** Permitted only in files on an allowlist that **shrinks as screens are redesigned**, never grows. **The allowlist is held by `src/__tests__/legacyIcons.test.ts` (R1b-ii, 2026-09-13), and it is no longer a review item.** All 28 files are named there with the redesign row that retires each one; a legacy import in any other file fails the suite, and so does an entry whose file has been deleted OR has already stopped importing the set. Adding an entry is not the fix for a new violation - the list only shrinks. Lucide's 11 files are the onboarding surface plus `TodayHeroCard`, `OnboardingScaffold` and `SelectionRow`, which means the onboarding redesign is where most of it retires.
 
 **Brand marks stay SVG.** The wordmark and lotus are artwork, not icons, and never come from an icon set.
 
