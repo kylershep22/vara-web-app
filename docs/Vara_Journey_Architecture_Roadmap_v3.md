@@ -1075,6 +1075,11 @@ deploy. Deploy state lives on Kyle's checklist.
 > snapshot gate had nothing to act on: the repo contains ZERO snapshot tests**, so no
 > `jest -u` ran and no snapshot commit exists.
 >
+> **WALK OUTSTANDING 2026-09-13. The §18 walk (14 steps, both matrix devices, default and 1.3x)
+> was not run before the merge. Step 4 (Paper text) and step 11 (paywall) are the highest-risk
+> unwalked steps; step 14 gates the app-wide Dynamic Type cap. To be closed before R2's walk,
+> which runs on the full matrix; before-state for step 10 reachable at `0091ce5`.**
+>
 > **RULINGS (Kyle, 2026-09-12), taken AHEAD of the walk so the branch is not carrying two open
 > questions into it.**
 >
@@ -2923,6 +2928,17 @@ nobody has seen run. **The gate on that row is a device, not a suite** - nothing
 can close it.
 
 **NO MERGE, AND THE `[Next]` MARKER HAS NOT MOVED.** R1a still carries it. Kyle walks first.
+
+**ATTESTATIONS (Kyle, 2026-09-13):**
+- Suites green at tsc 147 / jest 3535 of 224 / sentinel 149 /
+  lint 1100 errors, 1358 warnings. ATTESTED.
+- Device walk NOT run. Merged on Kyle's visual check of the
+  DevTypography diagnostic on a physical device via dev client:
+  primitive rows render a different typeface from the System rows,
+  all four weights distinct. Steps 1-14 of the walk script are
+  OUTSTANDING; the six before-screenshots were not captured and
+  0091ce5 remains the capture point. Kyle's decision, recorded as
+  such.
 
 ### 2026-09-12 - R1 Step 0, and the row splits four ways (read-only; no code moved. Split recorded in `caa4bb9`'s successor commit on `main`, docs only)
 
