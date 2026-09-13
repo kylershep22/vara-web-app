@@ -3,7 +3,10 @@
  * Rotating single-insight highlight card
  *
  * Per Focus Page Spec Section 5.7:
- * - Background: color-surface-tinted-light (rgba(213, 227, 209, 0.5))
+ * - Background: color-surface-tinted-light (`ColorTokens.surfaceTintedLight`,
+ *   which since R1d is an alias of `Colors.dewSageLight` - quote the token, not
+ *   the string, because the string it resolved to changed spelling in R1d while
+ *   the colour did not)
  * - Left accent border: 3px solid color-primary
  * - Title: "Supporting your focus" - 13px Semi-Bold, primary
  * - Body: Single tip - 13px Regular, text-primary, 1.5 line height
