@@ -13,6 +13,7 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
+import { Colors } from '../../constants';
 
 // Vara brand colors
 const VARA_COLORS = {
@@ -20,7 +21,7 @@ const VARA_COLORS = {
   tealMid: '#227A71',
   apricot: '#F5B971',
   charcoal: '#3E3E3E',
-  sageGray: '#6F7F77',
+  sageGray: Colors.mutedSageGray,
   white: '#FFFFFF',
 };
 

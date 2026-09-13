@@ -495,13 +495,13 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 12,
-    color: Colors.mutedSageGray || '#6F7F77',
+    color: Colors.mutedSageGray,
     marginTop: 2,
   },
   progressText: {
     fontSize: 12,
     fontWeight: '500',
-    color: Colors.mutedSageGray || '#6F7F77',
+    color: Colors.mutedSageGray,
     marginRight: 4,
   },
   chevron: {

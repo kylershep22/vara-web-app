@@ -39,7 +39,7 @@ const VARA_COLORS = {
   apricot: '#F5B971',
   mistWhite: '#FAFAF6',
   charcoal: '#3E3E3E',
-  sageGray: '#6F7F77',
+  sageGray: Colors.mutedSageGray,
 };
 
 type TimeFrame = 'week' | 'month';

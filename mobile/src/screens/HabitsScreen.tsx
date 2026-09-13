@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     fontWeight: '400',
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
     textAlign: 'center',
     maxWidth: 240,
     lineHeight: 21,
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   insightBody: {
     fontSize: 12,
     fontWeight: '400',
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
     lineHeight: 12 * 1.55,
   },
   errorCard: {

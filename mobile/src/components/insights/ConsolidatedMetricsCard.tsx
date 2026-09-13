@@ -7,6 +7,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { Colors } from '../../constants';
 
 // Vara brand colors
 const VARA_COLORS = {
@@ -15,7 +16,7 @@ const VARA_COLORS = {
   apricot: '#F5B971',
   dewSage: '#D5E3D1',
   charcoal: '#3E3E3E',
-  sageGray: '#6F7F77',
+  sageGray: Colors.mutedSageGray,
   white: '#FFFFFF',
 };
 

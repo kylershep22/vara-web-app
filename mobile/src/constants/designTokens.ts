@@ -34,7 +34,7 @@ export const ColorTokens = {
 
   // Text
   textPrimary: '#3E3E3E',                // Body copy, primary text (never use pure black)
-  textSecondary: '#6F7F77',              // Helper text, captions, labels, inactive icons
+  textSecondary: '#56655D',              // Helper text, captions, labels, inactive icons
   textOnPrimary: '#FFFFFF',              // Text on primary color backgrounds
 
   // Functional

@@ -31,7 +31,7 @@ const VARA_COLORS = {
   teal: '#1B5E57',
   mistWhite: '#FAFAF6',
   charcoal: '#3E3E3E',
-  sageGray: '#6F7F77',
+  sageGray: Colors.mutedSageGray,
   dewSage: '#D5E3D1',
   apricot: '#F5B971',
 };

@@ -309,6 +309,21 @@ Based on previous rejection, they will specifically check:
    - Create a test account in your app for Apple reviewers
    - Document credentials to include in review notes
 
+5. [ ] **Dev routes** — confirm the `__DEV__` block is not in the build
+   - `src/navigation/AppNavigator.tsx:1201` registers six diagnostic
+     routes inside `{__DEV__ && (...)}`, so they do not exist in a
+     release build and Metro tree-shakes the screens behind them:
+     `DevBreathPacer`, `DevAudioLoader`, `DevGuidedSessionPlayer`,
+     `DevCheckInFlow`, `DevTypography`, `DevVideoPlayer`
+     (`src/screens/_dev/`, six files).
+   - **Nothing to remove by hand if the gate is intact.** What to
+     check is that the gate is still there and still wraps all six:
+     a route moved outside it ships a diagnostic screen to users.
+   - This is the standing home for anything that must not ship. Dev
+     surfaces are not added by new slices (standing rule, R1b-i
+     onward); an existing one is listed here so its removal is a
+     checklist item rather than someone's memory.
+
 ---
 
 ## ✅ Ready to Submit?

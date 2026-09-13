@@ -276,9 +276,10 @@ deploy. Deploy state lives on Kyle's checklist.
 | R1 | **[SPLIT 2026-09-12 into R1a, R1b-i, R1b-ii and R1d; R1c REJECTED at Step 0, it does not exist; see the AMENDED block]** **[Row added 2026-09-12 with the R-series; unblocked at R0's merge. RESCOPED 2026-09-12: the background asset is a BLOCKING deliverable, not a measurement, and R3 cannot start until it resolves; see the block at the end of the scope cell.]** Design foundation: token reconciliation, primitives, `ScreenScaffold` *(row added 2026-09-12 with the R-series)* | **TOKEN RECONCILIATION FIRST, AND IT IS A SUBSTITUTION SLICE WITH NO VISUAL CHANGE**, which is what makes it independently verifiable. **NO LITERAL MIRRORS:** `ColorTokens` and `TypographyTokens` in `constants/designTokens.ts` are independent literal COPIES of values in `colors.ts` and `typography.ts`, not aliases, and they have already drifted - `Colors.dewSageLight` is `'rgba(213,227,209,0.5)'` while `ColorTokens.surfaceTintedLight` is `'rgba(213, 227, 209, 0.5)'`, the same colour as two different strings, which compare unequal in a style object. `SpacingTokens`, `RadiusTokens` and `ShadowTokens` are ALREADY aliases of the canonical scales and are the pattern to follow; `ColorTokens` and `TypographyTokens` become aliases of the canonical objects or are deleted. **INTER FAMILY VERIFICATION AND MAPPING:** `Typography.fontFamily` declares four Inter faces and `App.tsx` loads them, but **Step 0 must establish which text actually renders in Inter**, because the journey and Today styles set `fontSize`, `fontWeight` and `color` and do NOT set `fontFamily`, which on React Native means the platform system face unless a Paper component supplies it. Weight-to-face mapping is the deliverable: RN does not synthesise a family from `fontWeight` when the family is a named static face. **ADDITIONS:** whatever spacing, radii and shadow tokens §2.8 and 10.2 require, added to `spacing.ts` **and to §3.3 in the same commit**, per §3.3's own rule that a token in code with no entry there is undocumented drift. **SHARED PRIMITIVES AND `ScreenScaffold`**, against the duplication Step 0 counted: the filled teal CTA is re-declared in 126 files; `AdvancementCard`, `AdjustmentCard` and `RemoveCaptureCard` carry byte-identical style blocks; the hub category card is written three times (`JourneyMapScreen`, `EnergyHubScreen`, `FocusHubScreen`) with `borderRadius: 16` as a raw literal in all three when `Layout.borderRadius.xl` is 16; `MIN_TOUCH_TARGET = 48` is a local const in at least eight files when `SizeTokens.touchTargetMin` is 48. **`utils/accessibility.ts` HAS ZERO IMPORTERS** - 257 lines of `buttonA11yProps`, `checkboxA11yProps`, `progressA11yProps`, `headerA11yProps` and `meetsContrastRequirement` that §16 instructs the app to use and nothing does; the primitives adopt them or the file is retired, but it does not stay in its current state. **LEARN IS THE TEST SCREEN:** `LearnHubScreen.tsx` is 63 lines, has no data, no navigation and nothing tappable, so a scaffold or primitive that is wrong there is wrong in isolation. **THREE MEASUREMENTS THIS ROW OWNS, AND EACH REPLACES A SENTENCE THAT CANNOT BE ENFORCED:** **(i) THE IMMERSIVE-CARD OPACITY TOKEN.** Measure the minimum card opacity at which Soft Charcoal `#3E3E3E` clears WCAG AA 4.5:1 over the **darkest region of `todayBackground.webp`**, and make that measured number a token. "Must maintain readable contrast" is not enforceable and must not appear in the standards. Targets to measure against, derived rather than guessed: the composited card colour needs relative luminance **>= 0.392** for 4.5:1 body text against `#3E3E3E`, and **>= 0.245** for the 3:1 large-text floor; Mist White over nothing is 10.2:1 and pure white is 10.7:1, so there is real headroom and the question is only how much of it the artwork eats. Measure the composite per channel in sRGB, not by interpolating luminance. **(ii) THE ASSET SCALE QUESTION, AND IT IS ALREADY ANSWERABLE.** `mobile/assets/images/todayBackground.webp` is committed (`94c3a77`, 2026-09-12, 137,486 bytes) and **referenced by nothing in `src/`**. It is **941 x 1672**, aspect 0.563. Against `contentFit: 'cover'` at full viewport: a 4.7" device at 2x (750 x 1334 px) DOWNSCALES to 0.80 and is fine; a 6.1" at 3x (1179 x 2556) upscales **1.53x**; a 6.7" at 3x (1290 x 2796) upscales **1.67x** and crops about 18% of the asset width, because 9:17.8 is squarer than the 9:19.5 it has to cover. Native coverage on the largest device at the current aspect needs roughly **1574 x 2796**, which is 2.8x the pixel count and a materially larger file. **Confirm the intended render size, scale factor and file-size budget, and REPORT BEFORE R3 DEPENDS ON IT** - R3 is the row that cannot start against an asset of unknown adequacy. This is a report, not a decision: whether 1.67x upscale on soft watercolour is acceptable is Kyle's call and banding is the thing to look for, not sharpness. **(iii) THE HORIZONTAL-PADDING MIGRATION, SCOPED RATHER THAN ASSUMED.** Screens that declare their own horizontal padding do not inherit a scaffold token by having one exist; they keep their literals silently. The values already disagree: Today uses `Spacing.base` (16) while the journey map, Learn, Energy, Focus, Stress Recovery and the phase page use `Spacing.lg` (24), and `DashboardScreen`'s own comment warns that the hero band's negative margin MUST match whichever the parent uses, so changing one without the other clips the band. **Enumerate every screen declaring its own value, decide per screen, and carry the list** - do not assume `ScreenScaffold` absorbs them. **FROZEN, unchanged by this row and restated because a substitution slice is exactly where a frozen value gets quietly re-typed:** journey phase derivation; `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; phase advancement; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement; ahead rows remain tappable; no streaks, scores or completion percentages. **RESCOPED 2026-09-12 (Kyle). The scope above is left unedited; this block promotes one of its three measurements to a BLOCKING DELIVERABLE and changes nothing else.** **ITEM (ii), THE ASSET SCALE QUESTION, IS NO LONGER A REPORT. `todayBackground.webp` MUST BE REGENERATED, and R1 does not close until it is.** **THE REASON IS COMPOSITIONAL, NOT RESOLUTION, AND THAT IS WHY A REPORT WAS THE WRONG SHAPE FOR IT.** The scope above framed this as a sharpness-and-banding judgement to be taken on the numbers once they were in front of someone. It is not that. At 941 x 1672 against the largest device in the §18 matrix - iPhone 16 Pro Max, 1290 x 2796 - the asset upscales 1.67x **and loses about 18% of its width to the cover crop**, because its 0.563 aspect is squarer than the 0.461 it has to fill. **The low-detail centre corridor - the region the immersive cards sit over, and the region R1's own opacity measurement is taken against - was composed inside a frame the device never shows.** Measuring the opacity token against a crop is measuring the wrong pixels. Restyling cards against it in R3 is designing against a frame that does not exist. **Neither is fixed by accepting a softer image**, which is what a resolution judgement would have been deciding. **TARGET: ROUGHLY 1574 x 2796**, which is native coverage for the largest device at the asset's current aspect, and 2.8x the pixel count of what is committed. Expect a materially larger file and **state the file-size budget when it lands** rather than discovering it at bundle time. **REGENERATING AT THE DEVICE ASPECT (0.461) INSTEAD, AND LETTING SMALLER DEVICES CROP THE LONG EDGE, IS THE ALTERNATIVE AND IS THE ARTIST'S CALL** - not a number this row can pick, because it changes what is composed where, which is the entire finding. Whichever is chosen, the centre corridor must be composed against the frame that actually renders. **THE ORDERING CONSEQUENCE, WHICH IS THE POINT OF PROMOTING THE ITEM: R3 CANNOT START UNTIL THIS RESOLVES.** R3 was already gated on R1, but **a gate on a row that can close with an open report is not a gate.** The two deliverables that depend on the asset - the measured opacity token in item (i), and everything R3 restyles onto it - are either both taken against the final asset or both taken twice. **The committed file (`94c3a77`, 137,486 bytes, referenced nowhere in `src/`) is a planning placeholder and must not be the asset R3 ships against.** **ITEMS (i) AND (iii) ARE UNCHANGED and remain measurements:** the opacity token is measured against the REGENERATED asset rather than this one, and the horizontal-padding migration is independent of the asset entirely. **AMENDED 2026-09-12 (R0): v2.1 §8.1 specifies 1290 x 2796 at aspect 0.461, which is the "artist's call" alternative above; confirm or amend §8.1 in this row, and do not commission against both.** | **Gated on R0** for every section number it implements. `npx tsc --noEmit` from `mobile/` at or below the 149 baseline; jest green; **`npm run lint` must not gain errors** - see the R-series note on the 331 pre-existing raw-hex errors in the dated block below. **AMENDED 2026-09-12 (R0), two stale numbers in this gate cell.** **(1)** Read the lint gate as: the pre-existing raw-hex errors (501, of which 385 sit outside `src/constants/`; standards §17 carries the measured figure and supersedes the 331 in the block below). **(2)** Read the tsc gate as: at or below the **148** baseline (7k and 7m both record 148; the 149 here predates them). **A gate citing 149 passes a build that has regressed by one.** | Yes, but narrow: Learn and one already-restyled primitive on one device. The full standing walk starts at R2. |
 | R1a | **[DONE `4ddabc5`, 2026-09-13; suites attested; §18 walk OUTSTANDING, see the row's dated block]** *(was **[Next]**, promoted at R1's split, 2026-09-12)* **[Row added 2026-09-12 at R1's Step 0.]** The text primitive, and Inter renders for the first time *(row added 2026-09-12 with the R1 split)* | **A SHARED PRIMITIVE NAMED `Text`, PROP-COMPATIBLE WITH REACT NATIVE'S**, so the codemod is an import swap and the 1,826 JSX sites are untouched. **IT RESOLVES `fontWeight` TO A REGISTERED FAMILY FROM THE FLATTENED STYLE**, not from the prop as written: weight arrives from a preset spread, a style array and an inline object, so resolution runs after `StyleSheet.flatten`. **REGULAR IS THE DEFAULT AT THE TOP LEVEL ONLY, and this is the one correctness trap in the primitive.** A nested `<Text>` inherits its parent's family in React Native; stamping Regular on nested children would flatten every bold run inside a sentence. The primitive defaults only where it is the outermost text node. **SCOPE, EACH ITEM A SURFACE STEP 0 COUNTED:** the codemod rewrites the `react-native` `Text` import in **197 files**; `Animated.Text` becomes `Animated.createAnimatedComponent(Text)` for the **8 sites across 4 files**; **the Paper theme gains a family config** in `constants/theme.ts`, which today overrides twelve MD3 variants' size and weight and sets no family, so Paper `Button` labels and `TextInput` text would otherwise stay in the system font; **`TextInput` gets the family for input text AND placeholder** (50 files, 59 sites); **`MAX_FONT_SCALE` becomes a token on `Typography`** with its section 3.3 row in the same commit, collapsing **7 local consts and 10 inline `1.3` literals**, not the 8 sites R0 recorded, since `WeeklyCloseScreen` alone holds nine inline; **`fontsLoaded` gates the render with a timeout fallback and `fontError` is surfaced** rather than destructured and dropped, because `App.tsx` renders the tree unconditionally today and a font failure is silent; **a lint bans importing `Text` from `react-native` outside the primitive**; and **`Typography.fontWeight.normal` is fixed** at `paywall/PricingSelector.tsx:174`, a key that does not exist. **WHY ONE SLICE AND NOT A PER-SCREEN MIGRATION:** a partial migration puts two typefaces on screen at once, which is not a shippable intermediate. **THE BLAST RADIUS IS STATED RATHER THAN DISCOVERED:** 197 import sites, 975 `fontWeight` assignments, and every screen's vertical rhythm moves at once because Inter's metrics are not the system font's. **AND TWO STANDARDS EDITS ARE NAMED DELIVERABLES OF THIS ROW, NOT SIDE EFFECTS.** **Standards §17: the fixed-pixel `lineHeight` count is corrected 149 -> 114**, with the **35 `fontSize` x multiplier sites noted separately as the correct pattern**; and **§3.3 gains the `MAX_FONT_SCALE` row.** **Both land in R1a's docs commit.** §3.3's own rule is that a token is added to the file and to the standards in the same commit, and §17's third clause makes the debt delta this row's to state; neither is a ledger someone tidies later. **FROZEN:** journey phase derivation; `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; phase advancement; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement; ahead rows remain tappable; no streaks, scores or completion percentages. | tsc **at or below 147** (148 minus the `fontWeight.normal` fix this row makes); jest green at **3505 / 223**; **`npm run lint` gains no errors** against the 1100 / 1358 baseline; sentinel **149**. | **Yes, the full section 18 matrix**, ten numbered steps as designed in R1's Step 0 section 5, on both devices at default and 1.3x Dynamic Type. **STEP 1 IS REPLACED: no glyph tell.** A `__DEV__` side-by-side diagnostic renders one string through the primitive and through `System` on the same screen; pass is that the two differ. Asking a walker to identify a foot serif on a digit is asking them to be a typographer, and a step that can be answered wrong with confidence is not a gate. |
 | R1b-ii | **[DONE `3b8a077`, 2026-09-13; suites attested; no walk per the row]** *(was **[Next]**, promoted at R1a's merge, 2026-09-13)* **[Row added 2026-09-12 at R1's Step 0; runs SECOND, before R1b-i.]** Guards and lint scope, no pixels move *(row added 2026-09-12 with the R1 split)* | **THREE CHANGES, NONE OF WHICH RENDERS DIFFERENTLY.** **(1) THE LEGACY-ICON GUARD IS TEST-SHAPED, NOT A LINT RULE**, and the reason is the stale-entry property: `no-restricted-imports` with an overrides block gets the shrink-only behaviour but **cannot fail when an allowlisted path stops existing**. `brandCompliance.test.ts` already carries that contract, a `Record<path, reason>` where every waiver is reasoned and a path that no longer exists FAILS, so the guard reuses it. **Initial allowlist is the 28 files Step 0 re-counted at `caa4bb9`: 11 Lucide and 17 Ionicons, zero overlap.** **(2) THE HEX-LINT OVERRIDE IS SCOPED TO FOUR FILES, NOT TO `src/constants/`, and that is a Step-0 correction to how R0 framed it.** The 100 raw-hex errors inside `src/constants/` are not all palette: **54 are** (`colors.ts` 38, `designTokens.ts` 11, `spacing.ts` 3, `theme.ts` 2) and **46 are content files declaring their own colours** (`journalTags.ts` 24, `groupCategories.ts` 9, `brainStateWindows.ts` 8, `featureUnlock.ts` 5), which are real violations. A directory-wide override would exempt them and retire a finding nobody took. **(3) TEST FILES ARE EXEMPTED, WITH THE REASON RECORDED AT THE OVERRIDE:** a test asserting a component renders `#1B5E57` is asserting the VALUE, and rewriting it to import the token makes the assertion tautological, so it would pass if the token changed to the wrong colour. That is the vacuous-green failure this board has already paid for twice. 16 hits across 4 files. **AND `dashboardEyebrow` IS DELETED** (`components/dashboard/cardStyles.ts:11`), confirmed at Step 0 to have zero consumers in the whole tree. **AND IT INHERITS `App.tsx` FROM R1a, AT 7 LINT ERRORS (down from 13).** R1a fixed the six on lines it touched: `useState` became used, four dead `react-native` bindings went, and `fontError` is now read. The remaining seven are the `Colors` import, four `expo-font` `require()` calls and two unused catch params. **THE DECISION THIS ROW OWNS IS NOT THOSE SEVEN, IT IS THE SCOPE OF THE COMMAND.** `npm run lint` is `eslint src/ --ext .ts,.tsx`, so **`App.tsx` has never been linted**, which is why a `fontError` that was assigned and never read sat there uncaught by a rule that would have flagged it. **Widening the script to cover `App.tsx` moves the 1100 baseline up by exactly that count**, and a baseline that moves for a scope change rather than for new debt has to be recorded as such or the next slice reads it as a regression. Widen and rebaseline, or leave the file outside and say so; **either is defensible and the silent option is not**. **IT RUNS BEFORE R1b-i DELIBERATELY:** the override has to exist before the palette token moves, or the colour change fights the lint it is exempt from. **FROZEN:** journey phase derivation; `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; phase advancement; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement; ahead rows remain tappable; no streaks, scores or completion percentages. | **`npm run lint` errors at or below 1030** (1100 minus the 54 palette hits minus the 16 test hits) **-- CORRECTED AT BUILD, 2026-09-13, TO 1033: the gate is `src/`-only arithmetic and the row also widened the command to cover `App.tsx`, which adds 7 by SCOPE and subtracts 4 by the Metro-asset-require override. 1033 errors, 1358 warnings, measured in four stages; see the dated block in §13.** **FENCE WIDENED AT CLOSE, 2026-09-13, KYLE'S APPROVAL, TWO ITEMS, BOTH RESIDUE THIS SLICE CREATED IN FILES IT HAD ALREADY TOUCHED: standards §7's "R1 adds the lint ... until then it is a review item" is replaced with a sentence stating the guard exists (the build fence was §17 only, which left a false clause in §7 that only this slice could have made false), and `package.json`'s `lint:fix` is widened to `src/ App.tsx` to match `lint` (the build fence was "lint script only", which left the two commands pointed at different file sets). Neither is new scope; both are this slice finishing its own edges. Recorded as a widening rather than done quietly, on the R1a precedent.** **and no new error of any rule**; tsc at or below 147; jest green plus the new guard's own tests; sentinel 149. **The guard is mutation-checked both ways -- THREE WAYS AT BUILD: Step 0 found `brandCompliance`'s integrity check is `fs.existsSync` alone, which cannot see an allowlisted file that still exists but has stopped violating, so the guard asserts that case too:** an allowlist entry naming a missing file must fail, and a new Lucide import in a non-allowlisted file must fail. | **No.** No pixel changes: two lint-config edits, one new test file, and the deletion of a style object with no consumers. |
-| R1b-i | **[Next]** *(promoted at R1b-ii's merge, 2026-09-13; the ONE live marker on this board)* **[Row added 2026-09-12 at R1's Step 0; runs THIRD, after R1b-ii.]** **THIS ROW CARRIES A WALK**, unlike the two before it: it is a 336-site runtime palette change, and R1b-ii ran first precisely so the hex-lint override exists before the token value moves. Muted Sage Gray stops failing AA *(row added 2026-09-12 with the R1 split)* | **ONE TOKEN VALUE: `mutedSageGray` `#6F7F77` becomes `#56655D`.** All **336 occurrences across 125 files** follow the token; none is edited individually. **THE FIGURES WERE RECOMPUTED AT STEP 0 RATHER THAN CARRIED:** `#6F7F77` on White is **4.22:1** and fails AA for the 14pt helper text it is used for; `#56655D` is **6.15:1** on White and **4.61:1** on Dew Sage, passing on both grounds. **AND STEP 0 FOUND A SECOND FAILURE SECTION 16 DOES NOT NAME.** `mutedSageGray` is used as a **FILL** in two places, not as text: `Focus/AddBlockSheet.tsx:800` (`removeButton`) and `Focus/CaptureTaskSheet.tsx:340` (`clearButton`), each carrying a **White 16pt semibold** label. White on `#6F7F77` is the same 4.22:1, and 16pt semibold is NOT WCAG large text, so both fail independently of the helper-text case. The token change fixes them and **visibly darkens two filled buttons**, which makes this a visual change and not only a contrast fix. **THE ONE THING STEP 0 COULD NOT ANSWER STATICALLY, AND IT IS THIS ROW'S WALK:** whether `mutedSageGray` text ever sits on a ground darker than Dew Sage. Parent-and-child pairing is not decidable by grep; only five style blocks set both a `mutedSageGray` colour and a `backgroundColor`, but `Colors.evergreenTeal` is a background in 204 declarations and the app has genuinely dark cards. **`#56655D` was checked against White, Mist White, Dew Sage and `dewSageLight`, and against nothing darker.** **FROZEN:** journey phase derivation; `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; phase advancement; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement; ahead rows remain tappable; no streaks, scores or completion percentages. | tsc at or below 147; jest green; lint gains no errors; sentinel 149. **Check before the change, not after, that no test asserts the literal `#6F7F77`** outside the four test files R1b-ii exempted. | **Yes.** Both matrix devices. **(1)** Helper text at 14pt on White, on Mist White and on a Dew Sage wash. **(2)** Both filled buttons, `removeButton` and `clearButton`, with their White labels. **(3) The open question: walk every surface with a teal or dark ground and REPORT any `mutedSageGray` text found on one**, naming the screen. A finding there is a new row, not a fix inside this one. |
-| R1d | **[READY. Row added 2026-09-12 at R1's Step 0; runs FOURTH. FIFTH ITEM ADDED 2026-09-13 at R1b-ii's merge.]** Token reconciliation, the six live token misses, and the brandCompliance allowlist lift *(row added 2026-09-12 with the R1 split)* | **FIVE ITEMS, ALL SUBSTITUTION, ALL HELD BY tsc OR JEST.** **(1) `ColorTokens` AND `TypographyTokens` STOP BEING LITERAL COPIES**, per R1's original scope: they become aliases of the canonical objects or they are deleted. **Step 0 sized it: 19 files consume `ColorTokens` and 3 consume `TypographyTokens`, so this is a 22-file change and not a deletion.** The drift the row named is confirmed at the value: `Colors.dewSageLight` is `'rgba(213,227,209,0.5)'` while `ColorTokens.surfaceTintedLight` is `'rgba(213, 227, 209, 0.5)'`, the same colour written as two strings that compare unequal in a style object. **(2) THE TOKEN MISSES, AND ONE IS A LIVE LAYOUT DEFECT.** `Spacing['4xl']` **is not a key** and resolves to `undefined` at runtime, so five screens render with no bottom or vertical padding at all: `library/BreathworkTimer.tsx:243`, `discover/MasterclassDetailScreen.tsx:241`, `discover/MovementDetailScreen.tsx:232`, `discover/MovementScreen.tsx:85` and `discover/SleepDetailScreen.tsx:209`. All five are TS7053 errors sitting inside the 148 baseline, **which is how a type error became a shipped visual defect nobody looked at**. The sixth miss, `Typography.fontWeight.normal`, is fixed in R1a; this row takes the five. **Decide per screen whether the intent was `2xl` (48) or `3xl` (64); do not pick one value for all five.** **(3) `MIN_TOUCH_TARGET` CONSOLIDATES ONTO `SizeTokens.touchTargetMin`**, which is 48 and **is imported by nobody**. Step 0 counted **42 files** declaring their own local const, not the eight the R1 row estimated. **(4) `utils/accessibility.ts` IS RETIRED OR ADOPTED, AND IT DOES NOT STAY AS IT IS**, which is R1's own wording. Step 0 confirms **zero consumers**: only `utils/index.ts` re-exports its six builders and `MIN_TOUCH_TARGET_SIZE`, and nothing imports them from the barrel either. Section 16 instructs the app to use the builders and the app never has. If it is retired, section 16's pointer to them moves in the same commit. **(5) `allowlistIntegrity` IS LIFTED INTO `brandCompliance.test.ts`, WITH THE STOPPED-VIOLATING CHECK. *(Item added 2026-09-13 at R1b-ii's merge, per the booking in that slice's §13 entry.)*** `brandCompliance`'s `ALLOWLIST` integrity is `fs.existsSync` per entry, so it fails on a DELETED file but not on a file that still exists and has stopped violating. **A waiver there survives its violation being fixed**, the entry stays, and the list stops shrinking — which is the failure that suite's own header claims to have closed. `src/__tests__/legacyIcons.test.ts` exports `allowlistIntegrity(allowlist, root, stillViolates)` written generically for exactly this lift; brandCompliance passes `(p) => scan(p).length > 0`. **Five entries are exposed today, and the lift may turn a green suite red** — that is the point of it, and each entry that fires is then either removed or re-reasoned, in this slice, not deferred again. **IT IS HERE AND NOT IN R1b-i BY DESIGN:** it is a test-only change with no rendered output, which belongs with R1d's green-build work rather than riding on a walked 336-site palette change where a lint or suite rollback would drag the palette with it. That is the same separation of risks that split R1b in the first place. **FROZEN:** journey phase derivation; `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; phase advancement; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement; ahead rows remain tappable; no streaks, scores or completion percentages. | tsc **at or below 142** (147 minus the five `Spacing['4xl']` fixes); jest green; lint gains no errors; sentinel 149. **`brandCompliance.test.ts` green WITH the stopped-violating check active, and any entry it fires named in the REPORT as removed or re-reasoned — a lift that leaves the check present but the allowlist untouched has not been verified, it has only been installed.** **The dealias must not change a rendered value:** `dewSageLight` and `surfaceTintedLight` are the same colour, and the alias makes them the same string. | **Yes, narrow.** The five `Spacing['4xl']` screens on both matrix devices, confirming bottom padding is present and the last item is not trapped. The other three items render identically by construction and are held by tsc. |
+| R1b-i | **[BUILT AND WALKED, branch `design/slice-r1b-i-helper-gray`, commit count set at the merge, UNMERGED. Suites green and Section A attested by Kyle 2026-09-13, one device, default Dynamic Type; the device model is not stated in the walk result and is an open gap. Fence WIDENED at Step 0 on Kyle's OPTION B ruling. One finding became the DURATION-PRESETS row; seven debt items logged.]** *(was **[Next]**, promoted at R1b-ii's merge, 2026-09-13)* **[Row added 2026-09-12 at R1's Step 0; runs THIRD, after R1b-ii.]** **THIS ROW CARRIES A WALK**, unlike the two before it: it is a 336-site runtime palette change, and R1b-ii ran first precisely so the hex-lint override exists before the token value moves. Muted Sage Gray stops failing AA *(row added 2026-09-12 with the R1 split)* | **ONE TOKEN VALUE: `mutedSageGray` `#6F7F77` becomes `#56655D`.** All **336 occurrences across 125 files** follow the token; none is edited individually. **THE FIGURES WERE RECOMPUTED AT STEP 0 RATHER THAN CARRIED:** `#6F7F77` on White is **4.22:1** and fails AA for the 14pt helper text it is used for; `#56655D` is **6.15:1** on White and **4.61:1** on Dew Sage, passing on both grounds. **AND STEP 0 FOUND A SECOND FAILURE SECTION 16 DOES NOT NAME.** `mutedSageGray` is used as a **FILL** in two places, not as text: `Focus/AddBlockSheet.tsx:800` (`removeButton`) and `Focus/CaptureTaskSheet.tsx:340` (`clearButton`), each carrying a **White 16pt semibold** label. White on `#6F7F77` is the same 4.22:1, and 16pt semibold is NOT WCAG large text, so both fail independently of the helper-text case. The token change fixes them and **visibly darkens two filled buttons**, which makes this a visual change and not only a contrast fix. **THE ONE THING STEP 0 COULD NOT ANSWER STATICALLY, AND IT IS THIS ROW'S WALK:** whether `mutedSageGray` text ever sits on a ground darker than Dew Sage. Parent-and-child pairing is not decidable by grep; only five style blocks set both a `mutedSageGray` colour and a `backgroundColor`, but `Colors.evergreenTeal` is a background in 204 declarations and the app has genuinely dark cards. **`#56655D` was checked against White, Mist White, Dew Sage and `dewSageLight`, and against nothing darker.** **FROZEN:** journey phase derivation; `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; phase advancement; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement; ahead rows remain tappable; no streaks, scores or completion percentages. | tsc at or below 147; jest green; lint gains no errors; sentinel 149. **Check before the change, not after, that no test asserts the literal `#6F7F77`** outside the four test files R1b-ii exempted. | **Yes.** Both matrix devices. **(1)** Helper text at 14pt on White, on Mist White and on a Dew Sage wash. **(2)** Both filled buttons, `removeButton` and `clearButton`, with their White labels. **(3) The open question: walk every surface with a teal or dark ground and REPORT any `mutedSageGray` text found on one**, naming the screen. A finding there is a new row, not a fix inside this one. |
+| R1d | **[READY. Row added 2026-09-12 at R1's Step 0; runs FOURTH. FIFTH ITEM ADDED 2026-09-13 at R1b-ii's merge.]** Token reconciliation, the six live token misses, and the brandCompliance allowlist lift *(row added 2026-09-12 with the R1 split)* | **FIVE ITEMS, ALL SUBSTITUTION, ALL HELD BY tsc OR JEST.** **(1) `ColorTokens` AND `TypographyTokens` STOP BEING LITERAL COPIES**, per R1's original scope: they become aliases of the canonical objects or they are deleted. **Step 0 sized it: 19 files consume `ColorTokens` and 3 consume `TypographyTokens`, so this is a 22-file change and not a deletion.** The drift the row named is confirmed at the value: `Colors.dewSageLight` is `'rgba(213,227,209,0.5)'` while `ColorTokens.surfaceTintedLight` is `'rgba(213, 227, 209, 0.5)'`, the same colour written as two strings that compare unequal in a style object. **(2) THE TOKEN MISSES, AND ONE IS A LIVE LAYOUT DEFECT.** `Spacing['4xl']` **is not a key** and resolves to `undefined` at runtime, so five screens render with no bottom or vertical padding at all: `library/BreathworkTimer.tsx:243`, `discover/MasterclassDetailScreen.tsx:241`, `discover/MovementDetailScreen.tsx:232`, `discover/MovementScreen.tsx:85` and `discover/SleepDetailScreen.tsx:209`. All five are TS7053 errors sitting inside the 148 baseline, **which is how a type error became a shipped visual defect nobody looked at**. The sixth miss, `Typography.fontWeight.normal`, is fixed in R1a; this row takes the five. **Decide per screen whether the intent was `2xl` (48) or `3xl` (64); do not pick one value for all five.** **(3) `MIN_TOUCH_TARGET` CONSOLIDATES ONTO `SizeTokens.touchTargetMin`**, which is 48 and **is imported by nobody**. Step 0 counted **42 files** declaring their own local const, not the eight the R1 row estimated. **(4) `utils/accessibility.ts` IS RETIRED OR ADOPTED, AND IT DOES NOT STAY AS IT IS**, which is R1's own wording. Step 0 confirms **zero consumers**: only `utils/index.ts` re-exports its six builders and `MIN_TOUCH_TARGET_SIZE`, and nothing imports them from the barrel either. Section 16 instructs the app to use the builders and the app never has. If it is retired, section 16's pointer to them moves in the same commit. **(5) `allowlistIntegrity` IS LIFTED INTO `brandCompliance.test.ts`, WITH THE STOPPED-VIOLATING CHECK. *(Item added 2026-09-13 at R1b-ii's merge, per the booking in that slice's §13 entry.)*** `brandCompliance`'s `ALLOWLIST` integrity is `fs.existsSync` per entry, so it fails on a DELETED file but not on a file that still exists and has stopped violating. **A waiver there survives its violation being fixed**, the entry stays, and the list stops shrinking — which is the failure that suite's own header claims to have closed. `src/__tests__/legacyIcons.test.ts` exports `allowlistIntegrity(allowlist, root, stillViolates)` written generically for exactly this lift; brandCompliance passes `(p) => scan(p).length > 0`. **Five entries are exposed today, and the lift may turn a green suite red** — that is the point of it, and each entry that fires is then either removed or re-reasoned, in this slice, not deferred again. **IT IS HERE AND NOT IN R1b-i BY DESIGN:** it is a test-only change with no rendered output, which belongs with R1d's green-build work rather than riding on a walked 336-site palette change where a lint or suite rollback would drag the palette with it. That is the same separation of risks that split R1b in the first place. **FROZEN:** journey phase derivation; `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; phase advancement; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement; ahead rows remain tappable; no streaks, scores or completion percentages. | tsc **at or below 142** (147 minus the five `Spacing['4xl']` fixes); jest green; lint gains no errors; sentinel 149. **`brandCompliance.test.ts` green WITH the stopped-violating check active, and any entry it fires named in the REPORT as removed or re-reasoned — a lift that leaves the check present but the allowlist untouched has not been verified, it has only been installed.** **The dealias must not change a rendered value:** `dewSageLight` and `surfaceTintedLight` are the same colour, and the alias makes them the same string. **AND THE SAME NOW HOLDS FOR THE HELPER GREY, WHICH IT DID NOT WHEN THIS ROW WAS WRITTEN (added 2026-09-13 at R1b-i's build).** `ColorTokens.textSecondary`, `Colors.textSecondary` and `Colors.text.secondary` were three independent literals of `#6F7F77`; R1b-i moved all three, with `mutedSageGray`, to `#56655D`. **Item (1) therefore finds all four at one value and the dealias is a no-op at the pixel**, which is what the sentence above asks for. Had R1b-i moved only the named token, this row would have had to choose which of two live greys the alias resolves to, and that would have been a design decision smuggled into a mechanical de-duplication. **The four-keys note is in standards 4.1; when item (1) lands, that note reduces to one declaration and three references, and R1d owes it that edit.** | **Yes, narrow.** The five `Spacing['4xl']` screens on both matrix devices, confirming bottom padding is present and the last item is not trapped. The other three items render identically by construction and are held by tsc. |
 | R2 | **[BLOCKED ON R1 AND ON 7n. Row added 2026-09-12 with the R-series.]** Floating navigation *(row added 2026-09-12 with the R-series)* | **A STYLED `BottomTabBar`, NOT A HAND-ROLLED BAR, AND §12.2 IS WHY:** *"Use the native tab bar ... rather than a hand-rolled JS bar. On iOS 26 this renders as Liquid Glass with scroll-to-shrink; on iOS 18 and earlier it renders as the classic bar; on Android as Material. Vara does not reimplement any of that."* **Everything visual in the bar today is one object**, `screenOptions` at `AppNavigator.tsx:571-587` in `FivePillarTabs`, plus `standardHeaderOptions` at `:25-36` for pushed headers. React Navigation 7.9.0 supplies `tabBarBackground`, `tabBarItemStyle` and `tabBarButton`, and **`expo-blur@~15.0.8` is already a dependency and imported nowhere in `src/`**, so a frosted or floating treatment needs no new package. **THE SAFE-AREA FINDING, RECORDED HERE BECAUSE R2 EITHER FIXES IT OR REPRODUCES IT.** Read from `@react-navigation/bottom-tabs@7.9.0` source at Step 0: `getTabBarHeight` returns a numeric `tabBarStyle.height` VERBATIM and never adds `insets.bottom`; the bar's base style then sets `paddingBottom: insets.bottom`, but `tabBarStyle` is spread LAST in the style array and so the app's `paddingBottom: 5` overrides it. With `height: 62` set today, the consequence on a device with a home indicator is a 62pt bar with 5pt below the labels rather than 62 + inset, and `BottomTabBarHeightContext` reporting 62. **This was derived from library source and is NOT yet confirmed on hardware; confirming it is step 1 of this row's walk.** The same literal 62 disagrees with `Layout.tabBarHeight` (56) and with §6.2 (56), and neither token is read by the navigator. **IF THE BAR FLOATS, CONTENT INSET BECOMES THE SCREENS' PROBLEM:** `position: 'absolute'` stops `BottomTabView` insetting the scenes, so every tab root needs bottom clearance from `useBottomTabBarHeight()` rather than a literal. Today already carries `Spacing['2xl']` (48) and satisfies §6.2; **the journey map, Learn and the phase page carry `Spacing.xl` (32) and do not**, which traps the last item the moment the bar stops reserving its own space. **7n LANDS FIRST, AND THE REASON IS SEQUENCING NOT PREFERENCE:** 7n renames the tab to **Journey** and the map screen to **Your journey**; doing that rename after this row means editing labels inside freshly restyled navigation, which is two passes over the same lines and the second one is where a restyle gets undone. **ROUTE AND CONSTANT NAMES ARE NOT COPY** and `ROUTES.PillarPractices` does not move for either row. **TAB ORDER IS LOAD BEARING AND IS FROZEN:** the navigator sets no `initialRouteName`, so the first child is the surface the app opens on, and that stays Home. **FROZEN:** journey phase derivation; `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; phase advancement; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement - **the tab bar is rendered by `BottomTabView` OUTSIDE the scene boundaries and that is what lets a user leave a crashed tab, so a custom `tabBar` must stay outside them too**; ahead rows remain tappable; no streaks, scores or completion percentages. **AMENDED 2026-09-12 (R0): the v2.0 §12.2 passage quoted above was withdrawn in v2.1. The conclusion stands on v2.1 §12.2 directly; the quotation is history.** | **Gated on R0** (§12.2 and §2.8) **and on 7n** (labels settled before the bar is restyled). tsc at or below baseline; jest green; `navigation/__tests__/pillarRoutes.test.ts` and `screenBoundary.test.tsx` green unchanged. | **Yes, and it is the first run of the standing redesign walk R0 defines.** Step 1 is the hardware check on the `insets.bottom` finding above. Smallest and largest supported device, every tab, scrolled fully to the bottom, plus Reduce Motion and the §12.2 Reduce Transparency fallback, which has never been walked. |
+| DURATION-PRESETS | **[READY. Row added 2026-09-13 at R1b-i's walk close, from R1b-i's Step 0. Runs before R3.]** The disabled-and-selected duration chip is grey on teal *(row added 2026-09-13)* | **ONE STYLE ARRAY, AND THE BUG IS ITS ORDER.** `src/screens/Focus/components/DurationPresets.tsx:117-121` builds its label style as `[presetText, active && presetTextSelected, disabled && presetTextDisabled]`. **The disabled entry is last, so it wins over the selected entry**, and `presetTextDisabled` is `ColorTokens.textSecondary` while `presetTextSelected` is `ColorTokens.textOnPrimary`. The container style at `:112-116` has the opposite composition and is correct: `presetSelected` paints the teal fill and `presetDisabled` only drops opacity to 0.5. **SO THE SELECTED CHIP KEEPS ITS TEAL FILL AND LOSES ITS WHITE LABEL.** **IT IS REACHABLE, NOT THEORETICAL:** `PomodoroTab.tsx:292` passes `disabled={timer.isActive}` and a duration is ALWAYS selected (the component defaults to 25), so **every running Pomodoro renders it**. **MEASURED, WITH THE PARENT'S `opacity: 0.5` COMPOSITED IN** (group opacity applies to fill and label together, over the Mist White page): text `#b5bdb7` on fill `#8baca7` = **1.28:1 before R1b-i**, and `#a8b0aa` on `#8baca7` = **1.11:1 after it**. Both are far below any floor; R1b-i made a pre-existing defect marginally worse through `ColorTokens.textSecondary`, which is one of the four declarations that row moved. **FIX: light text on the selected chip in its disabled state.** The selected chip keeps `textOnPrimary` when disabled; the opacity drop is what signals disabled, which is what it already does for the fill. **DO NOT FIX IT BY REORDERING THE ARRAY ALONE** without checking the unselected disabled case, which is `presetText` (`textPrimary`) on `backgroundSurface` at 0.5 and is a different pair. **WHY IT IS ITS OWN ROW AND WAS NOT FIXED IN R1b-i:** R1b-i's walk cell says a finding on a dark ground **"is a new row, not a fix inside this one"**, and Step 0 found this one by static sweep before the walk ran. **IT IS UNWALKED:** R1b-i's walk step 18 was written to confirm it on device and **was not run**, so the visual severity is measured and not observed. **FROZEN:** journey phase derivation; `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; phase advancement; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement; ahead rows remain tappable; no streaks, scores or completion percentages. | tsc at or below 147; jest green at 3551 of 225; sentinel 149; lint gains no errors against 995. **`DurationPresets.test.tsx` must gain a case that fails on the current composition** - the existing suite renders the component without `disabled` and would stay green through both the bug and the fix, which is the vacuous-green shape this board has paid for three times. Assert the resolved label colour for selected-AND-disabled, by value and not by token import. | **Yes, narrow.** Focus -> Pomodoro -> start a timer, then read the selected duration chip, on both matrix devices. Pass: the label is legible against the teal fill and still reads as disabled. **Also confirm the unselected disabled chips did not regress**, since they share the array this row edits. |
 | R3 | **[BLOCKED ON R2, 8 AND 9. Row added 2026-09-12 with the R-series.]** Today becomes an immersive surface *(row added 2026-09-12 with the R-series)* | **`todayBackground.webp` as a fixed full-viewport layer, `ScreenHeader` REMOVED from Today, and the cards restyled onto it.** **REMOVING THE BAND IS NOT OPTIONAL AND IS NOT A TASTE CALL:** an environmental background behind a scrolling watercolour band is the doubled-artwork failure assertion (b) of the standing walk exists to catch, and §8.1 today says the band occupies the top of the viewport and never more than 30% of it, one band per screen, content beginning on the opaque part of the scrim. **R0 restructures §8 so that Today's treatment is written down before this row builds against it**; if R0 did not resolve it, this row stops rather than guessing. **STRUCTURAL SHAPE, from Step 0 so it is not re-derived:** `DashboardScreen.tsx` is `SafeAreaView edges={['top']}` wrapping a single `Animated.ScrollView` with **no `onScroll` handler attached**, so a scroll-linked treatment adds no dependency - reanimated is already imported in the file for `Animated.ScrollView` alone. The background layer is a sibling BEFORE the ScrollView at `StyleSheet.absoluteFill`, and **`styles.container`'s `backgroundColor: Colors.background.default` must come off or it paints over the layer**. `ScreenHeader` today is INSIDE the scroll content, full-bleed by `marginHorizontal: -Spacing.base`, with the first card riding its bottom seam by `marginBottom: -CARD_OVERLAP`; both negative margins go with the band. **TWO TRAPS:** `MigrationRouteScreen` returns from `DashboardScreen` BEFORE the `SafeAreaView` and so inherits no layer placed inside it - either lift the layer above that branch or style that screen separately; and `edges={['top']}` paints the notch area with the SafeAreaView's own background, so art that must run under the status bar needs `edges={[]}` plus manual insets. **THE CARD OPACITY IS R1's MEASURED TOKEN, NOT A NEW JUDGEMENT.** **BEHAVIOUR FROZEN, AND ON THIS SURFACE THE FREEZE HAS A SPECIFIC SHAPE:** the three offer cards are **flat sibling conditions on one variable** and the priority is decided by `journeyActionFor`, never by their order in the JSX - `journey/journeyAction.ts` exists precisely so the rule cannot be read off the JSX, and restyling must not nest, reorder or merge them. The slot is withheld until `adjustOffer.settled`, which is 7d's fix for the first-frame race. `DailyPickerSheet` writes NOTHING before confirm, because `hasPickedToday` keys on the stored time field and any earlier write marks the day answered because the sheet was looked at. **LANDS AFTER 8 AND 9 SO THE REDESIGN APPLIES TO THE FINISHED SURFACE SET:** slice 8 adds the Good moments row below the fold and slice 9 adds the behavioural protocol screen, and restyling Today before either means restyling it twice and designing the immersive treatment against a card set that is about to change. **FROZEN:** journey phase derivation; `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; phase advancement; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement; ahead rows remain tappable; no streaks, scores or completion percentages. **AMENDED 2026-09-12 (R0 renumber): '§8.1' in the sentence above is v2.1 §8.2 (hero bands). v2.1 §8.1 is the environmental background spec, which also binds this row.** | **Gated on R0** (§2.8, restructured §8, 10.2, 11E), **on R1** (the opacity token and the asset-scale report), **on R2** (the bar, since Today's bottom clearance changes with it), **and on 8 and 9**. tsc at or below baseline; the four `DashboardScreen.*.test.tsx` suites green unchanged. | **Yes, the full standing walk**, with (b) no doubled artwork and (g) contrast measured against the actual asset as the two that matter most here. Fold in the three device walks still outstanding from merged work - the Guide pill migration, the onboarding circumplex rehost and the dashboard completion acknowledgment all merged without theirs. |
 | R4 | **[BLOCKED ON R3. Row added 2026-09-12 with the R-series.]** Journey map goes atmospheric *(row added 2026-09-12 with the R-series)* | **`PhasePath` variants, a featured current step, and the hub cards.** `PhasePath` is ONE component serving TWO surfaces - the map with `copy="full"` and the A2 route strip with `copy="short"` and no `onPressPhase` - and **a variant must not become a second implementation**, which is the exact thing building it once in 5a was meant to prevent. **WHAT THE VISUAL LAYER MAY CHANGE:** the rail (`RAIL_WIDTH` 24, 2pt connectors in `Colors.divider`), the marker (12pt, 1.5pt border, `MARKER_TOP_OFFSET` derived from the type scale rather than typed as a literal), the four `MARKER_STYLES`, typography and emphasis, and the featured treatment of the current row. **WHAT IT MAY NOT:** the four states must stay visually distinguishable and each must keep a second non-colour signal, because §16 forbids colour carrying meaning alone - today that is a check glyph for `done`, a 1.25 scale for `current`, and a dashed border for `skipped`. **`skipped` NEVER TAKES CORAL**, which is reserved for genuine errors, and never reads as a reprimand. **`ahead` IS NOT `locked`** and must not acquire a lock, a dim, or a disabled appearance. **EVERY ROW OPENS, INCLUDING THE ONES AHEAD**, and there is no per-row opt out: passing `onPressPhase` is what makes a row a button with a 48pt floor and a chevron, and a path where some rows lead somewhere and others do not draws a door the model does not have. **NO COUNTERS AND NOTHING THAT FILLS AS PHASES CLOSE** - §10.7 permits the rail as wayfinding in a finite flow and bans it as a progress bar, and a "featured current step" must not become a position indicator with a denominator. **THE HUB CARDS BELOW THE DIVIDER ARE LOAD BEARING, NOT DECORATIVE:** `JourneyMapScreen` is the ONLY navigator to `ROUTES.PillarFocus` and `ROUTES.PillarStressRecovery` in the app, and `FocusHubScreen` went dark for two months after IA step 2 with its own unit suite green the whole time. **`StartHereRow` IS A SIBLING OF THE LOADING BRANCH AND NEVER A CHILD OF IT**, so a slow or failed `journeyStates` read cannot take it down; a layout change must not reparent it. **NO GUIDE PILL AND NO HERO BAND ON THIS SCREEN** - both were decided in 5b-i, and R0's 11F stops hubs mandating a band rather than licensing one here. **FROZEN:** journey phase derivation; `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; phase advancement; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement; ahead rows remain tappable; no streaks, scores or completion percentages. | **Gated on R0** (§2.8, §8, new 11H) **and on R1** (primitives, hub card). `components/journey/__tests__/PhasePath.test.tsx` and `screens/journey/__tests__/JourneyMapScreen.test.tsx` green unchanged. | **Yes, the full standing walk**, with (h) no numeric progress as the assertion this row is most able to fail. Walk all four states on seeded accounts, including `skipped`, which no walk has exercised on a redesigned rail. |
 | R5 | **[BLOCKED ON R4. Row added 2026-09-12 with the R-series.]** Journey detail gets a reusable presentation *(row added 2026-09-12 with the R-series)* | **A PRESENTATION, NOT A CONTROLLER.** The page is already a fixed sequence of optional slots - eyebrow, title and gloss, body, stored intention, the door, the commit - and a shared layout lifts that sequence while every condition stays in the screen. **ORDER IS BEHAVIOURAL, NOT COSMETIC:** the controls sit at the BOTTOM, after the explanation, and that position is the whole argument of 7a decision 4 - the user reads what the stretch IS before being asked to start it, and a control above the body turns an explanation with an offer at the end into an offer with an explanation attached. **THE TWO CTA CONDITIONS ARE DERIVED, NOT PASSED, AND ARE MUTUALLY EXCLUSIVE BY CONSTRUCTION:** preview requires `phase === nextPhase` and the door requires `phase === journey.phaseKey`, and `PHASE_ORDER[idx + 1]` is never `PHASE_ORDER[idx]`. **A SHARED LAYOUT MUST NOT UNIFY THEM INTO ONE CTA SLOT** without re-deriving that guarantee, and the reason each is derived rather than passed is that the demoted offer and the post-cap door both have to be reachable from the map, which knows nothing about either. **THE NATIVE STACK HEADER STAYS.** It renders OUTSIDE the per-screen error boundary, which is what leaves a way out of a screen that throws; replacing it with an in-content back control removes that. `title` is empty because the page renders its own H1 and the destination titles are longer than a header bar carries, and `headerBackTitle` moves with 7n's rename. **THEN MIGRATE:** `JourneyPhaseScreen`, `MigrationRouteScreen`, and **possibly** the `removeCapture` screens - possibly, because that flow is a nested stack with `headerShown: false` and each screen carries its own scaffold, so whether the presentation fits is a Step-0 question and not an assumption this row is allowed to carry in. **THE EYEBROW ON THIS PAGE RENDERS `PHASE_STATE_LABELS`, WHICH IS STATE**, and R0's rule is what permits it; the phase descriptor does not enter this slot. **FROZEN:** journey phase derivation; `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; **phase advancement - `advancePhase` in `onStartThis` is the ONLY control in the whole advancement flow that mutates a phase, and it navigates only on success, because going back on a failed write reads as the tap having done nothing**; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement; ahead rows remain tappable; no streaks, scores or completion percentages. | **Gated on R0** (new 11H) **and on R1**. `screens/journey/__tests__/JourneyPhaseScreen.test.tsx` green unchanged, including the assertion that preview and the door never co-render. | **Yes, the full standing walk**, on four accounts: a phase page with neither control, one in preview with `advanceOfferedAt` set, one with the door open via `adjustOfferedAt`, and the `remove` page with a stored replacement. |
@@ -1166,6 +1167,262 @@ deploy. Deploy state lives on Kyle's checklist.
 > substitution with no visual change. **R1a renders a different typeface across the entire app
 > and needs the full §18 matrix**, which R1a's own walk cell now carries. The narrow walk was
 > never wrong for what it described; it describes something this row no longer does.
+
+> **AMENDED 2026-09-13 (R1b-i built, branch `design/slice-r1b-i-helper-gray`, FOUR commits,
+> unmerged, unwalked). THE FENCE WAS WIDENED BEFORE A BYTE WAS WRITTEN, AND THAT IS THE
+> ENTRY.** The R1b-i row's text is unedited; this block supersedes it wherever the two differ.
+
+> **1. THE ROW'S CENTRAL PREMISE WAS FALSE. `#6F7F77` WAS DECLARED FOUR TIMES, NOT ONCE.**
+> The row says "ONE TOKEN VALUE" and "all 336 occurrences across 125 files follow the token".
+> The first half is wrong and the second is true but irrelevant: 336 was never the population
+> of the AA failure. Step 0 measured the real surface at **~834 sites across 263 files**, in
+> four declarations plus raw literals:
+>
+> | Declaration | Sites | Files |
+> |---|---|---|
+> | `colors.ts:32` `mutedSageGray` | 336 | 125 |
+> | `colors.ts:69` `textSecondary` | **412** | **116** |
+> | `designTokens.ts:37` `ColorTokens.textSecondary` | 41 | 14 |
+> | `colors.ts:64` `text.secondary` | 10 | 5 |
+> | raw `'#6F7F77'` literals | 35 | 23 |
+>
+> **`Colors.textSecondary` is a BIGGER consumer than the token the row names.** None of the
+> three is an alias in code; each is an independent literal that a token edit does not reach.
+> `theme.ts:57` maps Paper's `onSurfaceVariant` through `Colors.textSecondary`, so every Paper
+> MD3 surface-variant string sat on the far side of the fence too.
+
+> **2. RULING (Kyle, 2026-09-13): OPTION B. ALL FOUR MOVE, AND THE 35 LITERALS BECOME THE
+> TOKEN.** Recorded as a **fence widening on a `[Next]` row**, with Step 0 item 1 as the reason,
+> rather than folded into the build as though the row had always said it.
+>
+> **What Option A would have shipped, which is why it was rejected:** 336 of ~834 sites moved,
+> ~498 left below AA, **two near-identical greys on screen together in 17 files** - including
+> `PhasePath` (a frozen journey surface, where `:299` and `:309` sit ten lines apart), Settings,
+> Conversations, Plan, the Community tab root and the Welcome-back card - **and the Today tab
+> root not changing at all**, since `DashboardScreen` holds zero `mutedSageGray` and one
+> `textSecondary`. That is R1a's own "a partial migration puts two typefaces on screen at once,
+> which is not a shippable intermediate", in colour.
+
+> **3. THE TAB BAR IS THE CONSEQUENCE THE ROW DID NOT SEE, AND IT HAS A NAMED FALLBACK.**
+> `tabBarInactiveTintColor` at `AppNavigator.tsx:466` and `:575` reads `Colors.textSecondary`,
+> not `mutedSageGray`. **Under Option A the tab bar would not have moved at all** and the walk
+> step for it would have been unmeetable. Under Option B it moves, and the new risk is the
+> opposite one: the inactive tint darkens **toward** the active Evergreen Teal. **Walk step 11
+> is the gate**, judged at a glance without reading labels, on both devices. **Fallback if it
+> fails, decided ahead of the walk so the branch does not carry an open question:** the inactive
+> icon tint gets its own token at `#6F7F77`, which passes the 3:1 non-text floor, labels stay on
+> `#56655D`, and it is **a new row for R2**, not a fix inside this one.
+
+> **4. THE DARK-GROUND QUESTION IS ANSWERED FURTHER THAN THE ROW EXPECTED, AND THE ONE FINDING
+> IS BOOKED AS ITS OWN ROW.** The row called parent-and-child pairing undecidable by grep. It is
+> not, for *declared* grounds. Sweeping all **194 dark-ground style blocks across 136 files** -
+> name-agnostic on the ground side, all four grey names on the text side - yields 20 candidate
+> pairings, **19 of them safe**: each is a selected-state override to White or `textOnPrimary`,
+> or a sibling outside the dark element, or mutually exclusive states (`InterestPicker`'s
+> `isDisabled = !isSelected && ...`), or a disabled state that swaps the ground to Dew Sage
+> (`HabitNoteSheet`).
+>
+> **THE ONE REAL FINDING: `Focus/components/DurationPresets.tsx`.** `presetTextStyle` applies
+> `disabled && styles.presetTextDisabled` AFTER `active && styles.presetTextSelected`, so the
+> disabled style wins. `PomodoroTab.tsx:292` passes `disabled={timer.isActive}` and a duration
+> is always selected, so **while a Pomodoro timer runs the selected chip renders grey on the
+> teal fill**: **1.28:1 today, 1.11:1 after this slice**, at `opacity: 0.5`. Pre-existing and
+> already unreadable; R1b-i makes it marginally worse through `ColorTokens.textSecondary`. **Per
+> the row's own instruction, a finding there is a new row and not a fix inside this one.** Walk
+> step 18 confirms it on device. **IT NEEDS A ROW.**
+>
+> **THE INVERSION IS A PROPERTY OF THE FIX, NOT A DEFECT IN IT, AND IS NOW IN STANDARDS §16.**
+> `#56655D` is darker, so below a ground luminance of about **L 0.156** (roughly `#6E6E6E`) it
+> has LESS contrast than `#6F7F77`. On Evergreen Teal it is **1.23:1** where the old value was
+> 1.79:1. Recorded so a later slice reading "6.15:1" does not assume it travels to a dark ground.
+>
+> **What static analysis still cannot reach, and what the walk is therefore for:** the raster
+> hero-band artwork (`ScreenHeader` on Today, Focus hub, Energy hub), user-supplied avatars and
+> group covers, and any ground set by a `style` prop at a call site.
+
+> **5. TWO TESTS, AND ONLY ONE OF THEM WOULD HAVE TOLD YOU.** The gate asked, correctly, to
+> check before the change rather than after.
+> **`FocusHubScreen.test.tsx:323`** asserted `toBe('#6F7F77')` and went RED at commit 1.
+> **`SimpleHabitCreateScreen.test.tsx:430`** asserted `not.toBe('#6F7F77')` and would have
+> stayed GREEN while guarding nothing, because it excludes a colour the palette no longer
+> contains. **The silent one is the dangerous one.** Both updated by hand to the new value;
+> neither rewritten to import the token, which is the vacuous-green failure this board has paid
+> for twice. The first is mutation-checked: reverting the literal fails exactly that test, with
+> Expected `#6F7F77` / Received `#56655D`.
+>
+> **AND BOTH TESTS' STATED REASONS WERE INVALIDATED BY THE CHANGE, WHICH IS THE PART WORTH
+> CARRYING FORWARD.** Both, and the two source comments behind them, justified choosing
+> `softCharcoal` on the grounds that `mutedSageGray` FAILED AA there. It no longer does:
+> 4.22 -> 6.15:1 on the Focus hub card, 3.16 -> 4.61:1 on the Dew Sage nudge. Both overrides
+> still stand, on **hierarchy**, and all four comments are restated rather than left pointing at
+> a retired number a later reader would act on. **A contrast fix silently retires the arguments
+> that were made against the colour it fixed** - that is the general lesson, and it will recur
+> at R1d and R3.
+
+> **6. THE STANDARDS EDITS ARE THIS ROW'S, NAMED AS DELIVERABLES.** The row's scope cell named
+> none, which is the R1a precedent being dropped. §4.1's palette row moves to `#56655D` and
+> gains the four-keys note; §16's bullet stops being a deferral, takes the corrected count, and
+> gains the dark-ground property; §17's raw-hex row drops **431 to 396**, with the 35 named as
+> retired literals rather than as a re-measurement, per §17's own third clause; Appendix B gains
+> the R1b-i block.
+
+> **7. FIGURES.** tsc **147**, error-for-error identical to the pre-slice set. jest **3551 of
+> 225**, green. sentinel **149**, untouched. lint **1033 -> 995**: `no-restricted-syntax`
+> 431 -> 396 (the 35 literals) and `@typescript-eslint/no-unused-vars` 390 -> 387 (three screens
+> imported `Colors` and never used it, preferring their own local hex; the local const now reads
+> the token). **No error from any rule outside the baseline set.** Measured with `eslint -f json`
+> against the commit-1 tree, restored from a scratchpad backup and verified byte-identical; no
+> `git checkout --` without a backup.
+
+> **8. THE WALK SCRIPT IS COMMITTED, AND SO IS R1a's.** `docs/walks/r1b-i/WALK.md` carries
+> Section A's twenty steps. **`docs/walks/r1a/WALK.md` carries R1a's fourteen, verbatim**, which
+> had never been written into the repo: the roadmap referenced them only by number, and steps 4,
+> 10, 11 and 14 were the only four identifiable anywhere. Section B of R1b-i's walk points at
+> that file, optional for this gate and required before R2. **This is the standing rule from
+> this slice on: a walked slice commits its script in its docs commit.**
+
+> **WALKED 2026-09-13 (Kyle). SECTION A PASSED ON THE STEPS LISTED; THE REST ARE REPORTED AS
+> NOT RUN, WITH REASONS.** One device, dev client, default Dynamic Type.
+
+> **THE DEVICE WAS AN iPhone 14 Plus (Kyle, supplied 2026-09-13), AND IT IS NOT A MATRIX
+> DEVICE.** §18(d)'s matrix is the **iPhone SE (3rd generation), 375 x 667 pt @2x** and the
+> **iPhone 16 Pro Max, 430 x 932 pt @3x**. The 14 Plus is **428 x 926 pt @3x with a 47pt notch
+> inset**, so **neither matrix device was walked** and the walk stands on a proxy rather than on
+> the matrix. **Recorded as what it is rather than rounded to the nearest matrix entry.**
+>
+> **WHAT THAT PROXY COVERS AND WHAT IT DOES NOT.** At 428pt wide the 14 Plus is within **2pt of
+> the 16 Pro Max**, so for the width-sensitive steps - 7, 10, 11, 12 - the large end is
+> effectively covered. **The small end is not covered at all.** The SE is 375pt wide and 667pt
+> tall, 53pt narrower and 259pt shorter, and it is the binding case for horizontal layout and
+> for bottom clearance scrolled fully down. **And only @3x was walked**, where §18(g) asks for
+> both scale factors because a raster asset resolves differently at each - which is the step 13
+> band-artwork check.
+>
+> **THE TOP INSET IS THE ONE PLACE THE 14 PLUS IS ITS OWN CASE RATHER THAN A PROXY.** It is a
+> **notch** device at 47pt, not a Dynamic Island device at 59pt. That sits between the SE's 20pt
+> and the Pro Max's 59pt, and it is what makes debt item (f) reproduce on the walked device: at
+> `maxHeightPercent={0.98}` the sheet's top edge lands **28.5pt inside the 47pt inset**, and the
+> shell header's 24pt `paddingTop` does not cover 28.5pt. **Kyle's "title tight under the status
+> bar" is that arithmetic**, observed rather than derived.
+>
+> **STILL ONE DEVICE, NOT BOTH**, dev client, default Dynamic Type. Step 11's own wording asks
+> for a judgement "on both devices" and got one. **The SE half of the matrix is open and rolls
+> forward to R2's walk.**
+
+> **PASSED: 1, 2, 3, 4** (helper text on White, Mist White, Dew Sage and `dewSageLight`) · **5**
+> (Remove, the `AddBlockSheet` fill) · **6** (Clear, the `CaptureTaskSheet` fill) · **7** (Focus
+> Rhythms: the unchecked box still reads empty beside a filled checked one, which was the
+> specific risk the step named) · **10** (Community, Groups and People search, Capture and
+> Add-a-block placeholders all still read as placeholders) · **11** (active tab distinguishable
+> at a glance) · **12** (Community, Today, Time and `PhasePath`: **one grey**) · **13** (Today
+> and Energy band seams: no grey on artwork) · **18** (icon weight: chevrons and menus pass).
+
+> **STEP 12 IS THE ONE THAT VALIDATES THE OPTION B RULING.** Four surfaces checked, one grey on
+> each, including `PhasePath` - the file where `Colors.textSecondary` at `:299` and
+> `mutedSageGray` at `:309` would have rendered as two different greys ten lines apart under
+> Option A. The positive form of the check ("no two greys anywhere") is only available because
+> all four declarations moved together.
+
+> **STEP 11 PASSED WITH A QUALIFICATION THAT IS NOT A FAILURE AND IS NOT NOTHING.** The active
+> tab is distinguishable at a glance **via hue and label**, and Kyle notes the distinction is
+> **weaker than before** - which is exactly the risk the AMENDED block predicted when the
+> inactive tint darkened toward the active teal. **The pre-decided fallback is NOT triggered**:
+> the step's pass condition was distinguishability, and it is met. **The separate inactive-tint
+> token at `#6F7F77` is therefore not built**, and the structural fix is R2, which restyles the
+> bar. Recorded so R2 inherits a known-weakened contrast pair rather than discovering it.
+
+> **STEP 13 PASSED AND SURFACED A PRE-EXISTING ITEM THAT IS NOT THIS ROW'S.** No grey text sits
+> on the band artwork on Today or Energy. Kyle also observed a **teal eyebrow over the art on
+> Today**, which is a standing §4.5 scrim item and predates R1b-i; **R3 removes the band from
+> Today entirely** (11E, immersive surface, no hero band), so it resolves there and is not
+> logged separately.
+
+> **STEP 18 PASSED IN PART AND PRODUCED DEBT ITEM (e).** Chevrons and dots-menus pass. The
+> People empty-state glyph reads heavy at the helper-text value. **Measured after the walk: it
+> is `size={64}`, not the 48 the note says** (`PeopleScreen.tsx:465`), and it is one of five
+> empty-state glyphs at 48 or 64 carrying a text colour. See (e) below.
+
+> **NOT RUN, EACH WITH ITS REASON, AND NONE REPORTED AS PASSED.**
+>
+> | Step | Reason given |
+> |---|---|
+> | 8 (Clarify outline) | not run |
+> | 9 (pending "Say hello" outline) | no pending request on this account |
+> | 13, Focus hub | not run (Today and Energy were) |
+> | 14, 15, 16, 17 (dark grounds) | the Step 0 static sweep cleared all **declared** grounds |
+> | 19 (Reduce Motion, §18(e)) | the slice adds no animation |
+> | 20 (1.3x Dynamic Type) | a hex value does not change layout |
+> | Second matrix device | the change is device-independent |
+>
+> **TWO OF THOSE REASONS ARE WEAKER THAN THE OTHERS, AND SAYING SO IS THE POINT OF WRITING THEM
+> DOWN.** **§18(e) is explicit that the assertion covers every animation on a touched surface,
+> "not only animations the slice added"** - a slice that restyles a screen inherits whatever
+> already moves on it, and 26 animated files ship without the hook. The reason given is the one
+> §18(e) was written to exclude. **And 14 through 17 were the steps written specifically to catch
+> what the static sweep cannot reach**: raster band artwork, user-supplied avatars and covers,
+> and grounds set by a `style` prop at a call site. The sweep clearing declared grounds is not
+> evidence about undeclared ones. **Neither is re-argued here and neither changes the
+> attestation** - the walk is Kyle's call and the steps are honestly reported as not run - but
+> **both roll forward to R2's walk**, which runs the full matrix, rather than being treated as
+> closed by this one.
+
+> **THE FILLS PASSED, AND THEY MAY NOT SURVIVE ANYWAY.** Steps 5 and 6 confirm the darkened
+> Remove and Clear buttons read correctly with their White labels. Debt item (d) then observes
+> that a "Clear" action should be a **tertiary** control under §10.1 rather than a filled button
+> at all. If (d) is actioned, the fill this row fixed stops existing. Recorded so the two are
+> not treated as independent.
+
+> **SECTION B (R1a's fourteen) NOT RUN.** Unchanged from the R1a attestation: still outstanding,
+> still required before R2, step 10 still blocked on the six `0091ce5` screenshots. The script
+> is at `docs/walks/r1a/WALK.md`.
+
+> **SEVEN DEBT ITEMS FROM THE WALK, LOGGED AND NOT FIXED HERE.** Two land in standards §17 rows
+> that already exist; five land in `docs/DESIGN_BACKLOG.md` as items 7 through 11. **Three of
+> the seven were measured after the walk and came back larger or different than the note
+> described, and the measured shape is what is logged:**
+>
+> - **(a) Journal "TODAY" date header.** `RelativeDateHeader.tsx:158` is `Colors.silverSage`,
+>   uppercase, 14pt, `letterSpacing: 0.5`. **Measured 1.61:1 on Mist White and 1.68:1 on White**,
+>   bracketing the note's ~1.7. It is already one of §17's 24 uppercase-label violations **and
+>   one of the three at 14pt**; the contrast fact is added to that row rather than opening a
+>   second entry for the same string.
+> - **(b) Placeholders with no colour. NOT two strings - 34, across 16 files.** The two Journal
+>   placeholders set no `placeholderTextColor`, so they fall through to the platform default
+>   (iOS `rgba(60,60,67,0.3)`, **1.72:1** over Mist White). A count of every input with a
+>   `placeholder` and no `placeholderTextColor` gives **34 in 16 files**. **This is why step 10
+>   passed and this is still true**: step 10 walked five placeholders that all set the token
+>   explicitly. The two sets do not overlap. `DESIGN_BACKLOG` item 7.
+> - **(c) Routine checklist.** `Time/components/ChecklistPlayer.tsx:63` renders
+>   "{completedCount} of {totalCount} complete" **and** a filling bar at `:65-71` - **two §10.7
+>   violations in one header**, not one. Added to §17's 10.7 row. **The 13 sites in that row have
+>   never been enumerated anywhere**, so whether this is new or already inside the 13 is not
+>   determinable; the row now says so, and enumerating them is named as the next step.
+> - **(d) "Clear" as a filled button.** `CaptureTaskSheet.tsx:339`. **The note cites §7.1, which
+>   does not exist** - §7 is Iconography and has no subsections. The governing rule is **§10.1's
+>   tertiary clause**: "no fill, Teal text ... for skip, cancel, 'Maybe later,' and adjust
+>   actions", with destructive tertiary in Soft Charcoal. **`AddBlockSheet.tsx:799`'s Remove is
+>   the same shape** and is logged with it. `DESIGN_BACKLOG` item 8.
+> - **(e) Empty-state glyphs.** `PeopleScreen.tsx:465` is **64px, not 48**. Five empty-state
+>   glyphs carry a text colour at 48 or 64: `PeopleScreen` 64, `ConversationsScreen:368`,
+>   `messaging/EmptyState.tsx:30`, `MessagesScreen.tsx:277`, `WeeklyBrainMetricsChart.tsx:209`,
+>   plus `Time/ActiveRoutinePlayer.tsx:418`. A 64px glyph at body-text weight is a different
+>   decision from a 14pt caption at the same value. `DESIGN_BACKLOG` item 9.
+> - **(f) Add-a-block sheet under the status bar. THE NOTE ASKS FOR THE WRONG DEVICE, AND THE
+>   WALKED ONE SITS BETWEEN THE TWO.** `AddBlockSheet.tsx:378` passes `maxHeightPercent={0.98}`
+>   where `EnhancedModal` defaults to 0.92, and the comment shows it was deliberate, to fit a
+>   sixth row. The shell caps height at `screenHeight x maxHeightPercent`, so the top gap is
+>   `screenHeight x (1 - maxHeightPercent)`. At 0.98 the sheet's top edge sits **6.7pt inside the
+>   SE's 20pt status bar**, **28.5pt inside the walked iPhone 14 Plus's 47pt notch**, and
+>   **40.4pt inside the 16 Pro Max's 59pt Dynamic Island**; at 0.92 it clears all three. **The
+>   header's 24pt `paddingTop` covers the SE's 6.7pt and neither of the others**, which is why
+>   the title reads tight on the 14 Plus - the observation is that arithmetic. **The binding case
+>   is still the Pro Max at 40.4pt, and it was not walked.** A §18(c) safe-area failure with a
+>   stated trade-off behind it, not a typo. `DESIGN_BACKLOG` item 10.
+> - **(g) Two adjacent amber chips.** `Time/components/activityColors.ts:38-42` maps **four**
+>   legacy names - orange, yellow, amber, brown - onto Golden Apricot, so two adjacent
+>   activities drawn from any of those four produce two adjacent warm chips on the routine list
+>   (`ActivityListItem.tsx:58`, 0.15-alpha fill). §4.2: warm accents "never sit adjacent to each
+>   other". The four-to-one mapping is why this is easy to hit. `DESIGN_BACKLOG` item 11.
 
 **Ordering rationale.** 0 makes everything after it smaller and reversible. 1–2 land the model
 behind a flag without touching content. 3 is the content-dependent core and the point of no return
@@ -2821,6 +3078,220 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the map route still offers it. **Record the result in this entry when observed. Until then
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
+
+### 2026-09-13 - R1b-i built: Muted Sage Gray stops failing AA, and the row's premise was false (branch `design/slice-r1b-i-helper-gray`, commit count set at the merge, unmerged, WALKED 2026-09-13)
+
+**WHAT SHIPPED.** One colour, moved at every place the codebase declared it. `#6F7F77` to
+`#56655D` in **four palette declarations**, and **35 raw literals in 23 feature files pointed at
+the token** so nothing is left behind holding the retired value. Two test assertions updated by
+hand, four stale justifications rewritten, four standards sections amended, and two walk scripts
+committed.
+
+**COMMITS:** `85545d1` the four declarations · `e9034f7` the 35 literals · `6f21574` the tests
+and comments · `edbe4c8` the standards, this entry and the two walk scripts · `a26b090` the walk
+result, the DURATION-PRESETS row and the seven debt items · `796f565` the attestation ·
+`0b1e5be` and `070110d` the two count corrections · this one. **Hashes, not a total, for the
+reason stated below.**
+
+**THE COMMIT COUNT IS DELIBERATELY ABSENT FROM THIS HEADING AND FROM THE ROW MARKER, AND THE
+REASON IS THREE FAILED ATTEMPTS AT IT.** It was written FOUR, corrected to FIVE, corrected to
+SIX, corrected to SEVEN, and was wrong every time within one commit. **A commit count written
+inside the commit it counts is always one short**, and each correction is itself a commit.
+R1a hit this once - its heading said SIX and the branch held EIGHT - and this row hit it three
+times before naming the mechanism. **THE COUNT IS ONLY SAFE TO WRITE WHEN THE BRANCH STOPS
+GROWING, WHICH IS AT THE MERGE**, and it is Kyle's to state there. The hashes below do not go
+stale and are the record until then. The heading also read WALK OUTSTANDING and now reads
+WALKED.
+
+**FIGURES:** tsc **147** (error-for-error identical to the pre-slice set, diffed rather than
+counted) · jest **3551 of 225**, green · sentinel **149**, untouched · lint **1033 to 995**.
+
+---
+
+**THE ROW SAID "ONE TOKEN VALUE". THERE WERE FOUR, AND THE NAMED ONE WAS NOT THE BIGGEST.**
+This is the finding the slice turns on. `#6F7F77` was written as a literal four times in the
+palette - `mutedSageGray`, `Colors.textSecondary`, `Colors.text.secondary` and
+`ColorTokens.textSecondary` - and none of the three was an alias of the first in code. The row's
+"336 occurrences across 125 files" is a correct count of `mutedSageGray` and a wrong count of the
+AA failure, which was **~834 sites across 263 files**. **`Colors.textSecondary` alone is 412
+sites across 116 files, a bigger consumer than the token the row names.**
+
+**KYLE'S RULING, 2026-09-13: OPTION B.** All four move; the 35 literals become the token.
+Recorded in the R1b-i AMENDED block as a **fence widening on a `[Next]` row** with a named
+reason, rather than folded in as though the row had always said it.
+
+**WHAT OPTION A WOULD HAVE SHIPPED, WHICH IS THE ARGUMENT.** 336 of ~834 sites moved. ~498 left
+below AA. **Two near-identical greys on screen together in 17 files**, among them `PhasePath` - a
+frozen journey surface where the two spellings sit ten lines apart in one StyleSheet - plus
+Settings, Conversations, Plan, the Community tab root and the Welcome-back card. **And the Today
+tab root would not have changed at all**: `DashboardScreen` holds zero `mutedSageGray` and one
+`textSecondary`. R1a's rule that a partial migration is not a shippable intermediate applies to
+colour exactly as it applied to typefaces.
+
+**THE TAB BAR WAS INVISIBLE TO THE ROW IN BOTH DIRECTIONS.** `tabBarInactiveTintColor` reads
+`Colors.textSecondary` at both navigators. Under Option A the inactive tabs would not have moved
+and the row's walk step for them would have been unmeetable - a step whose only honest result is
+"no change" is not a gate. Under Option B they move, and the risk inverts: the inactive tint
+darkens **toward** the active teal. **Walk step 11 is the gate and its fallback is decided ahead
+of the walk**: a separate token for the inactive icon tint at `#6F7F77`, which passes the 3:1
+non-text floor, labels staying on `#56655D`, booked as a new row for R2.
+
+**THE DARK-GROUND QUESTION WAS DECIDABLE AFTER ALL, AND STEP 0's FIRST SWEEP UNDER-COVERED IT.**
+The row called parent-and-child pairing not statically recoverable and put the whole question on
+the walk. Step 0's first pass narrowed dark grounds by **style name** to container-shaped names,
+which cut 136 files to 9 and dropped every button, chip, pill, avatar and progress fill - which is
+exactly where grey-on-teal lives. **Kyle's build prompt caught it and asked for the sweep to be
+re-run across all four names before commit 1.** Re-run without the name filter: **194 dark-ground
+blocks across 136 files**, 210 ground-and-child pairings resolved, 20 candidates, **19 safe** -
+selected-state overrides to White or `textOnPrimary`, siblings outside the dark element, mutually
+exclusive states, or a disabled state that swaps the ground to Dew Sage.
+
+**ONE REAL FINDING, AND IT IS NOT FIXED HERE BECAUSE THE ROW SAYS IT IS NOT.**
+`Focus/components/DurationPresets.tsx` builds its text style as
+`[presetText, active && presetTextSelected, disabled && presetTextDisabled]`, so **disabled wins
+over selected**. `PomodoroTab.tsx:292` passes `disabled={timer.isActive}` and a duration is always
+selected, so while a Pomodoro timer runs the selected chip renders grey on the teal fill at
+`opacity: 0.5`: **1.28:1 before this slice, 1.11:1 after.** Pre-existing, already unreadable, and
+made marginally worse by this slice through `ColorTokens.textSecondary`. The row's walk cell says
+a finding on a dark ground **"is a new row, not a fix inside this one"**, and that instruction is
+followed. Walk step 18 confirms it on device. **IT NEEDS A ROW.**
+
+**THE FIX HAS A DIRECTION, AND THAT IS NOW IN THE STANDARDS RATHER THAN IN THIS ENTRY ALONE.**
+`#56655D` is darker, so below a ground luminance of about **L 0.156** it has less contrast than
+what it replaced: **1.23:1 on Evergreen Teal, where `#6F7F77` was 1.79:1.** Every light ground in
+§4.1 improves and every dark one degrades. Recorded in §16 so a later slice reading "6.15:1 on
+White" does not carry it onto a dark surface.
+
+**TWO TESTS ASSERTED THE HEX, AND THE ONE THAT STAYED GREEN IS THE DANGEROUS ONE.** The gate
+asked to check before the change rather than after, and it was right to.
+`FocusHubScreen.test.tsx:323` asserted `toBe('#6F7F77')` and went **red at commit 1**.
+`SimpleHabitCreateScreen.test.tsx:430` asserted `not.toBe('#6F7F77')` and would have **stayed
+green while guarding nothing**, excluding a colour the palette no longer contains. Both updated by
+hand; **neither rewritten to import the token**, which is the vacuous-green failure this board has
+paid for twice. The first is mutation-checked: reverting the literal fails exactly that test.
+
+**AND THE CHANGE RETIRED THE ARGUMENTS THAT HAD BEEN MADE AGAINST THE COLOUR IT FIXED.** Both
+tests, and the two source comments behind them, chose `softCharcoal` **because `mutedSageGray`
+failed AA there**. After this slice it does not: 4.22 to 6.15:1 on the Focus hub card, 3.16 to
+4.61:1 on the Dew Sage nudge. Both overrides still stand, on **hierarchy** rather than contrast,
+and all four comments are restated. **A contrast fix silently invalidates every comment that
+justified avoiding the colour** - worth carrying to R1d and R3, which will hit the same thing.
+
+**LINT 1033 TO 995, AND THE THREE BEYOND THE 35 ARE NAMED RATHER THAN LEFT AS A PLEASANT
+SURPRISE.** `no-restricted-syntax` 431 to 396, the 35 literals. `@typescript-eslint/no-unused-vars`
+390 to 387: `MasterclassScreen`, `InsightsScreen` and `WearableIntegrationScreen` each imported
+`Colors` and never used it, preferring their own local hex, and the local const now reads the
+token. **No error from any rule outside the baseline set.** Measured with `eslint -f json` against
+the commit-1 tree, restored from a scratchpad backup and verified byte-identical afterwards; no
+`git checkout --` without a backup, per the standing rule.
+
+**THE OTHER RAW HEX IN THOSE 23 FILES STAYED.** `VARA_COLORS`' teal, dewSage and charcoal blocks
+in the insights components, `AIChatModal`'s brand consts, `RoutineEditor`'s colour map. The fence
+was the one colour, not the files it lived in. **A later reader counting 396 should not read a
+tidied directory.**
+
+**STANDARDS UPDATED, AS NAMED DELIVERABLES OF THIS ROW AND NOT AS SIDE EFFECTS.** The row's scope
+cell named no standards edit, which drops the R1a precedent that the slice which acts owes the
+ledger. Written anyway: **§4.1** palette row to `#56655D` plus the four-keys note; **§16** bullet
+from deferral to record, with the count corrected 336 to ~834 and the dark-ground property added;
+**§17** raw-hex row 431 to 396 with the 35 named as retired literals rather than a re-measurement;
+**Appendix B** gains the R1b-i block. No rule in the standards changed.
+
+**TWO WALK SCRIPTS COMMITTED, WHICH IS THE NEW STANDING RULE.** `docs/walks/r1b-i/WALK.md` holds
+Section A's twenty steps. **`docs/walks/r1a/WALK.md` holds R1a's fourteen, verbatim from its build
+report** - they had never been written into the repo, and the roadmap referenced them only by
+number, with steps 4, 10, 11 and 14 the only four identifiable anywhere. R1b-i's Step 0 searched
+the row, the R1 AMENDED block, every §13 entry, §18 of the standards and every commit message on
+every branch, and could only reconstruct them. **From this slice on, a walked slice commits its
+walk script in its docs commit.**
+
+**PRE_SUBMISSION_CHECKLIST.md GAINS A DEV-ROUTES ITEM.** The standing rule from this slice is that
+no new `__DEV__` surfaces, routes or flags are added and anything that must not ship goes on that
+checklist. R1b-i adds none. The checklist had **no dev section at all**, so the six routes already
+gated at `AppNavigator.tsx:1201` - `DevBreathPacer`, `DevAudioLoader`, `DevGuidedSessionPlayer`,
+`DevCheckInFlow`, `DevTypography`, `DevVideoPlayer` - were unlisted. The item asks the reader to
+confirm the `__DEV__` gate still wraps all six rather than to delete anything.
+
+**MANIFEST: NO CHANGE, VERIFIED BY READING** `functions/src/lib/accountDeletion.js:57-165` (546
+lines, read at Step 0, not carried from a prior entry). R1b-i reads and writes no Firestore
+collection and introduces none: it is one string in a palette file, 35 import-side substitutions,
+two test literals and documentation.
+
+**WALKED 2026-09-13 (Kyle), ONE DEVICE, DEV CLIENT, DEFAULT DYNAMIC TYPE.** Section A passed on
+the steps listed below; the rest are reported as not run with reasons. Full detail, including the
+reasons and the two that are weaker than the others, is in the R1b-i AMENDED block in §5.
+
+**THE DEVICE WAS AN iPhone 14 Plus, AND IT IS NOT ONE OF THE TWO IN §18's MATRIX.** 428 x 926 pt
+@3x with a **47pt notch inset**, against a matrix of the SE (3rd gen) at 375 x 667 @2x and the 16
+Pro Max at 430 x 932 @3x. **At 2pt narrower than the Pro Max it is a fair proxy for the large end**
+- steps 7, 10, 11 and 12 are covered there - **and no proxy at all for the small end**, which is
+53pt narrower, 259pt shorter and @2x. **Only @3x was walked**, where §18(g) wants both scale
+factors for exactly the raster-asset check step 13 performs. One device, not both. **The SE half
+of the matrix is open and rolls forward to R2's walk.**
+
+**PASSED:** 1-4 (helper text on all four light grounds) · 5 (Remove fill) · 6 (Clear fill) ·
+7 (unchecked checkbox still reads empty) · 10 (five tokened placeholders still read as
+placeholders) · 11 (active tab distinguishable at a glance, **noted as weaker than before**;
+the pre-decided fallback is NOT triggered because the pass condition was distinguishability, and
+R2 fixes it structurally) · 12 (**one grey** on Community, Today, Time and `PhasePath`) ·
+13 (no grey on the Today or Energy band artwork) · 18 (chevrons and menus pass).
+
+**STEP 12 IS THE STEP THAT VALIDATES THE OPTION B RULING**, and `PhasePath` is the surface that
+proves it: `Colors.textSecondary` at `:299` and `mutedSageGray` at `:309` sit ten lines apart in
+one StyleSheet and would have rendered as two different greys under Option A.
+
+**NOT RUN:** 8 (Clarify outline) · 9 (no pending request on the account) · 13 on the Focus hub ·
+14-17 (dark grounds; the Step 0 static sweep cleared all **declared** grounds) · 19 (Reduce
+Motion; the slice adds no animation) · 20 (1.3x; a hex value does not change layout) · the second
+matrix device (the change is device-independent). **Two of those reasons are weaker than the
+others and are named as such in the §5 block: §18(e) is explicit that Reduce Motion covers every
+animation on a touched surface and not only the ones a slice added, and steps 14-17 exist
+specifically to reach what the static sweep cannot - raster artwork, user imagery, and grounds set
+at a call site. Neither is re-argued and neither changes the attestation; both roll forward to
+R2's walk.**
+
+**SECTION B (R1a's fourteen): NOT RUN.** Unchanged from R1a's own attestation. Still required
+before R2; step 10 still blocked on the six `0091ce5` screenshots. Script at
+`docs/walks/r1a/WALK.md`.
+
+**ONE FINDING BECAME A ROW.** **DURATION-PRESETS**, added to §5 before R3: the disabled-and-
+selected duration chip renders grey on teal because `disabled && presetTextDisabled` is composed
+after `active && presetTextSelected`. 1.28:1 before R1b-i, 1.11:1 after. Found at R1b-i's Step 0
+by static sweep, **not walked** - step 18 was written to confirm it on device and was not run, so
+its severity is measured rather than observed. The fix is light text on the selected chip in its
+disabled state.
+
+**SEVEN DEBT ITEMS LOGGED, NOT FIXED.** (a) and (c) extend §17 rows that already exist; (b), (d),
+(e), (f) and (g) become `docs/DESIGN_BACKLOG.md` items 7 through 11. **Three came back larger or
+different than the walk note described, and the measured shape is what is logged:** (b) is **34
+placeholders across 16 files**, not two Journal strings, because they set no `placeholderTextColor`
+and fall through to the platform default at 1.72:1 - which is also why step 10 passed, since the
+five it walked all set the token explicitly and the two sets do not overlap; (e)'s People
+empty-state glyph is **64px, not 48**, and is one of six empty-state glyphs carrying a text colour;
+(f)'s sheet inset is **worse on a Dynamic Island device than on the SE the note asks about, and
+it reproduced on the 14 Plus in between** - `maxHeightPercent={0.98}` against the shell's 0.92
+puts the sheet 6.7pt inside the SE's 20pt status bar, **28.5pt inside the walked 14 Plus's 47pt
+notch**, and **40.4pt inside the 16 Pro Max's 59pt Dynamic Island**; the header's 24pt padding
+covers the first and neither of the others. **The worst case, the Pro Max, was not walked.** **And (d) cites §7.1, which does not exist**; the governing rule is
+§10.1's tertiary clause, and `AddBlockSheet`'s Remove is the same shape as the Clear it names.
+
+**THE TWO FILLS PASSED AND MAY NOT SURVIVE.** Steps 5 and 6 confirm the darkened Remove and Clear
+buttons read correctly. Debt item (d) then says a Clear action should be tertiary under §10.1
+rather than a filled button at all. If (d) is actioned, the fill this row fixed stops existing.
+Recorded so the two are not treated as independent.
+
+**ATTESTATIONS (Kyle, 2026-09-13), verbatim from the walk result:**
+
+> 5. ATTESTATIONS (Kyle, 2026-09-13): suites green at tsc 147 /
+>    jest 3551 of 225 / sentinel 149 / lint 995 errors, 1358 warnings.
+>    ATTESTED. Walk Section A passed on the steps listed in item 2, one
+>    device, default type; remaining steps not run for the reasons
+>    stated. ATTESTED.
+
+**Re-verified by CC at the docs commit, independently of the attestation:** tsc **147**, jest
+**3551 of 225**, sentinel **149**, lint **995 errors / 1358 warnings**. The figures match.
+
+**NO MERGE. Kyle merges.**
 
 ### 2026-09-13 - R1b-ii built: the guards and the lint scope, no pixels move (branch `design/slice-r1b-ii-guards`, SIX commits, **merged `3b8a077` on 2026-09-13**, no walk per the row)
 

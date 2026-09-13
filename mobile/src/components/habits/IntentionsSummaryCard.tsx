@@ -8,6 +8,7 @@ import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Text from '../shared/Text';
 import { Habit } from '../../types';
+import { Colors } from '../../constants';
 
 interface IntentionsSummaryCardProps {
   habits: Habit[];
@@ -59,7 +60,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 10,

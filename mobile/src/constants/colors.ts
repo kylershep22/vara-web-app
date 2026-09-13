@@ -29,7 +29,7 @@ export const Colors = {
   shadowColor: '#000000', // Only for shadows, never for text
 
   // Muted Sage Gray for secondary text/icons
-  mutedSageGray: '#6F7F77',
+  mutedSageGray: '#56655D',
 
   // Derived Alpha Colors
   tealLight: 'rgba(27,94,87,0.08)',       // Selected state tints, active badge bg
@@ -61,12 +61,12 @@ export const Colors = {
   // Text Colors
   text: {
     primary: '#3E3E3E',
-    secondary: '#6F7F77',
+    secondary: '#56655D',
     disabled: 'rgba(184,205,186,0.5)', // Silver Sage at 50% opacity
     onPrimary: '#FFFFFF',
   },
   textPrimary: '#3E3E3E',
-  textSecondary: '#6F7F77',
+  textSecondary: '#56655D',
   textDisabled: 'rgba(184,205,186,0.5)', // Silver Sage at 50% opacity
   textOnPrimary: '#FFFFFF',
 

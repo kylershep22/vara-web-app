@@ -425,9 +425,14 @@ describe('SimpleHabitCreateScreen — the nudge is visually contained', () => {
     fillOut(utils, 'focus_work');
     const line = utils.getByText('You said focus comes easiest for you in the morning.');
 
-    // softCharcoal, 8.02:1 on Dew Sage. mutedSageGray would be 3.16:1.
+    // softCharcoal, 8.02:1 on Dew Sage. Since R1b-i mutedSageGray is #56655D
+    // and would be 4.61:1 here, which passes AA, so this is no longer an AA
+    // assertion: it pins the HIERARCHY choice, that the nudge reads as body
+    // and not as helper text. The excluded value is updated with the token
+    // because a not.toBe against a colour the palette no longer contains
+    // excludes nothing and would go quietly vacuous.
     expect(flatten(line).color).toBe('#3E3E3E');
-    expect(flatten(line).color).not.toBe('#6F7F77');
+    expect(flatten(line).color).not.toBe('#56655D');
   });
 
   it('gives the accept a white fill with a teal edge, unlike either neighbour', () => {

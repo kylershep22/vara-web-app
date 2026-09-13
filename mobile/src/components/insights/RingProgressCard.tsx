@@ -15,6 +15,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { Colors } from '../../constants';
 
 // Vara brand colors
 const VARA_COLORS = {
@@ -23,7 +24,7 @@ const VARA_COLORS = {
   silverSage: '#B8CDBA',
   dewSage: '#D5E3D1',
   charcoal: '#3E3E3E',
-  sageGray: '#6F7F77',
+  sageGray: Colors.mutedSageGray,
   white: '#FFFFFF',
 };
 

@@ -16,7 +16,7 @@ import Text from '../../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import { Spacing } from '../../constants';
+import { Colors, Spacing } from '../../constants';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
 import { PodcastEpisode } from '../../hooks/usePodcastFeed';
 
@@ -27,7 +27,7 @@ const VARA_COLORS = {
   teal: '#1B5E57',
   mistWhite: '#FAFAF6',
   charcoal: '#3E3E3E',
-  sageGray: '#6F7F77',
+  sageGray: Colors.mutedSageGray,
   dewSage: '#D5E3D1',
 };
 

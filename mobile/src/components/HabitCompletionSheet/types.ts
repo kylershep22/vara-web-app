@@ -3,6 +3,7 @@
  */
 
 import { Habit, CompletionData, CompletionSource } from '../../types';
+import { Colors } from '../../constants';
 
 export interface HabitCompletionSheetProps {
   habit: Habit;
@@ -43,7 +44,7 @@ export const CONNECTION_OPTIONS = [
     key: 'fine' as const,
     label: 'Fine',
     emoji: '\u{3030}',
-    textColor: '#6F7F77',
+    textColor: Colors.mutedSageGray,
     bgColor: '#EAF2E8',
   },
   {

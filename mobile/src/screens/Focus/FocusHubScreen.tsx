@@ -280,10 +280,14 @@ const styles = StyleSheet.create({
     color: Colors.mutedSageGray,
   },
   // In-window only: softCharcoal (10.7:1 on the card surface), NOT the default's
-  // mutedSageGray (4.22:1, under the 4.5:1 AA floor for 16px body text). The two
-  // deliberately differ. Do not unify them: dropping this override puts new copy
-  // below AA, and recoloring the default belongs to the app-wide mutedSageGray
-  // contrast slice, not to this one.
+  // mutedSageGray (6.15:1 since R1b-i). The two deliberately differ, and the
+  // REASON CHANGED WITH R1b-i: this override used to be an AA fix, because
+  // mutedSageGray was #6F7F77 and measured 4.22:1, under the 4.5:1 floor for
+  // 16px body text. It is now #56655D and passes on this ground, so the AA
+  // argument is spent. The override stands on HIERARCHY: the in-window line is
+  // the active invitation and reads as the card's copy, the default is quiet
+  // helper text. Do not unify them on the strength of the retired contrast
+  // number.
   primaryBodyInWindow: {
     color: Colors.softCharcoal,
   },

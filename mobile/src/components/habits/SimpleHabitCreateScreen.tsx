@@ -510,7 +510,11 @@ const styles = StyleSheet.create({
   },
   nudgeText: {
     fontSize: Typography.fontSize.sm,
-    // 8.02:1 on Dew Sage. NOT mutedSageGray, which is 3.16:1 on this ground.
+    // 8.02:1 on Dew Sage. Still NOT mutedSageGray, but the reason changed with
+    // R1b-i: mutedSageGray was #6F7F77 and measured 3.16:1 on this ground, so
+    // this was an AA fix. It is now #56655D and measures 4.61:1 here, which
+    // passes. The choice stands on HIERARCHY: the nudge is a reflection back to
+    // the user, not helper text, so it carries body weight.
     color: Colors.softCharcoal,
     marginBottom: Spacing.sm,
   },

@@ -461,7 +461,7 @@ function getColorForActivity(color: string): string {
     yellow: '#F5B971',
     brown: '#F5B971',
     // Neutral
-    gray: '#6F7F77',
+    gray: Colors.mutedSageGray,
   };
   return colorMap[color] || '#1B5E57';
 }

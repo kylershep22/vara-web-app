@@ -30,6 +30,7 @@ import { db } from '../../config/firebase';
 import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { normalizeBrainState } from '../../utils/brainStateNormalizer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Colors } from '../../constants';
 
 // Brand Colors
 const EVERGREEN_TEAL = '#1B5E57';
@@ -37,7 +38,7 @@ const MIST_WHITE = '#FAFAF6';
 const SILVER_SAGE = '#B8CDBA';
 const DEW_SAGE = '#D5E3D1';
 const SOFT_CHARCOAL = '#3E3E3E';
-const MUTED_SAGE_GRAY = '#6F7F77';
+const MUTED_SAGE_GRAY = Colors.mutedSageGray;
 const BORDER_COLOR = '#e4ebe4';
 const TIMESTAMP_COLOR = '#a0b0a0';
 const ONLINE_GREEN = '#5CB85C';
