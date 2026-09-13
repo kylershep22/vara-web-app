@@ -402,3 +402,76 @@ by this item.
 
 **Priority:** Cosmetic, Time surface. Bundle with the routine-list
 pass.
+
+---
+
+## 12. Four files hardcode rgba values that are now tokens
+
+**Source:** R1d Step 0, 2026-09-13 (old-value sweep, preamble rule b).
+
+R1d made `ColorTokens` an alias of `Colors`, which normalised four
+rgba strings that had been written two ways. The sweep for the old
+spellings found four files that do not use either token and carry
+the literal instead:
+
+```
+components/community/PostOverflowSheet.tsx:217  rgba(213, 227, 209, 0.5)
+components/events/EventCodeCard.tsx:45          rgba(213, 227, 209, 0.5)
+screens/ConversationsScreen.tsx:638             rgba(184, 205, 186, 0.5)
+screens/discover/BreathworkScreen.tsx:993       rgba(27, 94, 87, 0.08)
+```
+
+Their tokens are `Colors.dewSageLight`, `Colors.textDisabled` and
+`Colors.tealLight` respectively. All four render correctly today;
+this is not a visual defect.
+
+**Why it is worth a row rather than a drive-by fix.** These are the
+exact values R1d just proved can fork silently — same colour, two
+spellings, equal on screen and unequal to `===`. A literal copy is
+how the `ColorTokens` fork started. The lint rule does not catch
+them: `no-restricted-syntax` bars raw **hex**, and these are `rgba()`
+function calls, so nothing in the build notices.
+
+**Scope:** point each at its token. Four one-line edits, no rendered
+change. Check whether the rgba blind spot in the hex rule is worth
+closing at the same time — Step 0 did not survey how many other
+rgba literals exist, and that survey is step 0 of this item.
+
+**Priority:** Low, but it grows. Bundle with any pass touching those
+files, or with the `colors.ts` internal-alias item under 4.1.
+
+---
+
+## 13. Two timer sizes ship and the standards recorded one
+
+**Source:** R1d Step 0, 2026-09-13. Recorded in UI Standards 5.2 and
+3.3 at R1d; **deferred to the Focus surface slice, which owns
+`PomodoroTab`.**
+
+`ActiveRoutinePlayer` renders its timer at **48**, via
+`TypographyTokens.fontTimerPlayer`, an alias of the canonical
+`Typography.fontSize.timer`. `PomodoroTab` renders its timer at
+**52**, via `TypographyTokens.fontTimerLarge`, which has no canonical
+counterpart and is a declaration for that reason.
+
+5.2's Timer row said 48 flat, so a reader sizing a third timer
+against the document would have matched one of the two shipping
+timers by accident.
+
+**Why R1d did not resolve it.** Collapsing 52 onto 48 is a rendered
+change on a live screen, which a substitution slice does not get to
+make, and the reverse — promoting 52 into `typography.ts` — is a
+scale addition that assumes the answer. Both directions are design
+decisions, not de-duplication.
+
+**Scope:** decide whether the Pomodoro timer is deliberately the
+larger of the two. If yes, `fontSize.timerLarge` joins
+`typography.ts` and 3.3 in the same commit and `fontTimerLarge`
+becomes an alias. If no, `PomodoroTab` moves to 48 and the
+declaration is deleted. Either way the walk step is the Pomodoro
+timer at default and 1.3x type, since 52 and 48 differ most under
+scaling.
+
+**Priority:** Focus surface slice. Not cosmetic-only: it is the last
+non-alias in `designTokens.ts` that exists because of drift rather
+than because the scale lacks a key.
