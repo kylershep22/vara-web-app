@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 12,
-    color: Colors.mutedSageGray || '#6F7F77',
+    color: Colors.mutedSageGray,
     marginTop: 2,
   },
   headerRight: {
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   },
   actionTextSecondary: {
     fontSize: 14,
-    color: Colors.mutedSageGray || '#6F7F77',
+    color: Colors.mutedSageGray,
     fontWeight: '500',
   },
 });

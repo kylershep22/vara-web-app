@@ -17,6 +17,7 @@ import TextInput from '../shared/TextInput';
 import { EnhancedModal } from '../shared/EnhancedModal';
 import { INTENTION_OPTIONS, INTENTION_CATEGORY_LABELS } from '../../constants/intentions';
 import { IntentionCategory, HabitIntention } from '../../types/models';
+import { Colors } from '../../constants';
 
 const CATEGORIES: IntentionCategory[] = [
   'focus_clarity',
@@ -173,7 +174,7 @@ const styles = StyleSheet.create({
   categoryLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
@@ -230,7 +231,7 @@ const styles = StyleSheet.create({
   removeButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
   },
   saveButton: {
     backgroundColor: '#1B5E57',

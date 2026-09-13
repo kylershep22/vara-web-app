@@ -102,7 +102,7 @@ export const HabitListItem: React.FC<HabitListItemProps> = ({
               </View>
             )}
           </View>
-          <Icon name="chevron-right" size={16} color="#6F7F77" />
+          <Icon name="chevron-right" size={16} color={Colors.mutedSageGray} />
         </TouchableOpacity>
       </View>
     </BaseCard>
@@ -173,13 +173,13 @@ const styles = StyleSheet.create({
     color: '#1B5E57',
   },
   titleCompleted: {
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
     textDecorationLine: 'line-through',
   },
   meta: {
     fontSize: 12,
     fontWeight: '400',
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
     marginTop: 4,
   },
   intentionRow: {
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   intentionLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
   },
   intentionDot: {
     fontSize: 12,
@@ -199,6 +199,6 @@ const styles = StyleSheet.create({
   intentionTime: {
     fontSize: 12,
     fontWeight: '400',
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
   },
 });

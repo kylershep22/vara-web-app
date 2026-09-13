@@ -177,7 +177,7 @@ export const TriggerStep: React.FC<WizardStepProps> = ({ formData, onUpdateFormD
               onPress={() => setLearnMoreVisible(false)}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Icon name="close" size={24} color="#6F7F77" />
+              <Icon name="close" size={24} color={Colors.mutedSageGray} />
             </TouchableOpacity>
             <Text style={styles.sheetTitle}>Brain States & Your Habits</Text>
             <Text style={styles.sheetSubtitle}>
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   sheetSubtitle: {
     fontSize: 14,
     fontWeight: '400',
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
     lineHeight: 14 * 1.55,
     marginBottom: 16,
   },

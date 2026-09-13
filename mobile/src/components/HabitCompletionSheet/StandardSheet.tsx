@@ -17,6 +17,7 @@ import { isCognitiveReserveCategory } from '../../constants/habitCategories';
 import { HabitCompletionSheetProps, STANDARD_AFFIRMING_COPY } from './types';
 import { getCompletionInsight } from '../../constants/brainInsightsCopy';
 import type { HabitReflection } from '../../types';
+import { Colors } from '../../constants';
 
 const CONFIRMATION_HOLD_MS = 900;
 const EXIT_ANIMATION_MS = 320;
@@ -181,7 +182,7 @@ const styles = StyleSheet.create({
   valueEchoLabel: {
     fontSize: 12,
     fontWeight: '400',
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
   },
   valueChip: {
     backgroundColor: 'rgba(27,94,87,0.08)',
@@ -197,7 +198,7 @@ const styles = StyleSheet.create({
   affirmingBody: {
     fontSize: 13,
     fontWeight: '400',
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
     marginTop: 2,
   },
   crCallout: {
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
   },
   didYouKnow: {
     fontSize: 12,
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
     lineHeight: 17,
     textAlign: 'center',
     marginTop: 12,

@@ -7,6 +7,7 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Text from '../shared/Text';
+import { Colors } from '../../constants';
 
 const VARA_COLORS = {
   teal: '#1B5E57',
@@ -14,7 +15,7 @@ const VARA_COLORS = {
   dewSage: '#D5E3D1',
   silverSage: '#A8B5A0',
   charcoal: '#3E3E3E',
-  sageGray: '#6F7F77',
+  sageGray: Colors.mutedSageGray,
   white: '#FFFFFF',
 };
 

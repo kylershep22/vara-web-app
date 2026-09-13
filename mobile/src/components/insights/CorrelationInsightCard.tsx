@@ -9,12 +9,13 @@ import { View, StyleSheet } from 'react-native';
 import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import type { WeeklyCorrelations } from '../../services/correlationEngine.service';
+import { Colors } from '../../constants';
 
 const VARA_COLORS = {
   teal: '#1B5E57',
   dewSage: '#D5E3D1',
   charcoal: '#3E3E3E',
-  sageGray: '#6F7F77',
+  sageGray: Colors.mutedSageGray,
   white: '#FFFFFF',
 };
 

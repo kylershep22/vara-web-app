@@ -16,6 +16,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { HabitCompletionSheetProps, CONNECTION_AFFIRMING_COPY, CONNECTION_OPTIONS } from './types';
 import { getCompletionInsight } from '../../constants/brainInsightsCopy';
 import type { ConnectionQuality } from '../../types';
+import { Colors } from '../../constants';
 
 const CONFIRMATION_HOLD_MS = 900;
 
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
   subtext: {
     fontSize: 13,
     fontWeight: '400',
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
     marginTop: 1,
   },
   scienceCallout: {
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
   },
   didYouKnow: {
     fontSize: 12,
-    color: '#6F7F77',
+    color: Colors.mutedSageGray,
     lineHeight: 17,
     textAlign: 'center',
     marginTop: 12,
