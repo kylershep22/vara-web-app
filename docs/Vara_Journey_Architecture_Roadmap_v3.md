@@ -2946,7 +2946,14 @@ the production import graph reaches `src/__tests__/`, so the guard is never bund
 object with no consumers renders nothing. **All four changes are outside the runtime.**
 
 **SUITES AT THE BRANCH TIP:** tsc **147**; jest **3551 of 225** (3535 of 224 plus the guard's 16
-in 1 suite); sentinel **149**; lint **1033 errors, 1358 warnings**. Awaiting Kyle's attestation.
+in 1 suite); sentinel **149**; lint **1033 errors, 1358 warnings**.
+
+**ATTESTATIONS (Kyle, 2026-09-13):**
+- Suites green at tsc 147 / jest 3551 of 225 / sentinel 149 /
+  lint 1033 errors, 1358 warnings under the widened command.
+  ATTESTED.
+- No device walk required: row R1b-ii, no rendered output changes,
+  proven at Step 0 item 5. ATTESTED.
 
 ### 2026-09-12 - R1a built: the text primitive, and Inter renders for the first time (branch `design/slice-r1a-text-primitive`, EIGHT commits, **merged `4ddabc5` on 2026-09-13**, unwalked)
 
