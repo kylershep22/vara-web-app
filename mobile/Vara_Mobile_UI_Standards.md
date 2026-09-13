@@ -1022,7 +1022,7 @@ Each assertion has a pass condition. **A walk reports each one by number, pass o
 
 **(d) Floating bar clearance.** The bar is clear of content **on the smallest and the largest supported device**, scrolled fully to the bottom, **on every tab**.
 
-> **The device matrix, so the assertion is checkable.** **Smallest: iPhone SE (3rd generation), 375 x 667 pt at @2x, 750 x 1334 px. Largest: iPhone 16 Pro Max, 430 x 932 pt at @3x, 1290 x 2796 px.** **Physical or simulator, either is acceptable, and the walk records which**, because (d) is geometry and not rendering fidelity: a simulator reproduces point dimensions, scale factor and safe-area insets exactly, and those are the whole of what the assertion tests.
+> **The device matrix, so the assertion is checkable.** **Smallest: iPhone SE (3rd generation), 375 x 667 pt at @2x, 750 x 1334 px. Largest: iPhone 16 Pro Max, 430 x 932 pt at @3x, 1290 x 2796 px.** **Physical or simulator, either is acceptable, and the walk records which**, because (d) is geometry and not rendering fidelity: a simulator reproduces point dimensions, scale factor and safe-area insets exactly, and those are the whole of what the assertion tests. **Kyle's physical walk device is an iPhone 14 Plus (428 x 926 pt at @3x, 47pt notch), which is neither matrix entry but sits within 2pt of the 16 Pro Max and therefore covers the large end for every width-sensitive assertion; the SE end is walked on simulator.** Recorded here (R1b-i, 2026-09-13) so a walk naming the 14 Plus is read as the large end covered and the small end outstanding, rather than as one of the two. **Its 47pt notch is its own case and proxies neither entry**: it falls between the SE's 20pt status bar and the Pro Max's 59pt Dynamic Island, so a top-inset finding seen on it is not the worst case and one absent from it is not cleared.
 >
 > **Why these two.** The SE is the narrowest and the shortest current iPhone, so one device is the binding case for horizontal layout at 375pt (hub card rows, nav labels, 5.4's 65 to 75 character line length) and for bottom clearance at 667pt scrolled fully down, at the same time. The 16 Pro Max is the tallest and the widest. The matrix also spans **both scale factors, @2x and @3x**, which (g) needs: a raster background resolves differently at each.
 >
@@ -1166,6 +1166,11 @@ The design-authority reconciliation for the visual redesign, journey roadmap row
     it travels.
   - **17's raw-hex row drops 431 to 396**, with the 35 named as retired literals rather than as
     a re-measurement, per 17's third clause that the delta belongs to the slice that acts.
+  - **18(d) gains the physical walk device**: an iPhone 14 Plus, which is neither matrix
+    entry, covers the large end within 2pt of the 16 Pro Max, and leaves the SE end to the
+    simulator. Added at R1b-i's merge, once its walk had run on that device and the matrix
+    had to say what a non-matrix device does and does not cover. Its 47pt notch proxies
+    neither entry.
 
 ### What changed from v1.0 to v2.0 (August 2026)
 
