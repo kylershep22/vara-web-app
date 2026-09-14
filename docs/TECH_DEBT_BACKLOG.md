@@ -1990,3 +1990,75 @@ it". The second needs a completion signal from a feature that does not currently
 emit one, and it runs straight into §9 R7 - completion is DECLARED, never
 verified - so it needs that principle revisited rather than routed around.
 
+---
+
+## The route inventory records reachability on a navigator-only basis
+
+**Source:** R1d, 2026-09-14. Found twice in one slice, the second time
+after the first check had passed.
+
+`docs/inventory/CC_Inventory_2026-08-15.md` classifies every route as
+BUILT AND REACHABLE / BUILT BUT DARK / NOT PRESENT, and it decides that
+by asking whether a navigator routes to the screen.
+`mobile/CLAUDE.md` names it as the document to read **"before assuming a
+screen is live."**
+
+**That is one of two gates.** A screen is reachable only if a navigator
+can route to it AND the data its entry point needs exists. The inventory
+sees the first and cannot see the second, so a route whose entry point
+renders conditionally on an empty collection is recorded as REACHABLE
+and is not.
+
+**The case that found it.** `MasterclassDetail` is listed REACHABLE
+"from `MasterclassScreen`". The route is live, wired and correct.
+`MasterclassScreen.tsx:177` renders its masterclass section only when
+`masterclasses.length > 0`; that list comes from Firestore via
+`useMasterclasses` -> `listMasterclasses`; the collection has no
+documents. No card renders, so there is nothing to tap, so the detail
+screen cannot be opened. R1d's walk plan was built on the inventory's
+reading and on the same static check, and the one screen it had left to
+walk turned out to be as unopenable as the four it had already ruled
+out.
+
+**Why this is worth fixing rather than remembering.** The inventory
+exists so a slice does not have to re-derive reachability, and a slice
+that trusts it inherits the blind spot silently. R1d only caught it
+because a walk was attempted; a slice that reads the inventory and
+writes its walk plan without walking would ship the wrong plan and never
+learn.
+
+**Scope:** a data-gate column, or a per-row caveat where the entry point
+is conditional. The column wants three states, not two - routed and
+rendering, routed but gated on absent data, not routed at all - because
+the second and third have different fixes and different owners. **If the
+column is too much for the doc's shape, a caveat naming the conditional
+entry points is enough**, and is better than the current silence.
+
+**The ledger starts here. Five routes, two mechanisms:**
+
+| Route | Gate that fails | Evidence |
+|---|---|---|
+| `BreathworkDetail` | navigator | reached only from `Breathwork`, itself unreached |
+| `SleepDetail` | navigator | zero `navigate()` callers in `src/` |
+| `Movement` | navigator | zero `navigate()` callers in `src/` |
+| `MovementDetail` | navigator | reached only from `Movement`, itself unreached |
+| `MasterclassDetail` | **data** | route live; `masterclasses` collection empty, so `MasterclassScreen.tsx:177` renders no card |
+
+The four navigator-gated routes are marked DARK in UI Standards 2.8.
+**`MasterclassDetail` is deliberately NOT marked DARK there**, because
+the mechanism is different and a reader sent to 2.8 would go hunting for
+a missing `navigate()` call that is not missing. It needs the data
+column, which is the point of this item.
+
+**Also worth checking when this is taken up:** `Breathwork` and `Sleep`
+are navigator-dark on the same evidence as the four above and keep their
+2.8 rows unannotated only because R1d did not touch them. And nothing
+has surveyed how many OTHER routes have conditional entry points - the
+five here are the ones one slice happened to walk into, not a census.
+
+**Priority:** before the next slice that builds a walk plan from the
+inventory rather than from its own reading. The standing rule in the
+roadmap preamble (reachability has two gates; a Step 0 that calls a
+screen walkable checks both and says which) holds the line until then,
+but it puts the work on every Step 0 instead of in the document that
+exists to save it.
