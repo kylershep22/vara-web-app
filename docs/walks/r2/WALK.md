@@ -65,6 +65,9 @@ this is the first time anything would notice.
 
 ### A0b. The capsule reads as an object, without reading as dramatic glass
 
+**RESULT: PASSED, 2026-09-14, iPhone 14 Plus (Kyle), on the third run.** Three tuning
+rounds; the full sequence is below, because which lever did the work is the useful part.
+
 **Do:** Compare the bar against the Mist White ground on Today, Journey and Learn.
 **Scroll content under it** — a static screenshot is not the test; the failure mode this
 step exists to catch only shows while things move behind the bar.
@@ -76,63 +79,69 @@ never going to be theatrical, and it should not be.
 **FAIL if** the capsule dissolves into the page while scrolling, or if its fill is
 indistinguishable from a card.
 
-> **RUN ONCE AND FAILED — 2026-09-14, iPhone 14 Plus (Kyle). Tuned; re-walk against the
-> values below.**
+#### What was observed, in order
+
+> **RUN 1 — FAILED.** The blur **linked and was working**: content was visibly blurred
+> behind the capsule at its bottom edge, which is what A0 establishes, and A0 passed. But
+> the bar **read flat**. `Colors.tabBarTranslucent` at **0.55** over a Mist White ground
+> is very nearly that ground, and is the same value as the cards, so the capsule had no
+> separation and dissolved into the page when scrolling. **The fill was doing the work the
+> blur is for.**
 >
-> The blur **linked and was working**: content was visibly blurred behind the capsule at
-> its bottom edge, which is what A0 establishes and it passed. But the bar **read flat**.
-> `Colors.tabBarTranslucent` at **0.55** over a Mist White ground is very nearly that
-> ground, and is the same value as the cards, so the capsule had no separation and
-> dissolved into the page when scrolling. **The fill was doing the work the blur is for.**
->
-> **Two changes, one commit:** fill **0.55 → 0.35**, and the translucent capsule **gains
-> the `divider` hairline the Reduce Transparency fallback already had** — both states now
+> Fixed in `c8f2fba`: fill **0.55 → 0.35**, and the translucent capsule **gained the
+> `divider` hairline the Reduce Transparency fallback already had** — both states now
 > carry it, because a lower-alpha fill needs an edge more than a high-alpha one does.
->
-> **`BlurTokens.tabBarIntensity` stays at 40, and the next lever is the SHADOW, not the
-> intensity.** Blurring a near-white ground returns near-white. Raising the intensity is
-> the wrong knob for a separation problem and will look like it did nothing.
 
-> **RE-RUN AND STILL SHORT — 2026-09-14, iPhone 14 Plus (Kyle). Better after the fill and
-> the hairline, not enough separation. Third lever taken; re-walk again.**
+> **RUN 2 — FAILED, closer.** Better after the fill and the hairline, still not enough
+> separation.
 >
-> `Layout.shadow.floating` replaces `Layout.shadow.lg` on the capsule:
+> Fixed in `bbfc136`: **`Layout.shadow.floating` replaces `Layout.shadow.lg`** —
 > `0 8px 24px rgba(0,0,0,0.12)` against `0 4px 16px rgba(0,0,0,0.08)`. A new token named
-> for its role, because `lg` is tuned for sheets and modals - things that sit IN the page
-> flow - and this bar has content passing underneath it.
+> for its role, because `lg` is tuned for sheets and modals — things that sit IN the page
+> flow — and this bar has content passing underneath it.
+
+> **RUN 3 — PASSED. Tuning closed.** The capsule reads as a **distinct floating object
+> with content scrolling behind it**, checked on Today and on a **Community photo post**.
+> The photo is the harder case and is why the pass means something: it is the one ground
+> in the app today that is neither near-white nor flat.
 >
-> **Levers spent so far, in 12.2's order:** fill `0.55 → 0.35` → `divider` hairline →
-> `shadow.lg → shadow.floating`.
->
-> **The fourth is PREPARED AND NOT APPLIED:** `tabBarTranslucent` from Mist White to
-> **White at about 0.5**, so the bar reads brighter than the page rather than equal to it.
-> Held back on purpose - landing it with the shadow would leave nobody able to say which
-> one did the work. **One lever per walk.**
+> **TUNING ENDS AT:** `tabBarTranslucent` **Mist White at 0.35** · **`divider` hairline in
+> both states** · **`Layout.shadow.floating`**. Three levers, in §12.2's stated order.
+> **`BlurTokens.tabBarIntensity` never moved from 40**, which was the point of the order:
+> blurring a near-white ground returns near-white, and the intensity would have looked
+> like it did nothing.
 
-**A DISCRIMINATING OBSERVATION WORTH MAKING ON THIS RUN, because it decides whether the
-shadow is weak or ABSENT.** Compare the capsule's shadow **with Reduce Transparency OFF
-(translucent) against ON (opaque White)**.
+#### Two things this step closed besides the tuning
 
-- **Shadow visible in both, stronger than before:** the token is working; if it is still
-  short, the next lever is the prepared fill change, not a bigger shadow.
-- **Shadow visible under Reduce Transparency but absent or much weaker translucent:**
-  **that is its own finding and its own fix, not a tuning problem.** In the translucent
-  state the library sets the bar's `backgroundColor` to `transparent`, and iOS derives a
-  layer's shadow from its rendered content when there is no opaque background to cast
-  from. Raising the opacity further would not help, and would over-darken the opaque
-  state at the same time. **Report which of the two you see** - it is the difference
-  between "tune it again" and "restructure where the shadow is attached".
+**THE STRUCTURAL QUESTION — CLOSED.** Run 3 was asked to compare the capsule's shadow with
+Reduce Transparency **off** against **on**, because in the translucent state the library
+sets the bar's `backgroundColor` to `transparent`, and iOS derives a layer's shadow from
+its rendered content when there is no opaque background to cast from. A shadow present
+opaque and absent translucent would have been a **restructuring** job, not a number to
+raise — and raising the opacity would not have helped while over-darkening the opaque
+state. **Reported comparable in both: the translucent state casts properly.** Recorded
+because the next person to put a shadow on a view whose background the library controls
+will ask the same question.
 
-**Also record, for R3:** what the bar looks like over today's Mist White grounds is the
-*before* for the row that puts environmental artwork underneath it. The blur has little
-to blur until then.
+**THE PREPARED FOURTH LEVER — CLOSED AS UNNEEDED, NEVER APPLIED.** `tabBarTranslucent`
+was to move from Mist White to **White at about 0.5**, so the bar read brighter than the
+page rather than equal to it. It was held back so the shadow could be judged on its own,
+and the shadow closed the gap. **The bar stays Mist White, which is worth more than the
+change would have been:** §4.1's derived-alpha rule holds, the translucency is Mist
+White's own RGB with the alpha doing all the work, and there is no hue shift against the
+ground to re-check when R3 changes what the ground is.
 
-**AND THE STANDING CAVEAT ON ALL OF IT:** every value in this step is being tuned against
-**Mist White grounds**, because that is all four tab roots today. **R3 re-walks A0b with
-the Today artwork beneath the bar**, where the same settings will read differently - a bar
-tuned to pop against near-white may read **heavy** over watercolour, and a shadow sized
-for a flat pale ground is the first thing that will show. **R3 is entitled to move these
-values back**, and should not read them as settled.
+#### What this does NOT settle
+
+**Every value here was tuned against MIST WHITE GROUNDS**, because that is all four tab
+roots today — three runs against the only grounds that exist. **R3 puts environmental
+artwork under Today**, and the same settings will read differently over it: a bar tuned to
+pop against near-white may read **heavy** over watercolour, and a shadow sized for a flat
+pale ground is the first thing that will show.
+
+**R3 re-walks A0b with the artwork beneath the bar and is entitled to move these values
+back.** What the bar looks like over today's Mist White grounds is the *before* for that
+comparison, and Run 3's observation is that record.
 
 ### A1. The `getTabBarHeight` finding, confirmed on hardware — **STEP 1 PER THE ROW**
 
