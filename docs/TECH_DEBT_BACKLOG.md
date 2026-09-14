@@ -2142,3 +2142,61 @@ paper over by picking one.
 **Priority:** after R2's walk step A11 reports what the gap actually looks
 like on the SE. If A11 passes on both devices this is cosmetic; if it
 fails, it is the fix.
+
+---
+
+## The new-message sheet opens unusable: keyboard up, header off-screen, no way out
+
+**Source:** found while running R2's walk step A5b, 2026-09-14, iPhone 14 Plus (Kyle).
+**NOT R2's defect and not fixed there.** See the scope note at the bottom.
+
+### What was seen
+
+Tapping the FAB on `Conversations` opens the new-message surface **with the keyboard
+already raised**, the search field **scrolled up under the status bar**, and **no visible
+header and no visible way to dismiss the screen**. It is unusable as it stands: the close
+control exists in the markup but is not on screen.
+
+### It is a MODAL SHEET, not a screen, and looking for a screen file will waste a pass
+
+There is no route and no screen component for this. It is a `<Modal>` rendered inside
+`src/screens/ConversationsScreen.tsx` and opened by `openSheet` (`:59`), which is also
+what the FAB (`:278`) and the empty state's action (`:236`) call. Anyone grepping the
+navigator for a "new message" screen will find nothing.
+
+### Likely causes, to CHECK rather than to assume
+
+These are candidates read off the source after the walk, **not a confirmed diagnosis**.
+Nobody has reproduced this under a debugger, and the first job when this is picked up is
+to establish which of them is actually responsible - a fix that makes the symptom go away
+proves the fix, not the cause.
+
+1. **The keyboard autofocuses on mount.** `autoFocus` on the sheet's search `TextInput`
+   (`:358`). This is what makes the state arrive immediately rather than after a tap, and
+   it is why the screen is broken on arrival rather than broken after interaction.
+2. **The sheet's `KeyboardAvoidingView` has no `keyboardVerticalOffset`** (`:292-294`,
+   `behavior: 'padding'` on iOS). A bottom-anchored sheet of near-full height, padded
+   from the bottom by the keyboard's full height, is pushed up by that amount - which is
+   consistent with the header and the drag handle travelling off the top of the screen.
+3. **The sheet has no top safe-area handling of its own.** `sheetHeader` (`:553`) carries
+   a flat `paddingTop: 24` and no `insets.top`, and the `Modal` sets
+   `statusBarTranslucent` (`:289`), so nothing is reserving the status bar.
+
+**(2) and (3) compound**: the first moves the header up, the second means there is no
+inset stopping it at the status bar.
+
+### Scope
+
+- **A COMMUNITY SURFACE**, which UI Standards 2.8 marks **FOCUS, retained as-is, out of
+  redesign scope until R6+**. It is not a redesign job and should not be folded into one.
+- **IT PREDATES R2.** `autoFocus`, the `KeyboardAvoidingView` and the header's padding are
+  all unchanged by that slice.
+- **R2 TOUCHED ONLY THE FAB'S ANCHOR** on the screen behind this sheet - `bottom` moved
+  from a literal `Spacing.lg` to `useTabBarInset()` (`6e9a590`), so the FAB clears the
+  floating capsule. It changed nothing about what the FAB opens. A5b, the step that found
+  this, **passed**: the FAB is clear and tappable, which is how the sheet got opened.
+
+**Priority:** higher than its position in this file suggests. It is not cosmetic - the
+surface cannot be dismissed without backgrounding the app - and it is reachable from two
+entry points on a shipped screen. It wants its own slice rather than a bundle, because
+the fix is a behaviour change on a surface that is otherwise frozen until R6+.

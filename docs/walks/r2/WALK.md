@@ -26,10 +26,12 @@ width-sensitive assertion, and **only @3x was walked** where §18(g) wants both 
 factors.
 
 **PASSED:** A0 · A0b (closed at `f77a8e2`, third run) · A1 · A2 · A3 · A4 · A5 · A6 · A7 ·
-A8 · A9 · A10 · A10b · A11 · A12.
+A8 · A9 · A10 · A10b · A11 · A12 · **A5b** (walked 2026-09-14, after the main sitting).
 
-**NOT RUN:** A13 (Android, definitionally so on an iPhone, and **not owed** - see A13) · **every SE step, NOT WALKABLE in this setup** ·
-**A5b, not separately reported — see the note under A5b.**
+**NOT RUN:** A13 (Android, definitionally so on an iPhone, and **not owed** — see A13) ·
+**every SE step, NOT WALKABLE in this setup** — see the SE note below.
+
+**No step of Section A is outstanding on the 14 Plus.**
 
 **SECTION B (R1a's fourteen) and SECTION C: NOT RUN.** Section B is required before R3.
 
@@ -308,15 +310,33 @@ button are **not occluded** by the capsule — occlusion by eye, not clearance b
 
 ### A5b. The two bottom-anchored controls
 
-**NOT SEPARATELY REPORTED, 2026-09-14, and flagged rather than assumed.** A5 reports all sixteen routes scrolled fully down with the last item clear, which covers the scroll content on `Conversations` and `ReportDetail` — but **neither of these two controls is a "last item"**. The `Conversations` FAB is absolutely positioned and was **the one hard collision Step 0 identified** (at `bottom: 24` it sits wholly behind the capsule on this device); `ReportDetail`'s sticky action block hardcoded `34`. Both were changed by `6e9a590` and both are plausibly fine, **but plausibly fine is what this walk exists to replace.** One look at each on the next sitting closes it.
+**PASSED, 2026-09-14, 14 Plus.** The `Conversations` FAB is **clear of the capsule and
+tappable**; `ReportDetail`'s sticky action block is **clear and its buttons tappable**.
 
-**`Conversations` FAB.** *Pass:* fully visible and tappable, clear of the capsule, on
-both devices. It sat at `bottom: 24` before R2 and would have been **wholly behind** the
-bar on the 14 Plus. It is the only real collision in the sixteen.
+**Flagged, then walked.** A5 covers scroll content on all sixteen routes, but **neither of
+these is a "last item"** — the FAB is absolutely positioned and the action block is
+sticky — so A5 could not speak for either. The FAB was **the one hard collision Step 0
+identified**: at `bottom: 24` a 60pt capsule lifted 34pt would have covered it entirely.
+`ReportDetail` hardcoded `34`. Both were re-anchored in `6e9a590`; this is the
+confirmation rather than the assumption.
 
-**`ReportDetail` sticky actions.** *Pass:* the submit button clears the capsule. It
-hardcoded `34` before R2 — right on a 14 Plus, wrong on the SE. **The SE is the
-discriminating device here.**
+> **A DEFECT WAS FOUND WHILE RUNNING THIS STEP, AND IT IS NOT R2's.** The new-message
+> surface reached from the `Conversations` FAB opens **with the keyboard raised, its
+> search field scrolled up under the status bar, and no visible header or way to dismiss
+> it.** Unusable as it stands.
+>
+> **Booked to `docs/TECH_DEBT_BACKLOG.md`** with the likely causes to check — `autoFocus`
+> on the sheet's search field, a `KeyboardAvoidingView` with no `keyboardVerticalOffset`,
+> and a header with no top safe-area inset under a `statusBarTranslucent` modal — all
+> recorded as candidates to verify rather than as a diagnosis.
+>
+> **Scope, so it is not mistaken for this row's:** a **Community surface**, which §2.8
+> marks retained-as-is until R6+; it **predates R2**; and **R2 touched only the FAB's
+> anchor**, not what the FAB opens. It is also **not a screen** — it is a `Modal` inside
+> `ConversationsScreen` — which is worth knowing before someone goes looking for a route.
+>
+> **This step nearly did not run**, on the reasoning that A5 had covered the routes. It is
+> the step that found this.
 
 ### A6. §18(e) Reduce Motion
 
