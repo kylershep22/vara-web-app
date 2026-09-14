@@ -58,6 +58,21 @@ export const Colors = {
   dewSageLight: 'rgba(213,227,209,0.5)',  // Icon containers, pill inactive bg, tag bg
   divider: 'rgba(184,205,186,0.4)',       // Dividers, borders
 
+  // THE FLOATING TAB BAR'S WARM TRANSLUCENCY (R2). UI Standards 4.1 and 12.2.
+  //
+  // Mist White at 0.55, layered OVER the iOS blur rather than instead of it.
+  // The blur alone is neutral; this is what makes the bar warm, and it is what
+  // keeps a 12pt label legible once R3 puts environmental artwork of unknown
+  // luminance underneath it.
+  //
+  // A DECLARATION, NOT AN ALIAS, and the reason is that there is nothing to
+  // alias: this file carries Mist White at full alpha and at zero
+  // (`mistWhiteTransparent`) and at no value between. Same RGB as `mistWhite`,
+  // so the translucency is purely in alpha and there is no hue shift against
+  // the ground it sits on. Translucency belongs to this bar and nowhere else
+  // (12.2): content surfaces stay opaque.
+  tabBarTranslucent: 'rgba(250,250,246,0.55)',
+
   // Accent Colors
   dewSage: '#D5E3D1',
   softCoral: '#D97A6E',

@@ -59,7 +59,35 @@ export const Layout = {
 
   // Header heights
   headerHeight: 56,
+
+  // LEGACY, AND NOT WHAT THE NAVIGATOR RENDERS. UI Standards 6.2.
+  // 56 was written for an opaque bar that sat in the layout. The navigator has
+  // never read this key, and since R2 the bar is a floating capsule whose live
+  // height is `Layout.tabBar.height` (60) below. This key is kept because it
+  // still has consumers; retiring it means finding them, which is booked to
+  // TECH_DEBT rather than done here. Do not reach for it for new work.
   tabBarHeight: 56,
+
+  // THE FLOATING TAB BAR (R2). UI Standards 6.2 and 12.2.
+  //
+  // GEOMETRY IS WALK-TUNED AND THESE ARE PROPOSALS, not measured values. They
+  // were derived from the content box (24pt icon + 2pt gap + a 12pt label at
+  // its line height is about 41pt, centred in 60 leaves ~9.5pt either side)
+  // and from 6.2's 16pt screen gutter. The binding case is the iPhone SE at
+  // 667pt with a 0pt bottom inset, where `minBottomOffset` is the only thing
+  // holding the capsule off the screen edge. Walk assertion 18(d) is what
+  // settles them; a change here after the walk is expected, not a regression.
+  //
+  // `height` is what `useBottomTabBarHeight()` reports, because React
+  // Navigation measures the bar's own frame. It is NOT the footprint the
+  // screens need - see `hooks/useTabBarInset.ts`.
+  tabBar: {
+    height: 60,
+    radius: 30,                        // height / 2: a true capsule
+    marginHorizontal: Spacing.base,    // 16, aligned to 6.2's screen gutter
+    minBottomOffset: Spacing.md,       // 12, the floor where insets.bottom is 0
+    contentGap: Spacing.base,          // 16, between the last item and the bar
+  },
 
   // Shadow/Elevation
   shadow: {

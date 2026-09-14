@@ -27,7 +27,7 @@ import * as path from 'path';
 
 import { Colors } from '../colors';
 import { Typography } from '../typography';
-import { ColorTokens, TypographyTokens } from '../designTokens';
+import { BlurTokens, ColorTokens, TypographyTokens } from '../designTokens';
 
 // Every aliased ColorTokens key, and the canonical declaration it points at.
 const COLOR_ALIASES: Array<[keyof typeof ColorTokens, string, string]> = [
@@ -45,6 +45,7 @@ const COLOR_ALIASES: Array<[keyof typeof ColorTokens, string, string]> = [
   ['error', 'Colors.softCoral', Colors.softCoral],
   ['primaryLight', 'Colors.tealLight', Colors.tealLight],
   ['disabled', 'Colors.textDisabled', Colors.textDisabled],
+  ['tabBarTranslucent', 'Colors.tabBarTranslucent', Colors.tabBarTranslucent],
 ];
 
 // Every aliased TypographyTokens key, and the canonical it points at.
@@ -174,6 +175,64 @@ describe('the three deliberate non-aliases', () => {
     expect(TypographyTokens.letterSpacingTimer * TypographyTokens.fontTimerLarge).toBeCloseTo(
       -1.04
     );
+  });
+});
+
+describe('BlurTokens declares, and declares only what it must (R2)', () => {
+  /**
+   * BlurTokens has no aliased key, so it gets a coverage assertion of the
+   * opposite shape: every key must be on the declared list. The contract is the
+   * same one R1d wrote for the other two objects - a key arriving without an
+   * entry in this file is a red suite, not a silent second value.
+   *
+   * THESE CANNOT BE ALIASES AND THE REASON IS NOT STYLE. `tint` is one of
+   * BlurView's own enum strings and `intensity` is its 0-100 scale. Neither is
+   * a colour, a size or a spacing value, so no canonical Vara scale has a key
+   * either one could point at.
+   */
+  const DECLARED = ['tabBarIntensity', 'tabBarTint'] as const;
+
+  it('covers every key', () => {
+    expect(Object.keys(BlurTokens).sort()).toEqual([...DECLARED].sort());
+  });
+
+  it('tabBarIntensity is on the BlurView 0-100 scale', () => {
+    expect(typeof BlurTokens.tabBarIntensity).toBe('number');
+    expect(BlurTokens.tabBarIntensity).toBeGreaterThanOrEqual(0);
+    expect(BlurTokens.tabBarIntensity).toBeLessThanOrEqual(100);
+  });
+
+  it('tabBarTint is one of the BlurView tint strings', () => {
+    expect(['light', 'dark', 'default']).toContain(BlurTokens.tabBarTint);
+  });
+});
+
+describe('the floating bar translucent fill (R2)', () => {
+  /**
+   * A DECLARATION IN `colors.ts`, ALIASED INTO `designTokens.ts`. The alias
+   * equality is asserted with the rest of COLOR_ALIASES above; what is pinned
+   * here is the thing that equality cannot see - that the value is Mist White's
+   * own RGB, so the bar fades against the page ground with no hue shift.
+   */
+  it('is the Mist White RGB at 0.55', () => {
+    expect(Colors.tabBarTranslucent).toBe('rgba(250,250,246,0.55)');
+  });
+
+  it('shares its RGB with mistWhite and mistWhiteTransparent, differing only in alpha', () => {
+    // #FAFAF6 is 250,250,246. If someone later "corrects" this to white or to a
+    // sage, the bar picks up a hue shift against every Mist White ground in the
+    // app and nothing else in the suite would notice.
+    const rgb = (v: string) => v.replace(/^rgba?\(/, '').split(',').slice(0, 3).map((n) => n.trim()).join(',');
+    expect(rgb(Colors.tabBarTranslucent)).toBe('250,250,246');
+    expect(rgb(Colors.mistWhiteTransparent)).toBe('250,250,246');
+    expect(Colors.mistWhite.toUpperCase()).toBe('#FAFAF6');
+  });
+
+  it('`colors.ts` holds it exactly once as a literal', () => {
+    // Same mechanism as Muted Sage Gray above: one declaration, referenced.
+    const src = fs.readFileSync(path.join(__dirname, '..', 'colors.ts'), 'utf-8');
+    const literals = src.match(/rgba\(250,250,246,0\.55\)/g) ?? [];
+    expect(literals).toHaveLength(1);
   });
 });
 
