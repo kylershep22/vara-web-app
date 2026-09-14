@@ -63,18 +63,39 @@ a dependency since `c1d7ebb` (2026-04-19) and is autolinked from `package.json`,
 should already be in the dev client — but it has never been imported until this slice, so
 this is the first time anything would notice.
 
-### A0b. The blur looks like almost nothing, and that is CORRECT
+### A0b. The capsule reads as an object, without reading as dramatic glass
 
 **Do:** Compare the bar against the Mist White ground on Today, Journey and Learn.
+**Scroll content under it** — a static screenshot is not the test; the failure mode this
+step exists to catch only shows while things move behind the bar.
 
-**Pass:** the bar reads as a slightly warm, slightly separated capsule. **It should NOT
-read as dramatic frosted glass.**
+**Pass:** the bar reads as a slightly warm, **separated** capsule with a visible edge.
+**It should NOT read as dramatic frosted glass** — a light-tint blur over `#FAFAF6` is
+never going to be theatrical, and it should not be.
 
-**This is not a defect and must not be "fixed" by raising `BlurTokens.tabBarIntensity`.**
-Every tab root today is Mist White or White; a light-tint blur over `#FAFAF6` is nearly
-indistinguishable from a flat Mist White fill. The blur has nothing interesting to blur
-until R3 puts environmental artwork underneath it. **Record what it looks like now**, so
-R3 has a before.
+**FAIL if** the capsule dissolves into the page while scrolling, or if its fill is
+indistinguishable from a card.
+
+> **RUN ONCE AND FAILED — 2026-09-14, iPhone 14 Plus (Kyle). Tuned; re-walk against the
+> values below.**
+>
+> The blur **linked and was working**: content was visibly blurred behind the capsule at
+> its bottom edge, which is what A0 establishes and it passed. But the bar **read flat**.
+> `Colors.tabBarTranslucent` at **0.55** over a Mist White ground is very nearly that
+> ground, and is the same value as the cards, so the capsule had no separation and
+> dissolved into the page when scrolling. **The fill was doing the work the blur is for.**
+>
+> **Two changes, one commit:** fill **0.55 → 0.35**, and the translucent capsule **gains
+> the `divider` hairline the Reduce Transparency fallback already had** — both states now
+> carry it, because a lower-alpha fill needs an edge more than a high-alpha one does.
+>
+> **`BlurTokens.tabBarIntensity` stays at 40, and the next lever is the SHADOW, not the
+> intensity.** Blurring a near-white ground returns near-white. Raising the intensity is
+> the wrong knob for a separation problem and will look like it did nothing.
+
+**Also record, for R3:** what the bar looks like over today's Mist White grounds is the
+*before* for the row that puts environmental artwork underneath it. The blur has little
+to blur until then.
 
 ### A1. The `getTabBarHeight` finding, confirmed on hardware — **STEP 1 PER THE ROW**
 
@@ -194,6 +215,13 @@ Enabled()` read.
 hairline all the way around the capsule** — not top-only, not a degraded accident, not a
 transparent bar. **Record whether a full hairline on a 30pt radius reads right**; §12.2
 now specifies it and R2's Step 0 flagged the geometry as an open question.
+
+**Since A0b, the hairline is in BOTH states**, so this step also checks that the opaque
+bar and the translucent one carry the *same* edge — same token, same width, same radius.
+If the border looks different between them, that is a finding: they are attached at
+different layers for a mechanical reason (the library's `absoluteFill` background wrapper
+would cover a border on the bar itself), and a visible difference means the workaround is
+not matching the real thing.
 
 ### A8. §18(g) Text contrast — the tab labels
 

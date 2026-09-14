@@ -214,8 +214,8 @@ describe('the floating bar translucent fill (R2)', () => {
    * here is the thing that equality cannot see - that the value is Mist White's
    * own RGB, so the bar fades against the page ground with no hue shift.
    */
-  it('is the Mist White RGB at 0.55', () => {
-    expect(Colors.tabBarTranslucent).toBe('rgba(250,250,246,0.55)');
+  it('is the Mist White RGB at 0.35 (walk-tuned from 0.55 at A0b)', () => {
+    expect(Colors.tabBarTranslucent).toBe('rgba(250,250,246,0.35)');
   });
 
   it('shares its RGB with mistWhite and mistWhiteTransparent, differing only in alpha', () => {
@@ -231,7 +231,7 @@ describe('the floating bar translucent fill (R2)', () => {
   it('`colors.ts` holds it exactly once as a literal', () => {
     // Same mechanism as Muted Sage Gray above: one declaration, referenced.
     const src = fs.readFileSync(path.join(__dirname, '..', 'colors.ts'), 'utf-8');
-    const literals = src.match(/rgba\(250,250,246,0\.55\)/g) ?? [];
+    const literals = src.match(/rgba\(250,250,246,0\.35\)/g) ?? [];
     expect(literals).toHaveLength(1);
   });
 });

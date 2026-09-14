@@ -570,11 +570,25 @@ const REDUCED_MOTION_VISIBILITY = {
  * `overflow: 'hidden'` on `tabBarStyle` would clip the blur to the capsule AND
  * clip the bar's own shadow away with it. Clipping here keeps both.
  *
- * TWO LAYERS, DELIBERATELY. `BlurView` alone is neutral; 12.2 asks for warm
- * translucency, and `tabBarTranslucent` is what supplies the warmth. It is also
- * what will keep a 12pt label legible once R3 puts environmental artwork of
- * unknown luminance underneath - which R2 cannot measure, because that asset
- * does not exist yet.
+ * THREE LAYERS, AND THE THIRD IS THERE BECAUSE OF WHERE A BORDER DRAWS.
+ * `BlurView` alone is neutral; 12.2 asks for warm translucency, and
+ * `tabBarTranslucent` is what supplies the warmth. It is also what will keep a
+ * 12pt label legible once R3 puts environmental artwork of unknown luminance
+ * underneath - which R2 cannot measure, because that asset does not exist yet.
+ *
+ * THE HAIRLINE IS A LAYER RATHER THAN A `borderWidth` ON THE BAR, and the
+ * reason is mechanical. `tabBarBackground` is rendered by the library inside a
+ * `StyleSheet.absoluteFill` wrapper, which covers the bar's whole frame -
+ * including the strip where the bar's own border would draw, since a View's
+ * border belongs to its own layer and subviews paint on top of it. A
+ * `borderWidth` on `tabBarStyle` would therefore be dead style in this branch:
+ * present, correct-looking, and invisible. Drawing it as the topmost child is
+ * the version that actually renders.
+ *
+ * The OPAQUE branch keeps its border on the bar, where it renders fine because
+ * that branch supplies no `tabBarBackground` and so has no child covering it.
+ * Same token, same width, same radius, both states - only the attachment point
+ * differs, and only because of the above.
  */
 const renderTabBarGlass = () => (
   <View style={[StyleSheet.absoluteFill, tabBarStyles.glassClip]}>
@@ -584,6 +598,7 @@ const renderTabBarGlass = () => (
       intensity={BlurTokens.tabBarIntensity}
     />
     <View style={[StyleSheet.absoluteFill, tabBarStyles.glassOverlay]} />
+    <View style={[StyleSheet.absoluteFill, tabBarStyles.glassHairline]} />
   </View>
 );
 
@@ -653,6 +668,13 @@ const tabBarStyles = StyleSheet.create({
   },
   glassOverlay: {
     backgroundColor: Colors.tabBarTranslucent,
+  },
+  // Drawn ABOVE the blur and the tint. See renderTabBarGlass for why this is a
+  // layer and not a `borderWidth` on the bar.
+  glassHairline: {
+    borderRadius: Layout.tabBar.radius,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.divider,
   },
   label: {
     fontSize: 12,
@@ -773,7 +795,12 @@ const FivePillarTabs = () => {
           ...(useGlass
             ? // Glass: NO backgroundColor. Supplying `tabBarBackground` makes
               // the library set the bar transparent for us, and setting a
-              // colour here would paint over the blur.
+              // colour here would paint over the blur. NO borderWidth either -
+              // the library's absoluteFill wrapper would cover it, so the glass
+              // branch draws its hairline as the topmost layer inside
+              // `renderTabBarGlass` instead. Both states carry the same
+              // `divider` hairline (walk A0b); only where it is attached
+              // differs.
               { borderWidth: 0 }
             : {
                 backgroundColor: Colors.white,

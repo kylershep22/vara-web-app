@@ -442,7 +442,7 @@ files, or with the `colors.ts` internal-alias item under 4.1.
 
 ### UPDATE, R2 (2026-09-14): the blind spot is now a fifth value, and the survey is still not done
 
-R2 added `Colors.tabBarTranslucent` = `rgba(250,250,246,0.55)`, the
+R2 added `Colors.tabBarTranslucent` = `rgba(250,250,246,0.35)`, the
 floating tab bar's warm overlay. It is declared once, in `colors.ts`,
 aliased into `ColorTokens`, and pinned by three assertions in
 `designTokenAliases.test.ts` — including one that reads `colors.ts` and

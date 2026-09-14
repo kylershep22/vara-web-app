@@ -60,10 +60,19 @@ export const Colors = {
 
   // THE FLOATING TAB BAR'S WARM TRANSLUCENCY (R2). UI Standards 4.1 and 12.2.
   //
-  // Mist White at 0.55, layered OVER the iOS blur rather than instead of it.
+  // Mist White at 0.35, layered OVER the iOS blur rather than instead of it.
   // The blur alone is neutral; this is what makes the bar warm, and it is what
   // keeps a 12pt label legible once R3 puts environmental artwork of unknown
   // luminance underneath it.
+  //
+  // WALK-TUNED FROM 0.55 TO 0.35 (A0b, 2026-09-14, iPhone 14 Plus). At 0.55 the
+  // fill was doing the work the blur is for: Mist White at 0.55 over a Mist
+  // White ground is very nearly the ground, and near enough to the cards that
+  // the capsule dissolved into the page while scrolling. The blur was visibly
+  // working - content was legibly blurred at the bar's edge - and the fill was
+  // flattening it back out. Lowering the alpha lets the blur show; the shape is
+  // then carried by the hairline the bar gained in the same pass, because a
+  // lower alpha needs an edge more than a higher one does.
   //
   // A DECLARATION, NOT AN ALIAS, and the reason is that there is nothing to
   // alias: this file carries Mist White at full alpha and at zero
@@ -71,7 +80,7 @@ export const Colors = {
   // so the translucency is purely in alpha and there is no hue shift against
   // the ground it sits on. Translucency belongs to this bar and nowhere else
   // (12.2): content surfaces stay opaque.
-  tabBarTranslucent: 'rgba(250,250,246,0.55)',
+  tabBarTranslucent: 'rgba(250,250,246,0.35)',
 
   // Accent Colors
   dewSage: '#D5E3D1',
