@@ -80,6 +80,13 @@ export const Colors = {
   // so the translucency is purely in alpha and there is no hue shift against
   // the ground it sits on. Translucency belongs to this bar and nowhere else
   // (12.2): content surfaces stay opaque.
+  //
+  // PREPARED AND DELIBERATELY NOT APPLIED (Kyle, 2026-09-14). If the capsule
+  // still reads flat after the `floating` shadow, the NEXT lever is this token
+  // moving from Mist White to WHITE at about 0.5 - `rgba(255,255,255,0.5)` - so
+  // the bar is BRIGHTER than the Mist White page rather than equal to it.
+  // It is held back on purpose: the shadow and this would land together and
+  // nobody would know which one did the work. One lever per walk.
   tabBarTranslucent: 'rgba(250,250,246,0.35)',
 
   // Accent Colors

@@ -93,9 +93,46 @@ indistinguishable from a card.
 > intensity.** Blurring a near-white ground returns near-white. Raising the intensity is
 > the wrong knob for a separation problem and will look like it did nothing.
 
+> **RE-RUN AND STILL SHORT — 2026-09-14, iPhone 14 Plus (Kyle). Better after the fill and
+> the hairline, not enough separation. Third lever taken; re-walk again.**
+>
+> `Layout.shadow.floating` replaces `Layout.shadow.lg` on the capsule:
+> `0 8px 24px rgba(0,0,0,0.12)` against `0 4px 16px rgba(0,0,0,0.08)`. A new token named
+> for its role, because `lg` is tuned for sheets and modals - things that sit IN the page
+> flow - and this bar has content passing underneath it.
+>
+> **Levers spent so far, in 12.2's order:** fill `0.55 → 0.35` → `divider` hairline →
+> `shadow.lg → shadow.floating`.
+>
+> **The fourth is PREPARED AND NOT APPLIED:** `tabBarTranslucent` from Mist White to
+> **White at about 0.5**, so the bar reads brighter than the page rather than equal to it.
+> Held back on purpose - landing it with the shadow would leave nobody able to say which
+> one did the work. **One lever per walk.**
+
+**A DISCRIMINATING OBSERVATION WORTH MAKING ON THIS RUN, because it decides whether the
+shadow is weak or ABSENT.** Compare the capsule's shadow **with Reduce Transparency OFF
+(translucent) against ON (opaque White)**.
+
+- **Shadow visible in both, stronger than before:** the token is working; if it is still
+  short, the next lever is the prepared fill change, not a bigger shadow.
+- **Shadow visible under Reduce Transparency but absent or much weaker translucent:**
+  **that is its own finding and its own fix, not a tuning problem.** In the translucent
+  state the library sets the bar's `backgroundColor` to `transparent`, and iOS derives a
+  layer's shadow from its rendered content when there is no opaque background to cast
+  from. Raising the opacity further would not help, and would over-darken the opaque
+  state at the same time. **Report which of the two you see** - it is the difference
+  between "tune it again" and "restructure where the shadow is attached".
+
 **Also record, for R3:** what the bar looks like over today's Mist White grounds is the
 *before* for the row that puts environmental artwork underneath it. The blur has little
 to blur until then.
+
+**AND THE STANDING CAVEAT ON ALL OF IT:** every value in this step is being tuned against
+**Mist White grounds**, because that is all four tab roots today. **R3 re-walks A0b with
+the Today artwork beneath the bar**, where the same settings will read differently - a bar
+tuned to pop against near-white may read **heavy** over watercolour, and a shadow sized
+for a flat pale ground is the first thing that will show. **R3 is entitled to move these
+values back**, and should not read them as settled.
 
 ### A1. The `getTabBarHeight` finding, confirmed on hardware — **STEP 1 PER THE ROW**
 

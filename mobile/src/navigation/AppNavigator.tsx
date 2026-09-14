@@ -791,7 +791,12 @@ const FivePillarTabs = () => {
           borderTopWidth: 0,
           paddingTop: 0,
           paddingBottom: 0,
-          ...Layout.shadow.lg,
+          // `floating`, not `lg`. lg is tuned for sheets and modals - things
+          // that sit in the page flow and are separated from a ground they
+          // touch. This bar has content passing UNDERNEATH it and has to read
+          // as a separate plane while that happens. Third lever per 12.2's
+          // order, after the fill alpha and the hairline (walk A0b, twice).
+          ...Layout.shadow.floating,
           ...(useGlass
             ? // Glass: NO backgroundColor. Supplying `tabBarBackground` makes
               // the library set the bar transparent for us, and setting a

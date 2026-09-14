@@ -214,6 +214,7 @@ Tokens are semantic: `category-role-variant`. Code exposes them as PascalCase ob
 | Dynamic Type ceiling | `src/constants/typography.ts` | `Typography.maxFontScale` (1.3). Applied by the shared text primitive (5.1); a caller passes `maxFontSizeMultiplier` only to OVERRIDE it. Added in R1a, collapsing 17 hardcoded sites: seven module-local `MAX_FONT_SCALE` consts and ten inline `1.3` literals |
 | Spacing scale, layout constants, radius, button heights | `src/constants/spacing.ts` | `Spacing`, `Layout` (radius is `Layout.borderRadius`, heights are `Layout.buttonHeight`) |
 | Flat aliases and animation values | `src/constants/designTokens.ts` | `ColorTokens` and `TypographyTokens` (aliases of `Colors` / `Typography` since R1d), `SpacingTokens` (alias of `Spacing`), `RadiusTokens` (alias of `Layout.borderRadius`), `ShadowTokens` (alias of `Layout.shadow` plus a `none` key), `SizeTokens`, `AnimationTokens` |
+| Floating-element elevation | `src/constants/spacing.ts` | `Layout.shadow.floating` - `0 8px 24px rgba(0,0,0,0.12)`, Android `elevation: 12`. Aliased into `ShadowTokens` with the rest of `Layout.shadow`. Added at R2's walk, 6.4. **Named for the role, not the size** |
 | Floating tab bar geometry | `src/constants/spacing.ts` | `Layout.tabBar` - `height` (60), `radius` (30), `marginHorizontal`, `minBottomOffset`, `contentGap`. Added in R2. **`Layout.tabBarHeight` (56) is a different key and is not what the navigator renders**; see 6.2 |
 | Floating tab bar translucent fill | `src/constants/colors.ts` | `Colors.tabBarTranslucent` (`rgba(250,250,246,0.35)`) - **a declaration, not an alias.** Mist White at 0.35; `colors.ts` carries Mist White at full alpha and at zero and at no value between, so there is nothing to point at. Aliased into `ColorTokens.tabBarTranslucent` per this section's contract. Added in R2 at 0.55, **walk-tuned to 0.35 at A0b** |
 | Floating tab bar blur | `src/constants/designTokens.ts` | `BlurTokens` - `tabBarIntensity` (40) and `tabBarTint` (`'light'`). **Declarations, not aliases, and nothing here could be one:** `tint` is one of `BlurView`'s own enum strings and `intensity` is its 0-100 scale, so no canonical Vara scale has a key either could reference. iOS only (12.2). Added in R2 |
@@ -437,8 +438,13 @@ Code: the shadow tokens in `designTokens.ts`.
 | `sm` | `0 1px 3px rgba(0,0,0,0.04)` | Surface | Cards on Mist White |
 | `md` | `0 2px 8px rgba(0,0,0,0.06)` | Float | Elevated cards, the Guide pill, a hero card |
 | `lg` | `0 4px 16px rgba(0,0,0,0.08)` | Float | Sheets, modals |
+| `floating` | `0 8px 24px rgba(0,0,0,0.12)` | **Off-page** | The floating tab bar (12.2), and nothing else today |
 
 Shadows are structural: they say which tier a thing is on. Never on text, icons, or the logo. A card on a Dew Sage wash uses no shadow; the wash already separates it.
+
+**`floating` is a different KIND, not a bigger `lg`, which is why it is named for its role (added at R2's walk, 2026-09-14).** `sm`, `md` and `lg` all describe something that sits IN the page flow and is separated from a ground it touches - a card on Mist White, a sheet over a scrim - and a hairline of depth is the whole job. **The floating bar has content passing underneath it**, and has to keep reading as a separate plane while that happens. That wants a wider, softer, lower-slung cast: the shadow of something held above the page rather than the lift of something resting on it. Calling the key `xl` would have invited the next person to reach for it as "more `lg`" on a card, where it would read as a smudge.
+
+**Its Android value is unwalked**, per the journey roadmap's `ANDROID` pre-launch row. `elevation: 12` is Material's floating tier and matches the iOS intent, but Android elevation on a 30pt-radius view clips to the shape and can read as a hard band rather than a soft cast. It also **overrides React Navigation's own `elevation: 8`** on the tab bar's base style, so this is the value that ships there.
 
 ---
 
@@ -862,12 +868,17 @@ v2.0 specified `NativeTabs` via expo-router and a Liquid Glass posture. **The ap
 | Bottom offset | `Layout.tabBar.minBottomOffset` | **`max(insets.bottom, 12)`** - 34 on a device with a home indicator, 12 on an SE |
 | Blur intensity / tint | `BlurTokens.tabBarIntensity` / `.tabBarTint` | **40** / **`'light'`** |
 | Translucent fill | `Colors.tabBarTranslucent` | **Mist White at 0.35** (walk-tuned from 0.55) |
+| Elevation | `Layout.shadow.floating` | **`0 8px 24px rgba(0,0,0,0.12)`**, Android `elevation: 12` (6.4) |
 
 **These are walk-tuned figures and the walk is what settles them.** 60 comes from the content box - a 24pt icon, a 2pt gap and a 12pt label at its line height is about 41pt, which centres in 60 leaving about 9.5pt either side - and the binding case is the iPhone SE at 667pt, where `insets.bottom` is 0 and `minBottomOffset` is the only thing holding the capsule off the screen edge. **Assertion 18(d) is what confirms or moves them.** A change here after a walk is the process working, not a regression. They are tokens precisely so that tuning is one edit rather than a hunt through the navigator.
 
 **AND ONE OF THEM HAS ALREADY MOVED, WHICH IS THE CLAUSE ABOVE WORKING RATHER THAN FAILING.** The fill shipped at **0.55** and was tuned to **0.35** at walk step A0b (2026-09-14, iPhone 14 Plus). The blur was linking and doing visible work - content was legibly blurred at the bar's edge - but Mist White at 0.55 over a Mist White ground is very nearly the ground, and near enough to the card fills that **the capsule dissolved into the page while scrolling**. The fill was flattening out the effect it was meant to warm. **The blur does the work; the fill tints it.**
 
 **The order of levers, if it still reads flat.** Alpha first, then the edge, then the shadow - **not the blur intensity.** Raising `tabBarIntensity` over a near-white ground returns more near-white, because blurring Mist White gives Mist White; it is the wrong knob for a separation problem and will look like it did nothing. The intensity stays at 40 until there is a ground worth blurring, which is R3's.
+
+**THREE OF THOSE LEVERS HAVE NOW BEEN SPENT, IN THAT ORDER.** Fill `0.55 -> 0.35` (A0b, first run); the `divider` hairline added to the translucent state (same commit); `Layout.shadow.floating` replacing `Layout.shadow.lg` (A0b, second run). **The fourth, prepared and not applied, is `tabBarTranslucent` moving from Mist White to White at about 0.5**, so the bar reads BRIGHTER than the Mist White page rather than equal to it. It is held back deliberately: landing it with the shadow would leave nobody able to say which one did the work.
+
+**ALL OF THIS IS TUNED AGAINST MIST WHITE GROUNDS, AND THAT IS A DATED CONDITION RATHER THAN A SETTLED RESULT.** Every tab root today is Mist White or White, so the bar is being tuned to separate from near-white. **R3 puts environmental artwork under Today** (2.8, 8.1), and the same settings will read differently over it: a bar tuned to pop against near-white may read **heavy** over watercolour, and a shadow sized for a flat pale ground is the first thing that will show. **R3 re-walks A0b with the artwork beneath the bar**, and is entitled to move these values back.
 
 **Content clearance. Every route with the tab bar visible (16 today: 4 tab roots plus the 12 `CommunityNavigator` routes) takes its bottom inset from `useBottomTabBarHeight()`, THROUGH `hooks/useTabBarInset.ts`.** The fixed 48 in 6.2 is **retired for those routes**: a floating bar's footprint is not a constant, and 6.2's figure was written for an opaque bar that sat in the layout. Routes without a visible tab bar keep 6.2 unchanged.
 

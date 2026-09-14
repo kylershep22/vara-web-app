@@ -132,6 +132,43 @@ export const Layout = {
       },
       default: {},
     }),
+
+    // FLOATING: an element that is OFF the page, not lifted within it.
+    // UI Standards 6.4 and 12.2. Named for the role, not the size - `xl` would
+    // read as "more lg", and the difference is not degree, it is kind.
+    //
+    // WHY sm/md/lg DO NOT FIT. All three are tuned for things that sit IN the
+    // page flow and are separated from a ground they touch: a card on Mist
+    // White, a sheet over a scrim. Their job is a hairline of depth. The
+    // floating tab bar has content passing UNDERNEATH it and has to read as a
+    // separate plane while that happens, which is a wider, softer, lower-slung
+    // shadow - the cast of something held above the page rather than the lift
+    // of something resting on it.
+    //
+    // WALK-DERIVED (A0b, twice). 0.55 alpha read flat; 0.35 plus a hairline
+    // read better and still not separated enough. 12.2 sets the order of levers
+    // - alpha, then the edge, then the shadow, never the blur intensity - and
+    // this is the third. It reuses lg's geometry doubled in offset and radius
+    // with opacity raised by half: 8/24/0.12 against 4/16/0.08.
+    //
+    // THE ANDROID VALUE IS UNWALKED, per the ANDROID pre-launch row. 12 is
+    // Material's floating tier and matches the iOS intent, but Android
+    // elevation on a 30pt-radius view clips to the shape and can read as a hard
+    // band rather than a soft cast. Nothing has seen it. It also OVERRIDES the
+    // library's own `elevation: 8` on the tab bar's base style, so this value
+    // is what ships there.
+    floating: Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.12,
+        shadowRadius: 24,
+      },
+      android: {
+        elevation: 12,
+      },
+      default: {},
+    }),
   },
 
   // Border widths
