@@ -2196,7 +2196,13 @@ inset stopping it at the status bar.
   floating capsule. It changed nothing about what the FAB opens. A5b, the step that found
   this, **passed**: the FAB is clear and tappable, which is how the sheet got opened.
 
-**Priority:** higher than its position in this file suggests. It is not cosmetic - the
-surface cannot be dismissed without backgrounding the app - and it is reachable from two
-entry points on a shipped screen. It wants its own slice rather than a bundle, because
-the fix is a behaviour change on a surface that is otherwise frozen until R6+.
+**Priority: ITS OWN SLICE, BEFORE BETA (Kyle, 2026-09-14).** Not a bundle and not a
+drive-by. It is not cosmetic - **the surface cannot be dismissed without backgrounding the
+app** - and it is reachable from two entry points on a shipped screen, so a beta cohort
+will find it. It needs its own slice because the fix is a behaviour change on a surface
+§2.8 otherwise freezes until R6+, and because the cause is unconfirmed: this wants a Step 0
+against the three candidates above, not a patch against the symptom.
+
+**It is on the roadmap board too**, in §5 beside the R-series, so it is visible to whoever
+is choosing what to build next rather than only to whoever opens this file. The detail
+lives here; the board carries the pointer.
