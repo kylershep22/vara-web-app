@@ -22,6 +22,9 @@
  * decision rather than a quiet omission from this list.
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+
 import { Colors } from '../colors';
 import { Typography } from '../typography';
 import { ColorTokens, TypographyTokens } from '../designTokens';
@@ -93,6 +96,53 @@ describe('TypographyTokens is an alias of the canonical scale', () => {
       .filter((k) => !NON_ALIASES.includes(k as (typeof NON_ALIASES)[number]))
       .sort();
     expect(covered).toEqual(declared);
+  });
+});
+
+describe('Muted Sage Gray has one declaration and three references', () => {
+  /**
+   * THE COLOUR R1b-i HAD TO MOVE FOUR TIMES BY HAND. It failed AA at `#6F7F77`
+   * and was declared four separate times - `mutedSageGray`, `text.secondary`
+   * and `textSecondary` in `colors.ts`, and `ColorTokens.textSecondary` in
+   * `designTokens.ts`. R1b-i moved all four literals; standards 4.1 warned that
+   * until they became real references, "a change to one of the four is a change
+   * to one quarter of the colour". R1d closed all three forks: the
+   * `designTokens` one by aliasing, the two `colors.ts` ones by lifting the
+   * value to a module const the three keys read.
+   *
+   * This suite is the thing that keeps it closed. A future contrast fix edits
+   * one line; if someone re-forks any of the four, these fail.
+   */
+  const MUTED_SAGE_GRAY = '#56655D';
+
+  it.each([
+    ['Colors.mutedSageGray', Colors.mutedSageGray],
+    ['Colors.textSecondary', Colors.textSecondary],
+    ['Colors.text.secondary', Colors.text.secondary],
+    ['ColorTokens.textSecondary', ColorTokens.textSecondary],
+  ])('%s is the one value', (_label, value) => {
+    expect(value).toBe(MUTED_SAGE_GRAY);
+  });
+
+  it('all four keys agree with each other, not merely with a literal', () => {
+    // Asserting each against a literal would still pass if the literal here and
+    // the palette drifted together. This pins them to ONE ANOTHER.
+    const all = [
+      Colors.mutedSageGray,
+      Colors.textSecondary,
+      Colors.text.secondary,
+      ColorTokens.textSecondary,
+    ];
+    expect(new Set(all).size).toBe(1);
+  });
+
+  it('`colors.ts` holds the value exactly once as a literal', () => {
+    // The mechanism, not just the outcome: three keys reading one const is what
+    // makes a future value change a one-line edit. If someone inlines a literal
+    // back into any of the three keys, the count goes to 2 and this fails.
+    const src = fs.readFileSync(path.join(__dirname, '..', 'colors.ts'), 'utf-8');
+    const literals = src.match(/#56655D/gi) ?? [];
+    expect(literals).toHaveLength(1);
   });
 });
 

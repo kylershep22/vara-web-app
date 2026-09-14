@@ -144,5 +144,5 @@ The other three items get no step because they move nothing on screen.
 
 ## BASELINES AT THE BRANCH
 
-tsc **141** (from 147) · jest **3589 of 227** (from 3551 of 225) · sentinel **149**, unchanged ·
+tsc **141** (from 147) · jest **3595 of 227** (from 3551 of 225) · sentinel **149**, unchanged ·
 lint **994 errors / 1358 warnings** (from 995; see below).
