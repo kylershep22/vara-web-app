@@ -18,7 +18,7 @@ Supersedes v2.0 (August 2026). v2.0 superseded `Vara_Mobile_UI_Standards.md` v1.
 
 **If a decision is not covered here or in a spec, stop and ask Kyle.** Do not guess on visual or interaction decisions at the brand level. Ask with a concrete proposal attached.
 
-**Naming used throughout.** "Hub" means a pillar landing screen (Focus, Energy, Practices, Learn). "Arrival" means a screen the user lands on rather than drills into (Today, hubs, onboarding welcome, completion). "Session" means a running practice, timer, or player. "The Guide" means the docked AI pill. Band placement is no longer keyed to arrival; see 2.8.
+**Naming used throughout.** "Hub" means a pillar landing screen (Focus, Energy, Journey, Learn). "Arrival" means a screen the user lands on rather than drills into (Today, hubs, onboarding welcome, completion). "Session" means a running practice, timer, or player. "The Guide" means the docked AI pill. Band placement is no longer keyed to arrival; see 2.8.
 
 ---
 
@@ -797,9 +797,9 @@ Top: greeting at `displayLg`, warm and personal. It is the one string permitted 
 Signature: the environmental background plus the display greeting. This is the screen that establishes the whole app's character. Prohibited: any number, count, or score; more than three cards above the fold; a second warm point; a hero band; anything that reads as a dashboard.
 
 ### F. Hub / arrival (amended in v2.1)
-For: Focus, Energy, Practices, Learn landing screens; onboarding welcome; completion.
+For: Focus, Energy, Journey, Learn landing screens; onboarding welcome; completion.
 **Surface: ATMOSPHERIC (2.8).**
-**A hero band is no longer mandated.** v2.0 made the band this template's signature and therefore a requirement; v2.1 makes it **permitted only per 8.2, which is pushed hubs only.** **Tab-root hubs (Practices, Learn) are atmospheric with no band** and take their character from type, wash rhythm and botanical accents (8.3) instead.
+**A hero band is no longer mandated.** v2.0 made the band this template's signature and therefore a requirement; v2.1 makes it **permitted only per 8.2, which is pushed hubs only.** **Tab-root hubs (Journey, Learn) are atmospheric with no band** and take their character from type, wash rhythm and botanical accents (8.3) instead.
 Top: the title at `displayLg` or `display`, over the pillar's hero band where 8.2 permits one. One primary CTA (the hub's "start here"). Then two to four quiet or standard cards for the hub's sections. The Guide pill docked top-right.
 Signature: the band where there is one; otherwise the headline treatment and the section rhythm. A hub without a band still has to pass 2.7. Prohibited: a second kind of art in the viewport (8), a sticky footer CTA (the primary is in the content), lists longer than four items without a "see all."
 
@@ -824,7 +824,7 @@ Signature: the path, and the type on the phase page.
 
 ### 12.1 Information architecture
 
-**Four tabs: Today, Practices, Learn, Community.** Set by the IA Roadmap v2; this document does not change it. Focus and Energy are hubs reached from Practices. The Guide is a pill, not a tab (10.8). Anything that proposes a fifth tab is a product decision for the roadmap, not a design decision here.
+**Four tabs: Today, Journey, Learn, Community.** Set by the IA Roadmap v2 and renamed by journey roadmap row 7n (2026-09-14); this document does not change it. Focus and Energy are hubs reached from Journey. The Guide is a pill, not a tab (10.8). Anything that proposes a fifth tab is a product decision for the roadmap, not a design decision here.
 
 ### 12.2 The tab bar (rewritten in v2.1)
 
@@ -1232,6 +1232,32 @@ The design-authority reconciliation for the visual redesign, journey roadmap row
     walk exactly one - **a surface type on a route no one can open is a promise the walk cannot
     check**, which is the same failure 2.8 was written to prevent for routes that are missing
     from the table entirely.
+
+- **7n: the second tab is called Journey (September 2026).** A copy slice, not a design
+  slice. **No rule in this document changed** and no route, token or layout moved; four
+  sentences that used "Practices" as a DISPLAY NAME now say "Journey", because the app
+  stopped saying it on 2026-09-14.
+  - **12.1's tab set reads Today, Journey, Learn, Community**, and its second sentence
+    reads "hubs reached from Journey". Both occurrences are in the one sentence pair and
+    both are display names.
+  - **11F is amended twice**, at its applicability line and at its tab-root-hubs clause,
+    for the same reason and with no change to what either clause requires.
+  - **The naming paragraph in 0 is amended too**, which was a judgment call worth
+    recording: it lists screens colloquially rather than by route, so leaving it would have
+    put the retired word in the document's own glossary, where a later reader meets it
+    first.
+  - **2.8's route table and 10.8's pill table are NOT amended, and that is the point of
+    how they are written.** Both key on `PillarPractices`, a route name, and route names
+    do not move for a label change. 10.8's own preamble states coverage "by route, not by
+    'the four hubs'", precisely because the tab set and the hub set had stopped matching;
+    7n widens that gap further and the route-keyed form absorbs it without an edit. The
+    same holds for 2.8's `AppStack` list, where `Practices` is the check-in "Other options"
+    route and not the tab.
+  - **The v2.1 entries above are untouched, including the three that name "Practices".**
+    They record what changed at a dated revision, and rewriting a changelog into vocabulary
+    that did not exist when it was written falsifies the record. Appendix B's own rule -
+    each block is never rewritten by a later one - is the rule being followed here, not an
+    exception to it.
 
 ### What changed from v1.0 to v2.0 (August 2026)
 
