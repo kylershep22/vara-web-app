@@ -42,11 +42,21 @@ export function legacyPhaseFor(outcome: OutcomeKey): PhaseKey {
  * no weight for this destination sorts as 0, so an unweighted cell comes back
  * in authored order untouched.
  *
- * CURRENTLY THE IDENTITY ON EVERY CELL, because no variant carries weights yet.
- * That is the honest state of it: the function is real, it is tested against
- * hand-built weighted cells, and it does nothing to the shipped matrix until
- * Jen defines the weights. It exists now so that when they land, the change is
- * data.
+ * LIVE ON RECOVER SINCE SLICE 7l, and the identity everywhere else. Jen's nine
+ * weights (Content Pack v1 `§destination-weighting`) made this function decide
+ * which of a Recover cell's three variants leads; `remove`, `refocus` and
+ * `rewire` carry no weights, so it still returns those cells untouched.
+ *
+ * THE PARAGRAPH THAT STOOD HERE CLAIMED COVERAGE THAT DID NOT EXIST, and it is
+ * replaced rather than amended because a reader had no way to tell. It read:
+ * "the function is real, it is tested against hand-built weighted cells". There
+ * were no such tests. The only assertion this function had was an identity
+ * check over the SHIPPED cells, which passed precisely because every weight was
+ * absent - so the sort had never once executed with a non-zero weight, and a
+ * mutant replacing this body with `return variants` would have passed it.
+ * `__tests__/orderForDestination.test.ts` is what makes the claim true, and
+ * `__tests__/recoverServeTable.test.ts` pins what the ordering produces on the
+ * real matrix. Both landed in 7l.
  *
  * WHY ORDER AND NOT MEMBERSHIP. A filter can empty a cell, and an empty cell
  * has no protocol to serve; ordering cannot fail. Every variant in a phase is
