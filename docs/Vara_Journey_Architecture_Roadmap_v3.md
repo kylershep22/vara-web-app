@@ -3346,9 +3346,20 @@ byte-identical to `5d6d6ec` afterwards.
 ---
 
 **THREE STALE COMMENTS SURVIVE OUTSIDE THE FENCE, AND ARE LEFT DELIBERATELY.**
-The slice's fence did not include them and they are recorded here rather than
-edited, but **every one of them is now false** and the next slice to touch
-either file should fix them:
+The slice's fence did not include them and they are recorded rather than edited,
+but **every one of them is now false**.
+
+> **THEY ARE A TECH_DEBT ITEM, NOT ONLY A LINE IN THIS ENTRY** (added 2026-09-14
+> at Kyle's instruction): **"Three comments in the destination path went false at
+> slice 7l, and one of them fails silently"**, in `docs/TECH_DEBT_BACKLOG.md`.
+> That entry is the source of truth for the three sites, the verbatim quotes, the
+> silent-failure mode on the third, and which slice should take them
+> (`REPRESENTATIVE-PROTOCOL`, if it resolves as route (a); otherwise the next
+> slice to open either file). **A §13 entry is read by whoever is reconstructing
+> this slice; the backlog is read by whoever is choosing what to build**, and
+> these need the second audience.
+
+The three, in short:
 
 - `protocolEngine/types.ts:165` - "Jen has not defined weights, so
   `orderForDestination` is currently the identity." **Flatly false now.**
@@ -3395,6 +3406,18 @@ either file should fix them:
 and green from `87eee1e`. The identity tripwire fired the moment the weights
 landed and was retired two commits later, which is the sequence the build
 specified. Recorded so a bisector does not mistake it for breakage.
+
+**THE FAILURE IS IDENTIFIABLE RATHER THAN JUST ASSERTED, so a bisector can
+confirm this reading instead of taking it on trust.** At both commits the single
+failing test is
+**`selectProtocol.test.ts` > 'destination ordering is still the identity on
+every shipped cell'**, failing at its one `expect(orderForDestination(cell,
+destination)).toEqual(cell)`. `npx jest src/protocolEngine` at `5d6d6ec` reports
+**1 failed, 69 passed** - one failure and no others, which is itself the evidence
+that the weights broke nothing incidental. **Any other failing test at either
+commit is NOT this, and is a real regression.** The sequence was ordered this way
+on instruction: the weights land first so the tripwire can be seen firing, rather
+than being deleted pre-emptively in the same commit that would have silenced it.
 
 ---
 
