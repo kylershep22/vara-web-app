@@ -131,7 +131,7 @@ describe('JourneyMapScreen — the map', () => {
     const { getByTestId, getByText } = render(<JourneyMapScreen />);
 
     expect(getByTestId('journey-map')).toBeTruthy();
-    expect(getByText('Practices')).toBeTruthy();
+    expect(getByText('Your journey')).toBeTruthy();
     await waitFor(() => expect(getByTestId('journey-map-path')).toBeTruthy());
   });
 

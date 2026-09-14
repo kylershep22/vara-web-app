@@ -601,13 +601,16 @@ const FivePillarTabs = () => {
         name={ROUTES.PillarPractices}
         component={JourneyMapScreen}
         options={tabOpts({
-          // LABEL UNCHANGED ON PURPOSE (roadmap section 5, amendment
-          // 2026-09-09, item 4). The screen behind this tab is now the journey
-          // map; whether the tab keeps the word "Practices" is Jen's call,
-          // routed with the 4b hero-label question. The route NAME stays
+          // LABEL ANSWERED, AND THE ANSWER CHANGED IT (roadmap row 7n).
+          // Jen, 2026-09-12: the tab does NOT keep the word "Practices". It
+          // reads "Journey", and the map screen behind it reads "Your
+          // journey". "Practices" survives as the name of the runnable content
+          // library wherever that library itself appears, never as this tab;
+          // the hierarchy is Journey -> destination -> today's protocol ->
+          // supporting practice. The route NAME stays
           // PillarPractices regardless: renaming a registered route breaks
           // every deep link that names it, for a cosmetic gain.
-          tabBarLabel: 'Practices',
+          tabBarLabel: 'Journey',
           tabBarIcon: ({ color, size }) => (
             <Icon name="leaf" size={size} color={color} />
           ),
@@ -967,7 +970,7 @@ const MainNavigator = () => {
           component={FocusHubScreen}
           options={stackOpts({
             ...standardHeaderOptions,
-            headerBackTitle: 'Practices',
+            headerBackTitle: 'Journey',
             animation: 'slide_from_right',
             headerShown: true,
             title: '',
@@ -1048,7 +1051,7 @@ const MainNavigator = () => {
           component={StressRecoveryScreen}
           options={stackOpts({
             ...standardHeaderOptions,
-            headerBackTitle: 'Practices',
+            headerBackTitle: 'Journey',
             animation: 'slide_from_right',
             headerShown: true,
             title: '',
@@ -1157,15 +1160,15 @@ const MainNavigator = () => {
             heading, which is the destination's title for this phase and is
             longer than a header bar should carry.
 
-            'Practices' is the back label because that is what the tab still
-            says. The rename to Journey is its own slice after 5b, deliberately
-            not taken mid-arc, and this string moves with it. */}
+            'Journey' is the back label because that is what the tab says.
+            That rename was the slice this comment was waiting for: row 7n
+            landed it on 2026-09-14, and this string moved with it. */}
         <AppStack.Screen
           name={ROUTES.JourneyPhase}
           component={JourneyPhaseScreen}
           options={stackOpts({
             ...standardHeaderOptions,
-            headerBackTitle: 'Practices',
+            headerBackTitle: 'Journey',
             animation: 'slide_from_right',
             headerShown: true,
             title: '',
