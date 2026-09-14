@@ -3331,6 +3331,22 @@ Every pass condition stays written out in `docs/walks/r1d/WALK.md` so that whoev
 when masterclass content lands, and when the dark routes relight - does not have to re-derive
 them from the diff.
 
+---
+
+**ATTESTATIONS (Kyle, 2026-09-14).** Verbatim.
+
+> - Suites green at tsc 141 / jest 3595 of 227 / sentinel 149 /
+>   lint 994 errors, 1358 warnings. ATTESTED.
+> - Walk: Journal empty state passed on iPhone 14 Plus; the five
+>   Spacing['4xl'] screens not reachable and held by tsc and reading;
+>   SE not run. ATTESTED.
+
+**What the second attestation does and does not cover, so a later reader does not round it up.**
+It attests that the Journal step passed and that the five `Spacing['4xl']` screens were **not
+walked** - it is an attestation of the walk's scope, not of those five fixes. They rest on tsc and
+on the per-screen sibling readings recorded above. **The row does not close with them verified by
+eyes**, and `docs/walks/r1d/WALK.md` carries their pass conditions unrun.
+
 ### 2026-09-13 - R1b-i built: Muted Sage Gray stops failing AA, and the row's premise was false (branch `design/slice-r1b-i-helper-gray`, commit count set at the merge, unmerged, WALKED 2026-09-13)
 
 **WHAT SHIPPED.** One colour, moved at every place the codebase declared it. `#6F7F77` to
