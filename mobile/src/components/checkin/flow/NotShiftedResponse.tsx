@@ -35,12 +35,10 @@ import {
 import Text from '../../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
-import { Colors, Spacing, Typography } from '../../../constants';
+import { Colors, SizeTokens, Spacing, Typography } from '../../../constants';
 import type { IntentPath } from '../../../types/models';
 import type { FlowEntrySource, UserChosenNextStep } from './types';
 import { getNotShiftedCopy } from './notShiftedCopy';
-
-const MIN_TOUCH_TARGET = 48;
 
 export interface NotShiftedResponseProps {
   // Phase 2.8.2 — pill content shown at the top of the screen.
@@ -211,7 +209,7 @@ const styles = StyleSheet.create({
   pathCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
     borderRadius: 12,

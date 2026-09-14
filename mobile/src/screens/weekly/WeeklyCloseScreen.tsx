@@ -63,7 +63,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 
-import { Colors, Spacing, TextStyles, Typography } from '../../constants';
+import { Colors, SizeTokens, Spacing, TextStyles, Typography } from '../../constants';
 import {
   RESET_ANSWERS,
   RESET_CONFIRMATION,
@@ -80,8 +80,6 @@ import type { DestinationKey, PhaseKey, PhaseRead, WeeklyCycle } from '../../typ
 import { logger } from '../../utils/logger';
 import { ROUTES } from '../../navigation/routes';
 import { CLOSE_COPY, ENTRY_COPY } from './copy';
-
-const MIN_TOUCH_TARGET = 48;
 
 /**
  * How long the confirmation holds before Home.
@@ -525,7 +523,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   option: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     justifyContent: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
@@ -546,7 +544,7 @@ const styles = StyleSheet.create({
     color: Colors.softCharcoal,
   },
   input: {
-    minHeight: MIN_TOUCH_TARGET * 2,
+    minHeight: SizeTokens.touchTargetMin * 2,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.divider,
@@ -573,7 +571,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   saveButton: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: 14,
     backgroundColor: Colors.evergreenTeal,
     alignItems: 'center',
@@ -595,7 +593,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   retryButton: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: 14,
     backgroundColor: Colors.evergreenTeal,
     alignItems: 'center',

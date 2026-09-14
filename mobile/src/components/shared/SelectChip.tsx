@@ -20,7 +20,7 @@
 import React, { type ComponentType } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import Text from './Text';
-import { Colors, Spacing, Typography, Layout } from '../../constants';
+import { Colors, SizeTokens, Spacing, Typography, Layout } from '../../constants';
 
 // Minimal shape of a Lucide icon component (size / color / strokeWidth). Kept
 // local so SelectChip doesn't hard-depend on lucide-react-native's types.
@@ -30,7 +30,6 @@ const ICON_SIZE = 22;
 const ICON_STROKE = 1.5;
 
 /** Accessibility floor per UI standards. The row variant needs it explicitly. */
-const MIN_TOUCH_TARGET = 48;
 
 export type SelectChipLayout = 'stacked' | 'row';
 
@@ -124,7 +123,7 @@ const styles = StyleSheet.create({
   // equal thirds, per the mockup's .demrow / .durrow.
   chipRow: {
     flex: 1,
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     justifyContent: 'center',
     gap: 0,
     paddingHorizontal: Spacing.xs,

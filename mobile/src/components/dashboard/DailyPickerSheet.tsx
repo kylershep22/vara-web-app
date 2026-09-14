@@ -42,7 +42,7 @@ import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Text from '../shared/Text';
 
-import { Colors, Layout, Spacing, Typography } from '../../constants';
+import { Colors, Layout, SizeTokens, Spacing, Typography } from '../../constants';
 import { EnhancedModal } from '../shared/EnhancedModal';
 import { OptionRow } from '../shared/OptionRow';
 import {
@@ -59,13 +59,12 @@ import {
   TIME_LABELS,
 } from './dailyPicker.copy';
 
-const MIN_TOUCH_TARGET = 48;
 // The chip's own painted height. Below the 48 floor on purpose: three of these
 // share one row, and a 48pt-tall chip makes the row read as three buttons
 // rather than as one answer with three settings. The gap to the floor is made
 // up in hit slop below, so the TARGET is 48 even though the paint is 44.
 const CHIP_HEIGHT = 44;
-const CHIP_HIT_SLOP = (MIN_TOUCH_TARGET - CHIP_HEIGHT) / 2;
+const CHIP_HIT_SLOP = (SizeTokens.touchTargetMin - CHIP_HEIGHT) / 2;
 
 export interface DailyPickerSheetProps {
   visible: boolean;
@@ -253,7 +252,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   confirm: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: Layout.borderRadius.lg,
     backgroundColor: Colors.evergreenTeal,
     alignItems: 'center',
@@ -270,7 +269,7 @@ const styles = StyleSheet.create({
   // being asked for, but it is also not a failure state and gets no warning
   // colour. Muted Sage Gray, the same weight as any other secondary label.
   skip: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     alignItems: 'center',
     justifyContent: 'center',
   },

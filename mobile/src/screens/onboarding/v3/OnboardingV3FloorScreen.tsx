@@ -26,13 +26,11 @@ import TextInput from '../../../components/shared/TextInput';
 import { useNavigation } from '@react-navigation/native';
 
 import { OnboardingScaffold } from '../../../components/onboarding/OnboardingScaffold';
-import { Colors, Layout, Spacing, Typography } from '../../../constants';
+import { Colors, Layout, SizeTokens, Spacing, Typography } from '../../../constants';
 import { FLOOR_COMMITMENT_MAX_CHARS } from '../../../services/firebase/userPrivate.service';
 import { FLOOR_COPY } from './copy';
 import { useOnboardingV3 } from './OnboardingV3Context';
 import { V3_ROUTES, V3_TOTAL_STEPS, v3StepNumber } from './routes';
-
-const MIN_TOUCH_TARGET = 48;
 
 export const OnboardingV3FloorScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -93,7 +91,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   input: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: Layout.borderRadius.lg,
     borderWidth: 1,
     borderColor: Colors.silverSage,

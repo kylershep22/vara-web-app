@@ -28,15 +28,13 @@ import { LayoutAnimation, ScrollView, StyleSheet, TouchableOpacity, View } from 
 import Text from '../../../components/shared/Text';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
-import { Colors, Layout, Spacing, Typography } from '../../../constants';
+import { Colors, Layout, SizeTokens, Spacing, Typography } from '../../../constants';
 import { useAuth } from '../../../context/AuthContext';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import { logEvent } from '../../../services/firebase/analyticsEvents.service';
 import { SAFETY_COPY } from '../../../safety/safetyCopy';
 import { orderResources } from '../../../safety/resourceOrder';
 import type { PrecheckCategory } from '../../../safety/textPrecheck';
-
-const MIN_TOUCH_TARGET = 48;
 
 export const SupportScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -187,7 +185,7 @@ const styles = StyleSheet.create({
     color: Colors.softCharcoal,
   },
   expander: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     justifyContent: 'center',
   },
   expanderLabel: {
@@ -196,7 +194,7 @@ const styles = StyleSheet.create({
   },
   action: {
     marginTop: Spacing.xl,
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: Layout.borderRadius.lg,
     backgroundColor: Colors.evergreenTeal,
     alignItems: 'center',

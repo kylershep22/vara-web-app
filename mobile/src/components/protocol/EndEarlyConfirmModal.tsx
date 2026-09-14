@@ -21,9 +21,7 @@ import {
 import Text from '../shared/Text';
 import * as Haptics from 'expo-haptics';
 
-import { Colors, Spacing, Typography } from '../../constants';
-
-const MIN_TOUCH_TARGET = 48;
+import { Colors, SizeTokens, Spacing, Typography } from '../../constants';
 
 export interface EndEarlyConfirmModalProps {
   visible: boolean;
@@ -112,7 +110,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     backgroundColor: Colors.evergreenTeal,
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -125,7 +123,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   destructiveButton: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.lg,

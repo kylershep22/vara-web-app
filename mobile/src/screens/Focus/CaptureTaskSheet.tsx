@@ -49,7 +49,7 @@ import TextInput from '../../components/shared/TextInput';
 
 import { EnhancedModal } from '../../components/shared/EnhancedModal';
 import { SelectChip } from '../../components/shared/SelectChip';
-import { Colors, Layout, Spacing, Typography } from '../../constants';
+import { Colors, Layout, SizeTokens, Spacing, Typography } from '../../constants';
 import type { Demand } from '../../types/models';
 import {
   BLOCK_IT,
@@ -69,7 +69,6 @@ import {
 } from './tasksCopy';
 import type { CapturedTask } from '../../types/models';
 
-const MIN_TOUCH_TARGET = 48;
 const INPUT_ACCESSORY_ID = 'capture-task-title';
 
 const DEMAND_OPTIONS: Demand[] = ['light', 'medium', 'heavy'];
@@ -276,7 +275,7 @@ const styles = StyleSheet.create({
     borderRadius: Layout.borderRadius.md,
     backgroundColor: Colors.surface,
     paddingHorizontal: Spacing.sm,
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     fontSize: Typography.fontSize.base,
     color: Colors.softCharcoal,
   },
@@ -293,7 +292,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   primary: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: Layout.borderRadius.lg,
     backgroundColor: Colors.evergreenTeal,
     alignItems: 'center',
@@ -314,7 +313,7 @@ const styles = StyleSheet.create({
   // hierarchy rather than a menu.
   secondary: {
     marginTop: Spacing.md,
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: Layout.borderRadius.lg,
     borderWidth: 1.5,
     borderColor: Colors.evergreenTeal,
@@ -337,7 +336,7 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.divider,
   },
   clearButton: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: Layout.borderRadius.lg,
     backgroundColor: Colors.mutedSageGray,
     alignItems: 'center',

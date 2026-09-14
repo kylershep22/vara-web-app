@@ -23,12 +23,10 @@ import {
 } from 'react-native';
 import Text from '../../shared/Text';
 
-import { Colors, Spacing, Typography } from '../../../constants';
+import { Colors, SizeTokens, Spacing, Typography } from '../../../constants';
 import type { Protocol } from '../../../types/models';
 import type { Pillar, SlotDirection } from '../../../engine';
 import { reflectionDisplayChips } from './reflection';
-
-const MIN_TOUCH_TARGET = 48;
 
 export interface ReflectionStepViewProps {
   // The completed catalog practice. Optional: the focus-session loop reuses this
@@ -135,7 +133,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   chip: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     justifyContent: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,

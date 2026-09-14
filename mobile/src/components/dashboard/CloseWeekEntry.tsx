@@ -30,15 +30,13 @@ import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Text from '../shared/Text';
 
-import { Colors, Layout, Spacing, Typography } from '../../constants';
+import { Colors, Layout, SizeTokens, Spacing, Typography } from '../../constants';
 import { OUTCOME_LABELS } from '../../screens/weekly/copy';
 import { DESTINATION_SUMMARY_LABELS } from '../../constants/journeyCopy';
 import { TODAY_COPY } from './dailyPicker.copy';
 import type { DestinationKey, WeeklyCycle } from '../../types/models';
 import { addDaysIso, resolveWeekEnd } from '../../utils/weekStart';
 import { weekdayNameForIso } from '../../utils/weekdayLabels';
-
-const MIN_TOUCH_TARGET = 48;
 
 export interface CloseWeekEntryProps {
   /** The week has been closed: `closeCompletedAt` is set on the cycle. */
@@ -116,7 +114,7 @@ export const CloseWeekEntry: React.FC<CloseWeekEntryProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: Layout.borderRadius.lg,
     borderWidth: 1,
     borderColor: Colors.evergreenTeal,

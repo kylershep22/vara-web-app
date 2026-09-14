@@ -19,7 +19,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
-import { Colors, Layout, Spacing, TextStyles, Typography } from '../../constants';
+import { Colors, Layout, SizeTokens, Spacing, TextStyles, Typography } from '../../constants';
 import { ROUTES } from '../../navigation/routes';
 import { ScreenHeader, BAND_STRONG_SCRIM } from '../../components/shared/ScreenHeader';
 import { GuidePill } from '../../components/ai/GuidePill';
@@ -36,7 +36,6 @@ import {
 // (WebP) rendered via ScreenHeader's expo-image layer, never an SVG icon.
 const focusHeader = require('../../../assets/images/focusHeader.webp');
 
-const MIN_TOUCH_TARGET = 48;
 // How far the primary card rides up onto the header's bottom (mist) seam.
 const CARD_OVERLAP = Spacing.xl;
 
@@ -292,7 +291,7 @@ const styles = StyleSheet.create({
     color: Colors.softCharcoal,
   },
   secondaryCard: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.lg,

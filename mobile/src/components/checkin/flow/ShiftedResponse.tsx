@@ -24,14 +24,12 @@ import {
 import Text from '../../shared/Text';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { Colors, Spacing, Typography } from '../../../constants';
+import { Colors, SizeTokens, Spacing, Typography } from '../../../constants';
 import { STEP_TRANSITION_DURATION_MS } from '../../../constants/motion';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import type { BrainState, IntentPath } from '../../../types/models';
 import type { UserChosenNextStep } from './types';
 import { getShiftedResponseCopy } from './shiftedResponseCopy';
-
-const MIN_TOUCH_TARGET = 48;
 
 // Reading-time delay before auto-dismiss fires on the positive paths.
 // Core Loop v2 line 238: "User taps 'Continue' or waits 4 seconds."
@@ -134,7 +132,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.lg,
   },
   primaryButton: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     backgroundColor: Colors.evergreenTeal,
     borderRadius: 12,
     alignItems: 'center',

@@ -1,49 +1,71 @@
 /**
  * Vara Design Token System
- * Single source of truth for all design values per Focus Page Spec.
+ * Flat, role-named accessors over the canonical scales, for the Focus and Time
+ * surfaces that were written against the Focus Page Spec's token names.
  *
- * Relocated from the former `src/tokens/design-tokens.ts` during the token-system
- * consolidation. Color/typography/size/animation tokens are preserved verbatim
- * (every effective value unchanged). Spacing, radius, and shadow are now aliases
- * of the canonical `Spacing`/`Layout` scales in `./spacing` so there is a single
- * source for those values.
+ * EVERY VALUE HERE IS AN ALIAS. Nothing in this file declares a colour, a font
+ * size or a spacing value that is not also declared somewhere in `./colors`,
+ * `./typography` or `./spacing` - with three deliberate exceptions, which are
+ * grouped and reasoned at the bottom of their objects rather than left to look
+ * like the rest.
+ *
+ * WHY THAT SENTENCE IS LOAD-BEARING (R1d). `ColorTokens` and `TypographyTokens`
+ * used to be independent literal COPIES of values in `colors.ts` and
+ * `typography.ts`, and the header used to describe them as "preserved verbatim"
+ * as though that were a guarantee. It was not one: copies drift silently, and
+ * these had. `ColorTokens.surfaceTintedLight` was `'rgba(213, 227, 209, 0.5)'`
+ * while `Colors.dewSageLight` was `'rgba(213,227,209,0.5)'` - the same colour
+ * written as two strings that compare unequal in a style object. Three more
+ * keys had drifted the same way. `SpacingTokens`, `RadiusTokens` and
+ * `ShadowTokens` were already aliases and were the pattern the rest now follow.
+ *
+ * A test pins this: `__tests__/designTokenAliases.test.ts` asserts every aliased
+ * key equals its canonical, so re-forking one is a red suite rather than a
+ * silent second value.
  *
  * IMPORTANT: Never hardcode raw hex values, pixel sizes, or shadow strings
  * directly in component styles. Always reference these tokens.
  */
 
+import { Colors } from './colors';
 import { Spacing, Layout } from './spacing';
+import { Typography } from './typography';
 
 // ===========================================
 // COLOR TOKENS
 // ===========================================
 export const ColorTokens = {
   // Primary
-  primary: '#1B5E57',                    // Primary CTAs, headlines, active states, progress fills
-  backgroundPrimary: '#FAFAF6',          // Page backgrounds, screen base
-  backgroundSurface: '#FFFFFF',          // Cards, inputs, bottom sheets
+  primary: Colors.evergreenTeal,         // Primary CTAs, headlines, active states, progress fills
+  backgroundPrimary: Colors.mistWhite,   // Page backgrounds, screen base
+  backgroundSurface: Colors.white,       // Cards, inputs, bottom sheets
 
   // Secondary
-  secondary: '#B8CDBA',                  // Secondary buttons, dividers, inactive toggle tracks, borders
-  surfaceTinted: '#D5E3D1',              // Section backgrounds, segmented control track, tag defaults
-  surfaceTintedLight: 'rgba(213, 227, 209, 0.5)', // Highlight card backgrounds, tip cards
+  secondary: Colors.silverSage,          // Secondary buttons, dividers, inactive toggle tracks, borders
+  surfaceTinted: Colors.dewSage,         // Section backgrounds, segmented control track, tag defaults
+  surfaceTintedLight: Colors.dewSageLight, // Highlight card backgrounds, tip cards
 
   // Accents (use sparingly - max 10-15% of screen area)
-  accentWarm: '#F4C542',                 // Small icon highlights only - never large surface fills
-  accentApricot: '#F5B971',              // Break timer ring, secondary illustration accents
+  accentWarm: Colors.sunriseAmber,       // Small icon highlights only - never large surface fills
+  accentApricot: Colors.goldenApricot,   // Break timer ring, secondary illustration accents
 
   // Text
-  textPrimary: '#3E3E3E',                // Body copy, primary text (never use pure black)
-  textSecondary: '#56655D',              // Helper text, captions, labels, inactive icons
-  textOnPrimary: '#FFFFFF',              // Text on primary color backgrounds
+  textPrimary: Colors.softCharcoal,      // Body copy, primary text (never use pure black)
+  textSecondary: Colors.mutedSageGray,   // Helper text, captions, labels, inactive icons
+  textOnPrimary: Colors.white,           // Text on primary color backgrounds
 
   // Functional
-  error: '#D97A6E',                      // Error borders, error text (never use red #FF0000)
+  error: Colors.softCoral,               // Error borders, error text (never use red #FF0000)
 
   // Derived colors with opacity
-  primaryLight: 'rgba(27, 94, 87, 0.08)',    // Teal tint backgrounds for selected states
-  primaryMedium: 'rgba(27, 94, 87, 0.15)',   // Activity icon background tints
-  disabled: 'rgba(184, 205, 186, 0.5)',      // Disabled elements
+  primaryLight: Colors.tealLight,        // Teal tint backgrounds for selected states
+  disabled: Colors.textDisabled,         // Disabled elements
+
+  // NOT AN ALIAS, AND THE ONLY ONE IN THIS OBJECT.
+  // Silver Sage at 0.25. `colors.ts` carries Silver Sage at 0.3, 0.4, 0.5, 0.6
+  // and 0.8, but not 0.25, so there is nothing to point at. Promoting it into
+  // the palette is a scale addition and belongs to the row that owns scale
+  // additions, not to a substitution slice. Until then this is its declaration.
   secondaryLight: 'rgba(184, 205, 186, 0.25)', // Timer track, inactive elements
 } as const;
 
@@ -52,30 +74,46 @@ export const ColorTokens = {
 // ===========================================
 export const TypographyTokens = {
   // Font sizes
-  fontH1: 26,
-  fontH2: 22,
-  fontH3: 18,
-  fontBody: 16,
-  fontBodySm: 14,
-  fontCaption: 12,
-  fontButton: 16,
-  fontTimerLarge: 52,          // Pomodoro timer display
-  fontTimerPlayer: 48,          // Routine player timer display
-  fontNav: 12,
+  fontH1: Typography.fontSize['2xl'],
+  fontH2: Typography.fontSize.xl,
+  fontH3: Typography.fontSize.lg,
+  fontBody: Typography.fontSize.base,
+  fontBodySm: Typography.fontSize.sm,
+  fontCaption: Typography.fontSize.xs,
+  fontButton: Typography.fontSize.base,
+  fontTimerPlayer: Typography.fontSize.timer,  // Routine player timer display
+  fontNav: Typography.fontSize.xs,
 
   // Font weights
-  weightRegular: '400' as const,
-  weightMedium: '500' as const,
-  weightSemibold: '600' as const,
-  weightBold: '700' as const,
+  weightRegular: Typography.fontWeight.regular,
+  weightMedium: Typography.fontWeight.medium,
+  weightSemibold: Typography.fontWeight.semibold,
+  weightBold: Typography.fontWeight.bold,
 
   // Line heights
-  lineHeightHeading: 1.3,
-  lineHeightBody: 1.5,
+  lineHeightHeading: Typography.lineHeight.heading,
+  lineHeightBody: Typography.lineHeight.normal,
 
-  // Letter spacing
-  letterSpacingTimer: -0.02,    // For timer text
-  letterSpacingCaps: 0.04,      // For uppercase labels like "UP NEXT"
+  // ===========================================
+  // NOT ALIASES. TWO KEYS, EACH FOR ITS OWN REASON.
+  // ===========================================
+
+  // 52, and `Typography.fontSize` tops out at `timer: 48`. The two shipping
+  // timers are not the same size: `ActiveRoutinePlayer` renders 48 via
+  // `fontTimerPlayer` above, `PomodoroTab` renders 52 via this key. Aliasing
+  // this one to `fontSize.timer` would shrink the Pomodoro timer by 4pt, which
+  // a substitution slice does not get to do. UI Standards 5.2 now records that
+  // both ship and defers the decision to the Focus surface slice.
+  fontTimerLarge: 52,          // Pomodoro timer display
+
+  // An EM RATIO, not a point value, and therefore not comparable to
+  // `Typography.letterSpacing` at all - those keys (-0.5, -0.25, 0, 0.5) are
+  // React Native `letterSpacing`, which is absolute points. This one is
+  // multiplied by the font size at the call site, as `PomodoroTab` and
+  // `ActiveRoutinePlayer` both do. Assigning it directly yields -0.02pt, which
+  // reads as no tracking rather than as a bug. UI Standards 5.2 names it the
+  // one exception and bars a second em-denominated token, so it stays here.
+  letterSpacingTimer: -0.02,    // For timer text, multiplied by font size at the call site
 } as const;
 
 // ===========================================

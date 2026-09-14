@@ -45,7 +45,7 @@ import Slider from '@react-native-community/slider';
 import { useEvent } from 'expo';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
-import { Colors, Spacing, Typography } from '../../constants';
+import { Colors, SizeTokens, Spacing, Typography } from '../../constants';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { useVideoSource } from '../../hooks/useVideoSource';
 
@@ -53,8 +53,6 @@ import { useVideoSource } from '../../hooks/useVideoSource';
 // letterbox/pillarbox bars read as a rendering fault rather than as frame.
 // ImageViewer sets the same precedent for full-screen media.
 const VIDEO_BACKDROP = '#000000';
-
-const MIN_TOUCH_TARGET = 48;
 
 // How often the player reports playback position. 4x/second is smooth enough
 // for a scrubber without flooding the JS bridge.
@@ -360,8 +358,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   closeButton: {
-    width: MIN_TOUCH_TARGET,
-    height: MIN_TOUCH_TARGET,
+    width: SizeTokens.touchTargetMin,
+    height: SizeTokens.touchTargetMin,
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
@@ -394,7 +392,7 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: Spacing.lg,
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     paddingHorizontal: Spacing.xl,
     justifyContent: 'center',
     borderRadius: 8,
@@ -419,8 +417,8 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.base,
   },
   iconButton: {
-    width: MIN_TOUCH_TARGET,
-    height: MIN_TOUCH_TARGET,
+    width: SizeTokens.touchTargetMin,
+    height: SizeTokens.touchTargetMin,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -429,7 +427,7 @@ const styles = StyleSheet.create({
     // A taller track than the default gives the drag a real target, so a
     // slightly-off touch still lands on the scrubber instead of missing it and
     // propagating.
-    height: MIN_TOUCH_TARGET,
+    height: SizeTokens.touchTargetMin,
     // Android renders the slider a few px higher than iOS; this keeps the
     // thumb visually centred against the time labels on both.
     marginHorizontal: Platform.OS === 'android' ? 0 : Spacing.xs,

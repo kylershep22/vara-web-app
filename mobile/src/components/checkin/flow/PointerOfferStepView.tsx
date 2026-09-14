@@ -13,10 +13,8 @@ import {
 } from 'react-native';
 import Text from '../../shared/Text';
 
-import { Colors, Spacing, Typography } from '../../../constants';
+import { Colors, SizeTokens, Spacing, Typography } from '../../../constants';
 import type { PracticePointer } from '../../../engine';
-
-const MIN_TOUCH_TARGET = 48;
 
 export interface PointerOfferStepViewProps {
   pointer: PracticePointer;
@@ -95,7 +93,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   primaryButton: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: 12,
     backgroundColor: Colors.evergreenTeal,
     alignItems: 'center',
@@ -108,7 +106,7 @@ const styles = StyleSheet.create({
     color: Colors.surface,
   },
   secondaryButton: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.md,

@@ -32,7 +32,7 @@ import {
 import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
-import { Colors, Spacing, Typography } from '../../constants';
+import { Colors, SizeTokens, Spacing, Typography } from '../../constants';
 import type {
   BrainState,
   Protocol,
@@ -43,7 +43,6 @@ import {
   formatProtocolDuration,
 } from '../../utils/protocolDisplay';
 
-const MIN_TOUCH_TARGET = 48;
 const TIME_LEFT_LINE = "You'll have time left in your window.";
 
 export interface ProtocolRecommendationProps {
@@ -234,14 +233,14 @@ const styles = StyleSheet.create({
     height: 56,
   },
   headerButton: {
-    width: MIN_TOUCH_TARGET,
-    height: MIN_TOUCH_TARGET,
+    width: SizeTokens.touchTargetMin,
+    height: SizeTokens.touchTargetMin,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerSpacer: {
-    width: MIN_TOUCH_TARGET,
-    height: MIN_TOUCH_TARGET,
+    width: SizeTokens.touchTargetMin,
+    height: SizeTokens.touchTargetMin,
   },
   scroll: {
     paddingHorizontal: Spacing.lg,
@@ -304,7 +303,7 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.divider,
   },
   beginButton: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     backgroundColor: Colors.evergreenTeal,
     borderRadius: 12,
     alignItems: 'center',

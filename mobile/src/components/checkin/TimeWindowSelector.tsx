@@ -21,10 +21,8 @@ import {
 import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
-import { Colors, Spacing, Typography } from '../../constants';
+import { Colors, SizeTokens, Spacing, Typography } from '../../constants';
 import type { ProtocolTimeWindow } from '../../types/models';
-
-const MIN_TOUCH_TARGET = 48;
 
 export interface TimeWindowSelectorProps {
   initialValue?: ProtocolTimeWindow | null;
@@ -139,14 +137,14 @@ const styles = StyleSheet.create({
     height: 56,
   },
   headerButton: {
-    width: MIN_TOUCH_TARGET,
-    height: MIN_TOUCH_TARGET,
+    width: SizeTokens.touchTargetMin,
+    height: SizeTokens.touchTargetMin,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerSpacer: {
-    width: MIN_TOUCH_TARGET,
-    height: MIN_TOUCH_TARGET,
+    width: SizeTokens.touchTargetMin,
+    height: SizeTokens.touchTargetMin,
   },
   scroll: {
     // Center the chips vertically so the whitespace reads as calm, not
@@ -171,7 +169,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   chip: {
-    minHeight: MIN_TOUCH_TARGET + 16,
+    minHeight: SizeTokens.touchTargetMin + 16,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderRadius: 12,

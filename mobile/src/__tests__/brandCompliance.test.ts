@@ -39,13 +39,34 @@
  * 4. `src/screens/_dev/` IS EXCLUDED. Developer test harnesses are not product
  *    copy and do not ship in a production build.
  *
- * THE ALLOWLIST CONTRACT. Every waiver carries a one-line reason. A path in the
- * allowlist that no longer exists FAILS - the entry has to be removed
- * deliberately, so waivers cannot quietly outlive the thing they waived.
+ * THE ALLOWLIST CONTRACT, BOTH HALVES SINCE R1d. Every waiver carries a
+ * one-line reason. A path in the allowlist that no longer exists FAILS, and a
+ * path that still exists but has STOPPED VIOLATING fails too. The second half
+ * is new and is the one that was missing: until R1d this suite checked only
+ * existence, so a waiver survived the fix it was waiting for, the entry stayed,
+ * and the list stopped shrinking. The paragraph above has claimed since the
+ * walk was widened that "a stale allowlist entry is a failure"; only half of
+ * that was true, and this is the half that was not.
+ *
+ * The engine is `./allowlistIntegrity`, shared with `legacyIcons.test.ts`,
+ * which carried both halves first and whose ASSERTION 3 was written to be
+ * lifted. Its behaviour is pinned in `allowlistIntegrity.test.ts` against
+ * fixtures, because at the moment of the lift every entry in BOTH allowlists
+ * still existed and still violated - so neither live caller could prove the
+ * check works.
+ *
+ * WHAT A REASON CANNOT CATCH. `stillViolates` is file-level: it asks whether a
+ * file violates, never whether the recorded reason describes the violation. Two
+ * entries had drifted that way and were rewritten in R1d - see `habits.service`
+ * and `fourThreeTwoOne.service` below, whose "model field names and persisted
+ * keys" did not describe the console.error log strings they were waiving. That
+ * one stays a human check.
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
+
+import { allowlistIntegrity } from './allowlistIntegrity';
 
 const mobileRoot = path.resolve(__dirname, '../..');
 
@@ -63,11 +84,11 @@ const ALLOWLIST: Record<string, string> = {
   'src/services/firebase/wellnessScore.service.ts':
     'LIVE service: useDashboard calls it on every dashboard mount. Computes a scored metric with a streakBonus - the concept is banned, not just the string. De-wiring project on the backlog; not a copy fix.',
   'src/services/firebase/habits.service.ts':
-    'model field names and persisted keys, not user-visible copy; renaming is a data migration.',
+    'one persisted key in an Omit<> type, and one console.error log string - neither is user-visible; the key is a data migration and the log line goes with the de-wiring project.',
   'src/services/firebase/notificationPreferences.service.ts':
     'model field names and persisted keys, not user-visible copy; renaming is a data migration.',
   'src/services/firebase/fourThreeTwoOne.service.ts':
-    'model field names and persisted keys, not user-visible copy; renaming is a data migration.',
+    'two console.error log strings, not field names and not user-visible; the service name is the legacy 4-3-2-1 feature and the log lines go with it when it is removed.',
 };
 
 /** Extracts string literals so "streak" is only matched inside one. */
@@ -181,24 +202,47 @@ describe('Brand compliance - prohibited copy', () => {
 describe('Brand compliance - allowlist integrity', () => {
   const entries = Object.entries(ALLOWLIST);
 
+  // BOTH HALVES SINCE R1d. This suite used to check existence only, so a waiver
+  // survived the violation being fixed: the entry stayed, and the list stopped
+  // shrinking - the exact failure this file's own header claims to have closed.
+  // `allowlistIntegrity` is the engine `legacyIcons.test.ts` was written to
+  // share, now lifted to `./allowlistIntegrity` and run by both.
+  const { missing, clean } = allowlistIntegrity(
+    ALLOWLIST,
+    mobileRoot,
+    (p) => scan(p).length > 0
+  );
+
   it('has at least one reason per entry', () => {
     for (const [file, reason] of entries) {
       expect(`${file}: ${reason}`.length).toBeGreaterThan(file.length + 20);
     }
   });
 
-  entries.forEach(([relPath, reason]) => {
-    it(`allowlisted file still exists: ${relPath}`, () => {
-      const exists = fs.existsSync(path.join(mobileRoot, relPath));
-      if (!exists) {
-        throw new Error(
-          `ALLOWLIST names a file that no longer exists: ${relPath}\n` +
-            `  reason on record: ${reason}\n\n` +
-            'The file was renamed or deleted. Remove the entry, or repoint it. ' +
-            'Waivers must not outlive what they waive.'
-        );
-      }
-    });
+  it('names no file that has been deleted or renamed', () => {
+    if (missing.length > 0) {
+      const detail = missing
+        .map((p) => `  ${p}\n      reason on record: ${ALLOWLIST[p]}`)
+        .join('\n');
+      throw new Error(
+        `ALLOWLIST names ${missing.length} file(s) that no longer exist:\n${detail}\n\n` +
+          'The file was renamed or deleted. Remove the entry, or repoint it. ' +
+          'Waivers must not outlive what they waive.'
+      );
+    }
+  });
+
+  it('names no file that has already stopped violating', () => {
+    if (clean.length > 0) {
+      const detail = clean
+        .map((p) => `  ${p}\n      reason on record: ${ALLOWLIST[p]}`)
+        .join('\n');
+      throw new Error(
+        `ALLOWLIST names ${clean.length} file(s) that no longer contain prohibited copy:\n${detail}\n\n` +
+          'The copy fix this waiver was written for has landed - remove the entry. ' +
+          'A waiver left behind after the string is gone is how the allowlist stops shrinking.'
+      );
+    }
   });
 });
 

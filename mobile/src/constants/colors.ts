@@ -3,6 +3,26 @@
  * Canonical color definitions for the Vara mobile app
  */
 
+/**
+ * Muted Sage Gray, declared once.
+ *
+ * WHY IT IS A MODULE CONST AND NOT JUST A KEY (R1d, 2026-09-14). This value
+ * had FOUR independent declarations: `mutedSageGray`, `text.secondary` and
+ * `textSecondary` here, and `ColorTokens.textSecondary` in `designTokens.ts`.
+ * R1b-i moved all four by hand to keep them at one value, and warned in
+ * standards 4.1 that until they became real references "a change to one of the
+ * four is a change to one quarter of the colour". R1d made `ColorTokens`
+ * an alias; this const closes the remaining three.
+ *
+ * An object literal cannot reference itself, so `Colors.textSecondary` cannot
+ * be written as `Colors.mutedSageGray` from inside `Colors`. Lifting the value
+ * one level up is what makes all three keys read the same declaration, which
+ * is the thing that was actually being asked for.
+ *
+ * `designTokenAliases.test.ts` asserts all four keys against this value.
+ */
+const MUTED_SAGE_GRAY = '#56655D';
+
 export const Colors = {
   // Primary Colors
   evergreenTeal: '#1B5E57',
@@ -28,8 +48,9 @@ export const Colors = {
   white: '#FFFFFF',
   shadowColor: '#000000', // Only for shadows, never for text
 
-  // Muted Sage Gray for secondary text/icons
-  mutedSageGray: '#56655D',
+  // Muted Sage Gray for secondary text/icons. The declaration is
+  // MUTED_SAGE_GRAY above; these three keys are references to it.
+  mutedSageGray: MUTED_SAGE_GRAY,
 
   // Derived Alpha Colors
   tealLight: 'rgba(27,94,87,0.08)',       // Selected state tints, active badge bg
@@ -61,12 +82,12 @@ export const Colors = {
   // Text Colors
   text: {
     primary: '#3E3E3E',
-    secondary: '#56655D',
+    secondary: MUTED_SAGE_GRAY,
     disabled: 'rgba(184,205,186,0.5)', // Silver Sage at 50% opacity
     onPrimary: '#FFFFFF',
   },
   textPrimary: '#3E3E3E',
-  textSecondary: '#56655D',
+  textSecondary: MUTED_SAGE_GRAY,
   textDisabled: 'rgba(184,205,186,0.5)', // Silver Sage at 50% opacity
   textOnPrimary: '#FFFFFF',
 

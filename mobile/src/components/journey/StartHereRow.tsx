@@ -101,7 +101,7 @@ import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { VideoPlayerModal } from '../video/VideoPlayerModal';
-import { Colors, Spacing, TextStyles, Typography } from '../../constants';
+import { Colors, SizeTokens, Spacing, TextStyles, Typography } from '../../constants';
 import {
   START_HERE_LABEL,
   START_HERE_PATHS,
@@ -112,8 +112,6 @@ import {
   readStartHereMarker,
   writeStartHereMarker,
 } from '../../utils/startHereCollapseMarker';
-
-const MIN_TOUCH_TARGET = 48;
 
 export interface StartHereRowProps {
   /** Which surface is mounting this. Keys both the video and the collapse. */
@@ -249,7 +247,7 @@ const styles = StyleSheet.create({
   // what keeps it from competing with them and what lets Today mount it inside
   // the three-card ceiling without becoming the fourth card.
   row: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.sm,

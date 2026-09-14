@@ -48,7 +48,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 
-import { Colors, Layout, Spacing, TextStyles, Typography } from '../../constants';
+import { Colors, Layout, SizeTokens, Spacing, TextStyles, Typography } from '../../constants';
 import { PHASE_DISPLAY, PHASE_ORDER } from '../../constants/journey';
 import {
   ADJUST_ALTERNATIVES,
@@ -70,8 +70,6 @@ import { logEvent } from '../../services/firebase/analyticsEvents.service';
 import type { AdjustChoiceId, JourneyState } from '../../types/models';
 import { logger } from '../../utils/logger';
 import { labelForReplacement } from './removeCapture/routing';
-
-const MIN_TOUCH_TARGET = 48;
 
 export interface JourneyPhaseParams {
   phase: import('../../types/models').PhaseKey;
@@ -570,7 +568,7 @@ const styles = StyleSheet.create({
   // quiet door read as the page's purpose. The teal label keeps it clearly
   // tappable at the same 48pt reach.
   doorCta: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: Layout.borderRadius.lg,
     borderWidth: 1,
     borderColor: Colors.evergreenTeal,
@@ -593,7 +591,7 @@ const styles = StyleSheet.create({
     color: Colors.softCharcoal,
   },
   option: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: Layout.borderRadius.md,
     backgroundColor: Colors.dewSageLight,
     paddingVertical: Spacing.md,
@@ -611,7 +609,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing['2xs'],
   },
   cta: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     borderRadius: Layout.borderRadius.lg,
     backgroundColor: Colors.evergreenTeal,
     alignItems: 'center',
@@ -630,7 +628,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   secondary: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: Spacing.xs,

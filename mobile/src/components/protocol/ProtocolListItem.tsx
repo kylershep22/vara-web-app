@@ -20,11 +20,9 @@ import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Text from '../shared/Text';
 
-import { Colors, Spacing, Typography } from '../../constants';
+import { Colors, SizeTokens, Spacing, Typography } from '../../constants';
 import { formatProtocolDuration } from '../../utils/protocolDisplay';
 import type { Protocol } from '../../types/models';
-
-const MIN_TOUCH_TARGET = 48;
 
 export interface ProtocolListItemProps {
   protocol: Protocol;
@@ -65,7 +63,7 @@ export function ProtocolListItem({
 // this is a move, not a redesign, and Energy must render identically.
 const styles = StyleSheet.create({
   card: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: SizeTokens.touchTargetMin,
     padding: Spacing.lg,
     borderRadius: 16,
     borderWidth: 1,
