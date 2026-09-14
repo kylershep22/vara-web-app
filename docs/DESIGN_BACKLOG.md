@@ -440,6 +440,32 @@ rgba literals exist, and that survey is step 0 of this item.
 **Priority:** Low, but it grows. Bundle with any pass touching those
 files, or with the `colors.ts` internal-alias item under 4.1.
 
+### UPDATE, R2 (2026-09-14): the blind spot is now a fifth value, and the survey is still not done
+
+R2 added `Colors.tabBarTranslucent` = `rgba(250,250,246,0.55)`, the
+floating tab bar's warm overlay. It is declared once, in `colors.ts`,
+aliased into `ColorTokens`, and pinned by three assertions in
+`designTokenAliases.test.ts` — including one that reads `colors.ts` and
+requires the literal to appear exactly once, the same mechanism Muted
+Sage Gray uses.
+
+**It is correct, and it is also proof that the guard is a test and not a
+lint rule.** Had it been inlined into `AppNavigator.tsx`,
+`no-restricted-syntax` would not have said a word: the rule bars raw
+**hex** and this is an `rgba()` call. The only thing standing between
+this value and a silent fork is a hand-written assertion someone
+remembered to add.
+
+**The survey named as step 0 of this item has still not been run.** Nobody
+has counted how many `rgba()` literals exist across `src/`. Until that
+number exists, "four files" in the heading is what one sweep happened to
+find, not a census — and every new alpha token added between now and then
+widens the gap.
+
+**Scope grows by one line:** when this is taken up, extend
+`no-restricted-syntax` to catch `rgba(`/`rgb(` string literals outside the
+four exempt palette files, or say in writing why it should not.
+
 ---
 
 ## 13. Two timer sizes ship and the standards recorded one

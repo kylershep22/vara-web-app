@@ -60,12 +60,17 @@ export const Layout = {
   // Header heights
   headerHeight: 56,
 
-  // LEGACY, AND NOT WHAT THE NAVIGATOR RENDERS. UI Standards 6.2.
+  // LEGACY AND UNREAD. UI Standards 6.2.
+  //
   // 56 was written for an opaque bar that sat in the layout. The navigator has
-  // never read this key, and since R2 the bar is a floating capsule whose live
-  // height is `Layout.tabBar.height` (60) below. This key is kept because it
-  // still has consumers; retiring it means finding them, which is booked to
-  // TECH_DEBT rather than done here. Do not reach for it for new work.
+  // never read it, and since R2 the bar is a floating capsule whose live height
+  // is `Layout.tabBar.height` (60) below.
+  //
+  // IT HAS ZERO CONSUMERS. A grep of `src/` at R2 found this declaration and
+  // nothing else - so it is not "kept for its callers", it is simply dead. It
+  // is left standing here only because deleting an exported token is a change
+  // of a different kind from restyling a bar, and R2 is the restyle. Its
+  // removal is booked to TECH_DEBT. Do not reach for it for new work.
   tabBarHeight: 56,
 
   // THE FLOATING TAB BAR (R2). UI Standards 6.2 and 12.2.
