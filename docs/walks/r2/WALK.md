@@ -28,24 +28,48 @@ factors.
 **PASSED:** A0 · A0b (closed at `f77a8e2`, third run) · A1 · A2 · A3 · A4 · A5 · A6 · A7 ·
 A8 · A9 · A10 · A10b · A11 · A12.
 
-**NOT RUN:** A13 (Android, and definitionally so on an iPhone) · **every SE step** ·
+**NOT RUN:** A13 (Android, definitionally so on an iPhone, and **not owed** - see A13) · **every SE step, NOT WALKABLE in this setup** ·
 **A5b, not separately reported — see the note under A5b.**
 
 **SECTION B (R1a's fourteen) and SECTION C: NOT RUN.** Section B is required before R3.
 
-### The SE half of the matrix is open and rolls forward
+### The SE half of the matrix is NOT WALKABLE, which is not the same as not run
 
-Reported as **not walkable in this setup, per a 2026-09-14 addendum**. Recorded exactly as
-reported.
+**There is no SE device and no SE simulator in this setup** (Windows; an iOS simulator
+needs a Mac). Settled and recorded in §18(d) on 2026-09-14, along with the mitigation:
+**small-end risk is monitored through beta and support feedback until one exists.**
 
-> **THE ADDENDUM IS NOT IN THIS REPOSITORY, and that is worth one line rather than a
-> silent pass-through.** A search of `docs/` and `mobile/` finds no 2026-09-14 addendum
-> about SE walkability. §18(d) currently says, in terms, *"the SE end is walked on
-> simulator"*, and `docs/walks/r1d/WALK.md` records its own SE steps as "not run" rather
-> than as unavailable. **Until the addendum is written or pointed at, §18(d) and this
-> record disagree**, and a walk citing a document nobody can open is the shape of finding
-> this board has already paid for. It does not block R2's gate: the SE steps are NOT RUN
-> either way, and they roll forward.
+**Every SE step in this script reads "not walkable in this setup", never "not run."** The
+two mean different things to whoever reads the record next: "not run" invites someone to
+go and run it; "not walkable" says the gap needs a machine before it needs a walker.
+
+> **HOW THIS WAS RECORDED AT THE WALK, AND WHY THE CORRECTION IS WORTH KEEPING.** The
+> result cited a 2026-09-14 addendum. **No such addendum was in the repository** - a
+> search of `docs/` and `mobile/` found nothing - and §18(d) still said, in terms, *"the
+> SE end is walked on simulator"*, so the record and the standard disagreed. It was
+> flagged rather than passed through, and §18(d) was amended. **The outcome did not
+> change: the SE steps were not walked either way.** What changed is that the reason is
+> now written down somewhere a reader can find it.
+
+**WHAT THE SE WOULD HAVE BOUND, and each of these is a KNOWN GAP rather than an assumed
+pass.** Enumerated in §18(d) too, so it survives this file:
+
+- **`Layout.tabBar.minBottomOffset` at a 0pt inset.** On a home-indicator device the
+  capsule is lifted by `insets.bottom` (34pt) and the 12pt floor never engages. On the SE
+  it is the only thing holding the bar off the screen edge. **The one value it exists for
+  has never been exercised.**
+- **A5 at 667pt.** The SE is the shortest as well as the narrowest; bottom clearance
+  scrolled fully down is a function of both.
+- **A8's @2x half.** §18(g) wants both scale factors; only @3x was walked.
+- **`ChatScreen`'s `keyboardVerticalOffset`.** 90 assumes a 47pt notch; on a 20pt status
+  bar it is about 26pt too much. Its TECH_DEBT item cannot close without the device.
+- **A12's "Community" at 375pt, the binding truncation case.** Labels are
+  `numberOfLines={1}`, the bar is 53pt narrower, and the labels are in Inter as of R2.
+  **Passing at 428pt does not clear it**, at default type or at 1.3x.
+
+**None of the five is a thing a user reports clearly** - a trapped last row, a clipped
+label and a composer sitting 26pt high all read as "it looks a bit off". The mitigation is
+real and it is not a substitute. **Whoever acquires a Mac or an SE runs these five first.**
 
 ### A NUMBERING MISMATCH, RECONCILED RATHER THAN QUIETLY RENUMBERED
 
@@ -65,7 +89,7 @@ assertion, so it is reconciled here and the results below are filed by SUBSTANCE
 
 | Section | What | Estimate |
 |---|---|---|
-| **Pre-work** | Six `0091ce5` screenshots; stand up the SE simulator; confirm the BlurView links | **45–60 min** |
+| **Pre-work** | Six `0091ce5` screenshots; confirm the BlurView links. (**No SE simulator to stand up** - see below) | **30–45 min** |
 | **A** | R2's own gate: §18 (a)–(h), 2 devices × 2 type sizes, 16 routes scrolled fully down, Reduce Transparency, Reduce Motion, the glance test, Chat with the keyboard up | **3.5–4.5 hrs** |
 | **B** | R1a's fourteen steps, still not run, 2 devices | **2.5–3.5 hrs** |
 | **C** | R1b-i's SE remainder and R1d's five screens | **45–75 min** |
@@ -77,14 +101,16 @@ assertion, so it is reconciled here and the results below are filed by SUBSTANCE
 different day against the same build, and splitting it off is the honest way to make
 this tractable rather than a way of deferring it.
 
-**Section C is opportunistic.** Take it if the SE simulator is already standing.
+**Section C is opportunistic**, and **its SE steps are not walkable in this setup** - see the SE note below. What remains of it is the 14 Plus work.
 
 ---
 
 ## DEVICES
 
-- **iPhone SE (3rd gen), 375 × 667 pt @2x** — SIMULATOR. `insets.bottom` is **0**. This
-  is the binding case for almost everything in Section A.
+- **iPhone SE (3rd gen), 375 × 667 pt @2x** — **NOT WALKABLE IN THIS SETUP.** No device,
+  no simulator (Windows; an iOS simulator needs a Mac). `insets.bottom` is **0** there,
+  which is what makes it the binding case for almost everything in Section A — and why
+  its absence is a recorded gap rather than a scheduling problem. §18(d), 2026-09-14.
 - **iPhone 14 Plus, 428 × 926 pt @3x, 47pt notch** — PHYSICAL. `insets.bottom` is **34**.
   Covers the large end of §18(d)'s matrix (within 2pt of the 16 Pro Max) but **is not a
   matrix device**, and its notch proxies neither entry.
@@ -192,7 +218,7 @@ comparison, and Run 3's observation is that record.
 
 ### A1. The `getTabBarHeight` finding, confirmed on hardware — **STEP 1 PER THE ROW**
 
-**PASSED, 2026-09-14, 14 Plus.** Confirmed in both directions: on `main` the labels sat above the home indicator, and on the branch the capsule clears it. **The Step-0 reading of `@react-navigation/bottom-tabs@7.9.0` is confirmed on hardware and stops being library reading.** Not run on the SE, where it is non-discriminating anyway.
+**PASSED, 2026-09-14, 14 Plus.** Confirmed in both directions: on `main` the labels sat above the home indicator, and on the branch the capsule clears it. **The Step-0 reading of `@react-navigation/bottom-tabs@7.9.0` is confirmed on hardware and stops being library reading.** **Not walkable on the SE**, where it would be non-discriminating anyway (`insets.bottom` is 0, so both readings predict the same picture).
 
 Run this **against `main` at `831827e`** (before this branch), not against the branch.
 
@@ -233,7 +259,7 @@ R3's check a comparison rather than an opinion.
 
 ### A4. §18(c) Safe areas — all four edges, both devices
 
-**PASSED, 2026-09-14, 14 Plus** (reported as "A5 safe areas clean"; see the numbering reconciliation above). **The SE is NOT RUN, and it is the binding case for this step** — `insets.bottom` is 0 there, so `Layout.tabBar.minBottomOffset` (12) is the only thing holding the capsule off the screen edge, and the 14 Plus's 34pt inset cannot exercise it.
+**PASSED, 2026-09-14, 14 Plus** (reported as "A5 safe areas clean"; see the numbering reconciliation above). **The SE is NOT WALKABLE in this setup, and it is the binding case for this step** — `insets.bottom` is 0 there, so `Layout.tabBar.minBottomOffset` (12) is the only thing holding the capsule off the screen edge, and the 14 Plus's 34pt inset cannot exercise it.
 
 **Pass:** nothing clipped, overlapped or unreachable at any edge.
 
@@ -243,7 +269,7 @@ edge — this is the binding case for that token.** If 12 reads mean, say so wit
 
 ### A5. §18(d) Floating bar clearance — **SIXTEEN SUB-STEPS**
 
-**PASSED, 2026-09-14, 14 Plus** (reported as "A4 all sixteen routes scrolled fully to the bottom, last item clear of the capsule on each"). **All sixteen, each scrolled fully down.** **§6.2's retirement of the fixed 48 is verified for these routes on the large end.** NOT RUN on the SE, which at 667pt is the shorter viewport and the second half of this assertion.
+**PASSED, 2026-09-14, 14 Plus** (reported as "A4 all sixteen routes scrolled fully to the bottom, last item clear of the capsule on each"). **All sixteen, each scrolled fully down.** **§6.2's retirement of the fixed 48 is verified for these routes on the large end.** **NOT WALKABLE on the SE**, which at 667pt is the shorter viewport and the second half of this assertion.
 
 **Do:** each route below, **scrolled fully to the bottom**, on **both devices**, at
 **both type sizes**.
@@ -334,7 +360,7 @@ not matching the real thing.
 
 ### A8. §18(g) Text contrast — the tab labels
 
-**PASSED, 2026-09-14, 14 Plus.** Labels crisp; **the contrast baseline over Mist White is recorded**, which is the point of running it now — it is what R3 compares against once artwork sits under the blur. @3x only; §18(g) wants both scale factors, so the @2x half rolls forward with the SE.
+**PASSED, 2026-09-14, 14 Plus.** Labels crisp; **the contrast baseline over Mist White is recorded**, which is the point of running it now — it is what R3 compares against once artwork sits under the blur. @3x only; §18(g) wants both scale factors, and **the @2x half is not walkable in this setup** - it goes with the SE.
 
 **Do:** Measure the 12pt Teal active label and the Muted Sage Gray inactive label against
 the bar, **with and without Increase Contrast**, on **both scale factors**.
@@ -382,7 +408,7 @@ the one.
 
 **PASSED, 2026-09-14, 14 Plus.** Composer fully visible with the keyboard up, **no bar beneath it** — the hide is coming from the Community tab, which is the whole point of that correction, since the obvious implementation would have been inert.
 
-**`keyboardVerticalOffset` is NOT closed by this pass.** 90 assumes this exact device. The discriminating case is the SE, which is not run, so the TECH_DEBT item stands.
+**`keyboardVerticalOffset` is NOT closed by this pass.** 90 assumes this exact device. The discriminating case is the SE, which is **not walkable in this setup**, so the TECH_DEBT item stands and cannot close without a device.
 
 **Do:** Open a conversation. Focus the composer. Type. Both devices.
 
@@ -398,13 +424,13 @@ returns, instantly, with no slide (A6 covers the Reduce Motion case).
 
 **`keyboardVerticalOffset` is the open question here.** It is hardcoded to 90, which
 assumes a 47pt notch plus a ~44pt header — Kyle's 14 Plus. On the SE that is roughly 26pt
-too much. **Report what the gap above the keyboard actually looks like on the SE.** If it
+too much. **The SE reading is not obtainable in this setup**, so this stays open. If it
 reads wrong, it becomes its own edit rather than a guess folded into a navigation
 restyle; it is booked to TECH_DEBT either way.
 
 ### A12. 1.3× Dynamic Type on the bar itself
 
-**PASSED, 2026-09-14, 14 Plus.** All four labels on one line at 1.3x, none truncated. **"Community" at 375pt is the binding case and is NOT RUN** — that is the SE, where the bar is 53pt narrower. Passing at 428pt does not clear it.
+**PASSED, 2026-09-14, 14 Plus.** All four labels on one line at 1.3x, none truncated. **"Community" at 375pt is the binding case and is NOT WALKABLE in this setup** — that is the SE, where the bar is 53pt narrower. Passing at 428pt does not clear it.
 
 **Do:** All four labels at 1.3×, both devices.
 
@@ -415,15 +441,35 @@ font's — the tab labels were outside R1a's blast radius and move here. They ke
 `numberOfLines={1}`, so **the failure mode is truncation, not wrap**, and **"Community"
 at 375pt is the binding case.**
 
-### A13. Android — **NOT RUN**
+### A13. Android — **NOT RUN, AND NOT OWED**
 
-**NOT RUN, 2026-09-14, as expected — this was an iPhone walk.** Routed to the `ANDROID` pre-launch row, which carries two R2 items: the opaque fallback is Android's only path and ships unseen, and `Layout.shadow.floating`'s `elevation: 12` was set by reasoning alone and overrides React Navigation's own `elevation: 8`.
+**NOT RUN, 2026-09-14, as expected — this was an iPhone walk.**
 
-**The report used this number for a different observation** (the sprout reading correctly in both states), which is filed under A10. See the numbering reconciliation at the top.
+**It is also not work owed before R3.** The `ANDROID` row was reclassified on 2026-09-14
+from PRE-LAUNCH to **NOT SCHEDULED**: there is no Android build and none is planned inside
+the R-series, so no row here waits on it. It stays as the **ledger** of Android behaviour
+nothing has ever seen, which is why the items below are recorded rather than dropped.
 
-Record as NOT RUN and route to the `ANDROID` pre-launch row. R2 adds two items to it: the
-opaque fallback is Android's only path and ships unseen, and the tab label is a second
-synthetic-bold site outside the text primitive.
+**R2 puts TWO items on that ledger:**
+
+1. **The opaque tab bar is Android's only path and ships unseen.** `expo-blur` is iOS-only
+   per §12.2, so every Android user gets the fallback branch — White, the `divider`
+   hairline, and the elevation below. No jest test and no §18 assertion can reach it,
+   because 18(f)'s matrix is two iPhones.
+2. **`Layout.shadow.floating`'s `elevation: 12`.** Set by reasoning alone, to match an iOS
+   intent that was tuned across three walk runs. It **overrides React Navigation's own
+   `elevation: 8`**, so it is what ships; and Android elevation on a 30pt-radius view
+   clips to the shape and can read as a hard band rather than a soft cast.
+
+> **A THIRD ITEM WAS PROPOSED AT STEP 0 AND RETIRED BEFORE IT REACHED THE LEDGER** — the
+> tab label as a second synthetic-bold site outside the text primitive. **Ruling 4 removed
+> it:** labels go through the shared primitive rather than a hand-written `fontFamily`
+> plus a hand-written `Platform` weight strip, so they inherit R1a's guard instead of
+> duplicating it. There is one synthetic-bold site on that row, not two, and it is still
+> R1a's. Recorded here so nobody adds it back from R2's Step 0.
+
+**The report used this number for a different observation** (the sprout reading correctly
+in both states), which is filed under A10. See the numbering reconciliation at the top.
 
 ---
 
@@ -505,7 +551,7 @@ run after the after has shipped compares nothing.
 
 # SECTION C — Still open from R1b-i and R1d. OPPORTUNISTIC.
 
-### C1. R1b-i steps 7, 10, 11 on the SE at 375pt
+### C1. R1b-i steps 7, 10, 11 on the SE at 375pt — **NOT WALKABLE IN THIS SETUP**
 
 Passed on the 14 Plus only; §18(d) names these as width-sensitive and the small end was
 never covered. Step 7 = unchecked-checkbox border. Step 10 = placeholders.
@@ -529,12 +575,12 @@ relights nothing.
 **Report C3 as: checked, none became reachable, all five remain outstanding.** Do not
 re-run them under R2's banner.
 
-### C4. R1d step 3 on the SE, if the simulator is already standing
+### C4. R1d step 3 on the SE — **NOT WALKABLE IN THIS SETUP**
 
-R1d's step 3 is explicitly *"THE STEP THAT WOULD PROVE THE FIX"* and was not run. It costs
-minutes if the SE is up — **provided `MasterclassDetail` has content on the walk
-account**. If it does not, report **NOT RUN, NO CONTENT** and do not read step 1's result
-across.
+R1d's step 3 is explicitly *"THE STEP THAT WOULD PROVE THE FIX"* and was not run. **It
+still cannot be**: there is no SE in this setup. R1d's bottom-padding fix therefore
+remains unproven on the device that would prove it, which is recorded in `r1d/WALK.md` and
+in §18(d) rather than carried here as a task someone could pick up.
 
 ---
 
