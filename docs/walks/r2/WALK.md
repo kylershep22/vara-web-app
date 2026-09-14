@@ -14,6 +14,53 @@ result.
 
 ---
 
+## RESULT — SECTION A WALKED IN FULL, 2026-09-14 (Kyle)
+
+**iPhone 14 Plus, dev client, default Dynamic Type unless the step says otherwise.**
+One device. **Large end only.**
+
+**It is not a matrix device.** §18(d)'s matrix is the iPhone SE (3rd gen) at 375 x 667 @2x
+and the iPhone 16 Pro Max at 430 x 932 @3x. The 14 Plus is 428 x 926 @3x with a 47pt
+notch: within 2pt of the Pro Max, so the large end is effectively covered for every
+width-sensitive assertion, and **only @3x was walked** where §18(g) wants both scale
+factors.
+
+**PASSED:** A0 · A0b (closed at `f77a8e2`, third run) · A1 · A2 · A3 · A4 · A5 · A6 · A7 ·
+A8 · A9 · A10 · A10b · A11 · A12.
+
+**NOT RUN:** A13 (Android, and definitionally so on an iPhone) · **every SE step** ·
+**A5b, not separately reported — see the note under A5b.**
+
+**SECTION B (R1a's fourteen) and SECTION C: NOT RUN.** Section B is required before R3.
+
+### The SE half of the matrix is open and rolls forward
+
+Reported as **not walkable in this setup, per a 2026-09-14 addendum**. Recorded exactly as
+reported.
+
+> **THE ADDENDUM IS NOT IN THIS REPOSITORY, and that is worth one line rather than a
+> silent pass-through.** A search of `docs/` and `mobile/` finds no 2026-09-14 addendum
+> about SE walkability. §18(d) currently says, in terms, *"the SE end is walked on
+> simulator"*, and `docs/walks/r1d/WALK.md` records its own SE steps as "not run" rather
+> than as unavailable. **Until the addendum is written or pointed at, §18(d) and this
+> record disagree**, and a walk citing a document nobody can open is the shape of finding
+> this board has already paid for. It does not block R2's gate: the SE steps are NOT RUN
+> either way, and they roll forward.
+
+### A NUMBERING MISMATCH, RECONCILED RATHER THAN QUIETLY RENUMBERED
+
+The report transposed two labels against this script. **Nothing is missing — both were
+walked** — but the record has to be unambiguous about which observation belongs to which
+assertion, so it is reconciled here and the results below are filed by SUBSTANCE:
+
+| Reported as | Substance | This script's step |
+|---|---|---|
+| A4 | sixteen routes scrolled fully down, last item clear | **A5** (§18(d)) |
+| A5 | safe areas clean | **A4** (§18(c)) |
+| A13 | the sprout reads correctly in both states | **A10**, an added observation. This script's A13 is Android |
+
+---
+
 ## THIS IS NOT A ONE-SITTING WALK, AND THE PLAN SHOULD NOT PRETEND IT IS
 
 | Section | What | Estimate |
@@ -145,6 +192,8 @@ comparison, and Run 3's observation is that record.
 
 ### A1. The `getTabBarHeight` finding, confirmed on hardware — **STEP 1 PER THE ROW**
 
+**PASSED, 2026-09-14, 14 Plus.** Confirmed in both directions: on `main` the labels sat above the home indicator, and on the branch the capsule clears it. **The Step-0 reading of `@react-navigation/bottom-tabs@7.9.0` is confirmed on hardware and stops being library reading.** Not run on the SE, where it is non-discriminating anyway.
+
 Run this **against `main` at `831827e`** (before this branch), not against the branch.
 
 **Do:** On the **14 Plus**, open Today. Look at the bottom of the tab bar: where do the
@@ -162,6 +211,8 @@ the same picture. Run it for completeness and record it as **non-discriminating*
 
 ### A2. §18(a) Surface type — four tab roots
 
+**PASSED, 2026-09-14, 14 Plus.** All four match §2.8's table.
+
 **Do:** Today, Journey, Learn, `CommunityMain`.
 
 **Pass:** each matches §2.8's table — Today IMMERSIVE (Mist White today; the artwork is
@@ -173,12 +224,16 @@ reader does not conclude that glass made anything IMMERSIVE.
 
 ### A3. §18(b) No doubled artwork — Today first and specifically
 
+**PASSED, 2026-09-14, 14 Plus.** One kind of art. **This is the pre-R3 baseline reading**, and it is what R3's check compares against.
+
 **Pass:** one kind of art on screen.
 
 R2 adds none. **This is the pre-R3 baseline reading**, and recording it now is what makes
 R3's check a comparison rather than an opinion.
 
 ### A4. §18(c) Safe areas — all four edges, both devices
+
+**PASSED, 2026-09-14, 14 Plus** (reported as "A5 safe areas clean"; see the numbering reconciliation above). **The SE is NOT RUN, and it is the binding case for this step** — `insets.bottom` is 0 there, so `Layout.tabBar.minBottomOffset` (12) is the only thing holding the capsule off the screen edge, and the 14 Plus's 34pt inset cannot exercise it.
 
 **Pass:** nothing clipped, overlapped or unreachable at any edge.
 
@@ -187,6 +242,8 @@ The bottom edge is the one R2 moves. **On the SE, `insets.bottom` is 0 and
 edge — this is the binding case for that token.** If 12 reads mean, say so with a number.
 
 ### A5. §18(d) Floating bar clearance — **SIXTEEN SUB-STEPS**
+
+**PASSED, 2026-09-14, 14 Plus** (reported as "A4 all sixteen routes scrolled fully to the bottom, last item clear of the capsule on each"). **All sixteen, each scrolled fully down.** **§6.2's retirement of the fixed 48 is verified for these routes on the large end.** NOT RUN on the SE, which at 667pt is the shorter viewport and the second half of this assertion.
 
 **Do:** each route below, **scrolled fully to the bottom**, on **both devices**, at
 **both type sizes**.
@@ -225,6 +282,8 @@ button are **not occluded** by the capsule — occlusion by eye, not clearance b
 
 ### A5b. The two bottom-anchored controls
 
+**NOT SEPARATELY REPORTED, 2026-09-14, and flagged rather than assumed.** A5 reports all sixteen routes scrolled fully down with the last item clear, which covers the scroll content on `Conversations` and `ReportDetail` — but **neither of these two controls is a "last item"**. The `Conversations` FAB is absolutely positioned and was **the one hard collision Step 0 identified** (at `bottom: 24` it sits wholly behind the capsule on this device); `ReportDetail`'s sticky action block hardcoded `34`. Both were changed by `6e9a590` and both are plausibly fine, **but plausibly fine is what this walk exists to replace.** One look at each on the next sitting closes it.
+
 **`Conversations` FAB.** *Pass:* fully visible and tappable, clear of the capsule, on
 both devices. It sat at `bottom: 24` before R2 and would have been **wholly behind** the
 bar on the 14 Plus. It is the only real collision in the sixteen.
@@ -234,6 +293,8 @@ hardcoded `34` before R2 — right on a 14 Plus, wrong on the SE. **The SE is th
 discriminating device here.**
 
 ### A6. §18(e) Reduce Motion
+
+**PASSED, 2026-09-14, 14 Plus.** Tab switches instant, **no bar slide entering or leaving Chat** — which is the case `REDUCED_MOTION_VISIBILITY` guards and `display: 'none'` makes instant anyway.
 
 **Do:** On. Every animation on every touched surface — **not only what R2 added**; a
 slice that restyles a screen inherits whatever already moves on it, and 26 animated files
@@ -246,6 +307,8 @@ bar moves.
 or leaving `Chat`.
 
 ### A7. §18(f) Reduce Transparency — **NEVER WALKED ONCE SINCE v2.0**
+
+**PASSED, 2026-09-14, 14 Plus. BOTH HALVES, AND THE FIRST TIME THIS ASSERTION HAS EVER BEEN RUN.** Opaque White with the `divider` hairline all the way round; **toggled live** (the `reduceTransparencyChanged` listener) **and cold-started** (the initial `isReduceTransparencyEnabled()` read). **Both states' edges match**, which was the added check from A0b: the layered hairline in the translucent state renders the same as the real border in the opaque one. A promise standing unverified since v2.0 is now verified.
 
 Two halves, and they fail independently. **Run both.**
 
@@ -271,6 +334,8 @@ not matching the real thing.
 
 ### A8. §18(g) Text contrast — the tab labels
 
+**PASSED, 2026-09-14, 14 Plus.** Labels crisp; **the contrast baseline over Mist White is recorded**, which is the point of running it now — it is what R3 compares against once artwork sits under the blur. @3x only; §18(g) wants both scale factors, so the @2x half rolls forward with the SE.
+
 **Do:** Measure the 12pt Teal active label and the Muted Sage Gray inactive label against
 the bar, **with and without Increase Contrast**, on **both scale factors**.
 
@@ -282,12 +347,20 @@ case because the asset does not exist yet.
 
 ### A9. §18(h) No numeric progress
 
+**PASSED, 2026-09-14, 14 Plus.** No badges, counts or dots, in any state.
+
 **Pass:** no badge, count, dot, or indicator on the bar, on any tab, in any state.
 
 Includes the active state: it is carried by **glyph fill and tint only**, never by a dot,
 underline, or pill behind the selected tab.
 
 ### A10. The active/inactive glance test — **INHERITED FROM R1b-i STEP 11**
+
+**PASSED, 2026-09-14, 14 Plus — BOTH HALVES.** A10a: the active tab is distinguishable at a glance on every tab. **A10b: distinguishable IN GRAYSCALE, by shape alone.**
+
+> **THE `#6F7F77` FALLBACK TOKEN IS CLOSED AS SUPERSEDED.** Held in reserve since R1b-i's step 11, which passed on hue and label and recorded the pass as weaker than before. The filled/outline glyph switch is the structural fix R2 said it would be, and A10b is the measurement that closes it: with hue removed entirely the states still read apart. **It is not built and will not be.**
+
+**Added observation, reported as "A13":** the `sprout` / `sprout-outline` pair reads correctly in both states. That was the one glyph R2 changed, and a sprout is a thinner drawing than a leaf, so it was the pair most at risk at 24pt.
 
 **A10a — the original condition.** At a glance, **without reading labels**, on **both**
 devices: are the active and inactive tabs distinguishable? *Pass:* yes.
@@ -299,11 +372,17 @@ desaturate it. **Is the active tab distinguishable by SHAPE ALONE, with hue remo
   R2's structural fix is confirmed. Record it that way explicitly.
 - *Fail:* → build the token. R2 owns it.
 
+**RESOLVED: PASS, in Grayscale, 2026-09-14. The token is closed and is not built.**
+
 **Check `sprout` / `sprout-outline` specifically.** It is the one glyph pair that changed,
 and a sprout is a thinner drawing than a leaf; if any pair reads weakly at 24pt this is
 the one.
 
 ### A11. `Chat`, with the keyboard up
+
+**PASSED, 2026-09-14, 14 Plus.** Composer fully visible with the keyboard up, **no bar beneath it** — the hide is coming from the Community tab, which is the whole point of that correction, since the obvious implementation would have been inert.
+
+**`keyboardVerticalOffset` is NOT closed by this pass.** 90 assumes this exact device. The discriminating case is the SE, which is not run, so the TECH_DEBT item stands.
 
 **Do:** Open a conversation. Focus the composer. Type. Both devices.
 
@@ -325,6 +404,8 @@ restyle; it is booked to TECH_DEBT either way.
 
 ### A12. 1.3× Dynamic Type on the bar itself
 
+**PASSED, 2026-09-14, 14 Plus.** All four labels on one line at 1.3x, none truncated. **"Community" at 375pt is the binding case and is NOT RUN** — that is the SE, where the bar is 53pt narrower. Passing at 428pt does not clear it.
+
 **Do:** All four labels at 1.3×, both devices.
 
 **Pass:** no label truncates, no label collides with its neighbour, no glyph is clipped.
@@ -335,6 +416,10 @@ font's — the tab labels were outside R1a's blast radius and move here. They ke
 at 375pt is the binding case.**
 
 ### A13. Android — **NOT RUN**
+
+**NOT RUN, 2026-09-14, as expected — this was an iPhone walk.** Routed to the `ANDROID` pre-launch row, which carries two R2 items: the opaque fallback is Android's only path and ships unseen, and `Layout.shadow.floating`'s `elevation: 12` was set by reasoning alone and overrides React Navigation's own `elevation: 8`.
+
+**The report used this number for a different observation** (the sprout reading correctly in both states), which is filed under A10. See the numbering reconciliation at the top.
 
 Record as NOT RUN and route to the `ANDROID` pre-launch row. R2 adds two items to it: the
 opaque fallback is Android's only path and ships unseen, and the tab label is a second
