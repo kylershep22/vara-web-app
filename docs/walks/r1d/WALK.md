@@ -1,4 +1,4 @@
-# R1d walk — the token misses, and the four screens that cannot be walked
+# R1d walk — the token misses, and the five screens that could not be walked
 
 **Slice:** `design/slice-r1d-token-reconciliation`
 **Change under test:** six token misses fixed — five `Spacing['4xl']` sites that resolved to
@@ -8,20 +8,62 @@ commits its walk script.
 
 ---
 
-## RESULT — NOT YET WALKED
+## RESULT — walked 2026-09-14 (Kyle)
 
-Kyle walks `MasterclassDetail` and the Journal empty state. This section is filled in after.
+**iPhone 14 Plus**, dev client, default Dynamic Type. SE simulator not run.
+
+**PASSED: step 6** — the Journal search empty state. Searched `zzzz`; the glyph renders at a
+normal size, in proportion with the surrounding text. **It could not render at all before this
+slice**, because `fontSize` was `NaN`.
+
+**NOT RUN: steps 1, 2, 3** — `MasterclassDetail`, and **not for the reason this script
+predicted.** See below.
+
+**NOT RUN: steps 4, 5** — `SleepDetail`, `Movement`, `MovementDetail`, `BreathworkDetail`.
+Routes dark, exactly as recorded.
+
+### NET: five of five `Spacing['4xl']` screens are outstanding
+
+**One of the six token-miss fixes was seen by eyes. Five were not.** All five `Spacing['4xl']`
+screens are held by tsc and by code reading alone — four because their routes are dark, and the
+fifth because it has no content to open. That is the honest state of this slice's visual
+verification and it does not improve by being restated.
+
+### `MasterclassDetail` IS NOT CONTENT-FREE BECAUSE ITS ROUTE IS DARK, AND THIS SCRIPT HAD IT WRONG
+
+The route is live, wired and correct. Energy hub → "Learn" reaches `MasterclassScreen`, which
+renders **the podcast list**. The masterclass list is a separate section of that same screen,
+guarded by `masterclasses.length > 0` (`MasterclassScreen.tsx:177`), and `masterclasses` comes
+from Firestore via `useMasterclasses` → `listMasterclasses`. **The collection has no documents**,
+so the section does not render, so there is no card to tap and no way to reach the detail screen.
+
+**This is a content gate, not a route gate, and the distinction matters in both directions.**
+Nothing needs relighting and no navigator needs a row: the moment a masterclass document exists,
+the screen is reachable and steps 1 to 3 run as written. Conversely, marking it DARK in standards
+2.8 alongside the other four would be wrong — the mechanism is entirely different and a later
+reader would go looking for a missing `navigate()` call that is not missing.
+
+**Step 0 called this screen REACHABLE and it was checked the wrong way.** The check was static —
+`MasterclassScreen.tsx:186` navigates to `MasterclassDetail`, therefore reachable. That proves a
+navigator exists, not that a user can arrive. `mobile/docs/inventory/CC_Inventory_2026-08-15.md`
+records it as REACHABLE "from `MasterclassScreen`" on the same static basis. **A route-level
+reachability audit cannot see an empty collection**, and this is the second time in one slice
+that a static read of the navigator produced a walk plan that could not be executed.
+
+**Steps 1 to 3 are gated on masterclass content landing, not on a route being relit.**
 
 ---
 
 ## SCOPE, AND WHY IT IS ONE SCREEN AND NOT FIVE
 
 The R1d row's walk cell reads *"The five `Spacing['4xl']` screens on both matrix devices."*
-**Four of the five cannot be reached by a user.**
+**None of the five could be reached by a user.** Four have dark routes; the fifth, written below
+as reachable, turned out to be gated on content that does not exist. The RESULT section above
+corrects this table's first row.
 
 | screen | route | reachable at HEAD? |
 |---|---|---|
-| `MasterclassDetailScreen` | `MasterclassDetail` | **YES** — Energy hub → "Learn" → any class |
+| `MasterclassDetailScreen` | `MasterclassDetail` | **ROUTE YES, IN PRACTICE NO** — the route is live, but the `masterclasses` collection is empty so no card renders to tap. Corrected at the walk, 2026-09-14; this row said YES |
 | `SleepDetailScreen` | `SleepDetail` | **NO** — zero `navigate()` callers anywhere in `src/` |
 | `MovementScreen` | `Movement` | **NO** — zero `navigate()` callers |
 | `MovementDetailScreen` | `MovementDetail` | **NO** — only from `Movement`, itself unreached |
@@ -34,7 +76,8 @@ grepping the navigator. **The one apparent escape hatch is also dead:**
 deliver anyone there either.
 
 **Kyle's ruling, 2026-09-13: walk `MasterclassDetail` only, no dev route.** Steps 4 and 5 below
-are recorded as deferred rather than passed. A fix verified by reading is not a fix verified, and
+are recorded as deferred rather than passed. **At the walk, steps 1 to 3 joined them**, for a
+different reason - see RESULT. A fix verified by reading is not a fix verified, and
 saying so is the alternative to a walk that covers one screen and claims five.
 
 ## THE DEVICE THAT MATTERS HERE IS THE SE
@@ -54,7 +97,7 @@ under-reports it by design.** Per §18(d), the 14 Plus covers the large end with
 
 ## STEPS
 
-### 1. `MasterclassDetail`, 14 Plus, default Dynamic Type
+### 1. `MasterclassDetail`, 14 Plus, default Dynamic Type - **NOT RUN, NO CONTENT**
 
 Energy tab → "Learn" → any masterclass. Scroll fully to the bottom.
 
@@ -64,7 +107,7 @@ read as slightly less generous than the list, **never tighter**.
 
 **FAIL:** the last element sits against the inset, or the gap reads smaller than the list's.
 
-### 2. `MasterclassDetail`, 14 Plus, 1.3× Dynamic Type
+### 2. `MasterclassDetail`, 14 Plus, 1.3× Dynamic Type — **NOT RUN, NO CONTENT**
 
 Settings → Display → Larger Text at the ceiling. Same route, scroll fully down.
 
@@ -74,7 +117,7 @@ copy does not collide with the bottom edge and nothing is clipped.
 **Note:** the padding not scaling is correct, not a defect. What is being checked is that the
 re-flowed content still clears it.
 
-### 3. `MasterclassDetail`, SE simulator, default and 1.3× — **THE STEP THAT PROVES THE FIX**
+### 3. `MasterclassDetail`, SE simulator, default and 1.3× — **NOT RUN. THE STEP THAT WOULD PROVE THE FIX**
 
 iPhone SE (3rd gen) simulator, 375 × 667 @2x.
 
@@ -103,7 +146,7 @@ gains **64pt above and below**. Then run the session to completion and compare t
 against `completionSection` on the same screen — **they should sit at the same vertical weight**,
 since that sibling is the reading the value was chosen from.
 
-### 6. Journal empty state, 14 Plus, default and 1.3×
+### 6. Journal empty state, 14 Plus, default and 1.3× — **PASSED 2026-09-14, default type**
 
 Journal tab → type a search string that matches nothing (or select a tag filter with no entries).
 
@@ -120,6 +163,12 @@ state instead.
 
 **Not the same screen as the unfiltered empty state**, which is the separate `JournalEmptyState`
 component and is untouched by this slice.
+
+**RESULT: PASSED, 2026-09-14, iPhone 14 Plus, default type (Kyle).** Searched `zzzz`. The glyph
+renders at a normal size, in proportion with the surrounding text. **1.3x was not run** and the
+step stands open at that size; nothing suggests a problem there, since the value is a fixed token
+and the surrounding text is what re-flows, but it was not looked at and this records that rather
+than folding it into the pass.
 
 ---
 
