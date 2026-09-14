@@ -672,6 +672,40 @@ import * as path from 'path';
 // praise risks over-celebrating routine completion. Recording it here because
 // "the count went down by one" does not by itself say that the twelve-string
 // alternative was considered and rejected by the owner.
+//
+// 149 UNCHANGED at journey slice 7n, 2026-09-14: +0, -0, AND THE ENTRY EXISTS
+// BECAUSE THE NUMBER DID NOT MOVE. Every other entry above records a change.
+// This one records approved copy landing FLAT, so that a reader who greps the
+// ledger for "Journey" finds the reasoning instead of finding nothing and
+// concluding the strings slipped in unexamined.
+//
+// THE STRINGS: 'Journey' (the bottom-tab label) and 'Your journey' (the journey
+// map's H1). Jen's, approved 2026-09-12. Approved content is not drafted, so
+// neither carries a sentinel and neither increments this count -- the same
+// outcome the pack rule produces for pack strings.
+//
+// BUT THE WARRANT IS THE ROADMAP, NOT CONTENT PACK v1, AND THAT DISTINCTION IS
+// THE WHOLE REASON THIS ENTRY IS LONGER THAN ONE LINE. The pack's "How to use
+// this file" rule -- approved strings enter without markers and this sentinel
+// does not increment for them -- is scoped to strings IN the pack. These two
+// are not in it. Pack §phase-descriptors routes the rename away from itself:
+// "The rename of the tab and map screen is a SEPARATE matter from these four
+// labels and is still a real build - see the roadmap board." The strings live
+// at roadmap §5 row 7n and §13 entry 2 instead. So the pack rule reaches them
+// by SUBSTANCE (they are Jen's, approved on delivery, recorded in a rank-1
+// source-of-truth document) rather than by its literal text. Kyle ruled flat on
+// 2026-09-14. A future slice landing approved copy from the roadmap rather than
+// the pack has this entry as its precedent; one landing UNAPPROVED copy does
+// not, and still increments.
+//
+// AND THE STRING THEY REPLACED WAS NEVER COUNTED EITHER, which is the fact that
+// makes -0 correct rather than merely convenient. The map title read
+// "Practices" and carried NO sentinel. The nine strings slice 5a carried over
+// from the deleted launcher are the four card labels, the four descriptors and
+// "Pick a place to start." -- the set the 5a entry above lists, and the title is
+// not in it. JourneyMapScreen.tsx's own header comment claimed those strings
+// came across "markers and all"; that claim was wrong and 7n corrected it at
+// the file. Had it been true, this entry would have been a -1.
 const EXPECTED_SENTINELS = 149;
 
 const mobileRoot = path.resolve(__dirname, '../..');

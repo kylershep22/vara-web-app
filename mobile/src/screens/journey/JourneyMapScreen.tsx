@@ -27,11 +27,18 @@
 // test pinning that shut; the page and the affordance arrive together, which is
 // what that test was holding out for.
 //
-// TITLE AND TAB LABEL ARE UNCHANGED, AND THAT IS A DECISION (roadmap section 5,
-// amendment 2026-09-09, item 4). "Practices" and "Pick a place to start." are
-// carried across from the launcher verbatim, markers and all, and both are
-// routed to Jen with the 4b hero-label question. The screen whose name IS the
-// tab is the worst place to ship an in-house replacement nobody approved.
+// TITLE AND TAB LABEL ARE RENAMED, AND THAT IS ROW 7n (2026-09-14). This title
+// reads "Your journey" and the tab reads "Journey"; both are Jen's, approved
+// 2026-09-12. "Practices" survives as the name of the runnable content library,
+// which is why the four cards below keep theirs.
+//
+// AND THE CLAIM THIS COMMENT USED TO MAKE WAS WRONG, corrected here rather than
+// deleted, because it was load-bearing for a sentinel decision. It said
+// "Practices" and "Pick a place to start." came across from the launcher
+// "markers and all". The TITLE WAS NEVER MARKED. The nine carried strings are
+// the four card labels, the four descriptors and "Pick a place to start." --
+// that is the set the sentinel ledger's 5a entry lists, and the title is not in
+// it. So renaming the title subtracted no sentinel, and the count stayed 149.
 //
 // NO GUIDE PILL, ANSWERED IN 5b-i (decision 6). Not an open question any more
 // and not a deferral: the Guide's stance, its data-access position and its
@@ -230,7 +237,7 @@ export function JourneyMapScreen() {
       <ScrollView contentContainerStyle={styles.content} testID="journey-map">
         <View style={styles.titleRow}>
           <Text style={styles.title} maxFontSizeMultiplier={Typography.maxFontScale}>
-            Practices
+            Your journey
           </Text>
         </View>
 
