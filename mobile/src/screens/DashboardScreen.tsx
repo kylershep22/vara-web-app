@@ -11,6 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Animated from 'react-native-reanimated';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTabBarInset } from '../hooks/useTabBarInset';
 import { LoadingSpinner } from '../components';
 import NotificationOptInCard from '../components/dashboard/NotificationOptInCard';
 import { ActiveRoutinePlayer } from './Time/ActiveRoutinePlayer';
@@ -62,6 +63,9 @@ import { doc, onSnapshot, type Timestamp } from 'firebase/firestore';
 import { subscribeMergedUserData } from '../services/firebase/userMigrationRead';
 
 const DashboardScreen: React.FC = () => {
+  // Bottom clearance for the floating tab bar (12.2). Not a constant; see
+  // hooks/useTabBarInset.ts for why the raw React Navigation value is short.
+  const tabBarInset = useTabBarInset();
   const { user } = useAuth();
   const {
     navigation,
@@ -453,7 +457,7 @@ const DashboardScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <Animated.ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarInset }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         {/* Header */}
@@ -823,9 +827,12 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.lg,
-    // Comfortable bottom breathing room above the tab bar (the Guide is now a
-    // top-right pill, so no bottom-FAB clearance is needed).
-    paddingBottom: Spacing['2xl'],
+    // NO BOTTOM PADDING HERE SINCE R2. The tab bar floats (12.2), so it no
+    // longer reserves its own space and the clearance is not a constant: it is
+    // the bar's height plus its offset plus a gap, which `useTabBarInset()`
+    // composes at the call site above. 6.2's fixed 48 is retired for the
+    // sixteen tab-bar-visible routes, and this screen carried exactly that 48.
+    // The Guide is a top-right pill, so there is no bottom-FAB clearance.
   },
   header: {
     // Tight gap so the greeting and the header band read as one unit

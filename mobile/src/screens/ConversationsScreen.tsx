@@ -21,6 +21,7 @@ import TextInput from '../components/shared/TextInput';
 import { Ionicons, MaterialCommunityIcons as MCIcon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTabBarInset } from '../hooks/useTabBarInset';
 import { useAuth } from '../context/AuthContext';
 import { useConversations } from '../hooks/useConversations';
 import { useConnections, useStartConversation } from '../hooks';
@@ -34,6 +35,9 @@ const SHEET_HEIGHT = SCREEN_HEIGHT * 0.78;
 const SWIPE_THRESHOLD = 80;
 
 const ConversationsScreen = () => {
+  // Bottom clearance for the floating tab bar (12.2). Used twice on this
+  // screen: for the list's scroll content here, and for the FAB's anchor.
+  const tabBarInset = useTabBarInset();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
@@ -256,7 +260,7 @@ const ConversationsScreen = () => {
             />
           )}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: tabBarInset }]}
         />
       )}
 

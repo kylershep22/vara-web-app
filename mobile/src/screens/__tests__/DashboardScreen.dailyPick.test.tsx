@@ -21,6 +21,13 @@ jest.mock('react-native-safe-area-context', () => ({
     const { View } = require('react-native');
     return <View>{children}</View>;
   },
+  // R2: the screen now reads the safe-area CONTEXT (via useTabBarInset), not
+  // only the hook, so a stub of this module has to carry it. Passed through
+  // from the real module rather than re-created, so the default value is the
+  // library's own null - which is the honest reading here, since this test
+  // renders the screen with no SafeAreaProvider above it.
+  SafeAreaInsetsContext: jest.requireActual('react-native-safe-area-context')
+    .SafeAreaInsetsContext,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('react-native-reanimated', () => ({

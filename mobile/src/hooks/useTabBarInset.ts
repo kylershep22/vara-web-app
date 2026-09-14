@@ -50,25 +50,47 @@
  * footprint on a screen with no bar on it. `Chat` uses `insets.bottom`
  * directly and says so at its call site.
  *
- * Routes WITHOUT a visible tab bar keep 6.2's fixed 48 and do not call this.
+ * OUTSIDE A BOTTOM-TAB NAVIGATOR IT RETURNS 6.2's 48, AND THAT IS THE RULE
+ * RATHER THAN A FALLBACK. `useBottomTabBarHeight()` THROWS when there is no
+ * bottom-tab ancestor, so this hook reads `BottomTabBarHeightContext` itself
+ * and handles the undefined case. The reason is not test convenience: 6.2 says
+ * "the 48 rule stands for any other fixed bottom control", so a caller with no
+ * tab bar above it is asking for exactly 48 and should receive it, not an
+ * exception. That the app's screen tests render these screens in isolation -
+ * which is the deliberate pattern here, for the reasons pillarRoutes.test.ts
+ * sets out - is a consequence of the same fact and not the motivation for it.
  */
 
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
+import { useContext } from 'react';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
-import { Layout } from '../constants';
+import { Layout, Spacing } from '../constants';
 
 /**
  * Bottom padding, in points, that clears the floating tab bar on a route where
- * it is visible. Throws if called outside a bottom-tab screen, which is
- * `useBottomTabBarHeight`'s own contract and the right failure: it means the
- * caller is not a tab-bar-visible route and should be on 6.2's 48 instead.
+ * it is visible; 6.2's fixed 48 where there is no tab bar above the caller.
  */
 export const useTabBarInset = (): number => {
-  const barHeight = useBottomTabBarHeight();
-  const insets = useSafeAreaInsets();
+  // BOTH READ AS CONTEXTS RATHER THAN THROUGH THEIR HOOKS, and symmetrically.
+  // `useBottomTabBarHeight()` throws without a tab ancestor and
+  // `useSafeAreaInsets()` throws without a SafeAreaProvider; reading the
+  // contexts keeps this hook total, and keeps both reads unconditional so the
+  // hook order never depends on where the caller is mounted.
+  const barHeight = useContext(BottomTabBarHeightContext);
+  const insets = useContext(SafeAreaInsetsContext);
 
-  const bottomOffset = Math.max(insets.bottom, Layout.tabBar.minBottomOffset);
+  // No bottom-tab ancestor: 6.2's rule for any other fixed bottom control.
+  // Returned BEFORE any inset arithmetic, because 48 is a fixed figure and
+  // must not pick up the device's bottom inset on the way past.
+  if (barHeight === undefined) {
+    return Spacing['2xl'];
+  }
+
+  const bottomOffset = Math.max(
+    insets?.bottom ?? 0,
+    Layout.tabBar.minBottomOffset
+  );
 
   return barHeight + bottomOffset + Layout.tabBar.contentGap;
 };

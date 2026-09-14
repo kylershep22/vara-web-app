@@ -16,6 +16,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTabBarInset } from '../../hooks/useTabBarInset';
 import { useNavigation } from '@react-navigation/native';
 import { Button, LoadingSpinner, Input } from '../../components';
 import { EnhancedModal, ModalFooterActions } from '../../components/shared/EnhancedModal';
@@ -59,6 +60,8 @@ const FILTER_OPTIONS: { value: FilterType; label: string }[] = [
 ];
 
 const ChallengesScreen: React.FC = () => {
+  // Bottom clearance for the floating tab bar (12.2).
+  const tabBarInset = useTabBarInset();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const [filter, setFilter] = useState<FilterType>('active');
@@ -523,7 +526,7 @@ const ChallengesScreen: React.FC = () => {
             />
           )}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: tabBarInset }]}
           ListHeaderComponent={renderListHeader}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.evergreenTeal]} />
@@ -892,7 +895,9 @@ const styles = StyleSheet.create({
   // Challenge List
   listContent: {
     paddingHorizontal: Spacing.base,
-    paddingBottom: Spacing.xl * 2,
+    // NO BOTTOM PADDING HERE SINCE R2. The floating tab bar (12.2) no longer
+    // reserves its own space, so the clearance is not a constant; it is
+    // composed by `useTabBarInset()` at the call site.
   },
 
   // Section H: Create Button

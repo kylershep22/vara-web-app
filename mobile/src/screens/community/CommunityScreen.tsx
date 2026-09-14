@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import Text from '../../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTabBarInset } from '../../hooks/useTabBarInset';
 import { LoadingSpinner, PostCard } from '../../components';
 import { PostOverflowSheet } from '../../components/community/PostOverflowSheet';
 import { EditPostModal } from '../../components/community/EditPostModal';
@@ -37,6 +38,8 @@ import { useCommunityFeed } from '../../hooks/useCommunityFeed';
 const INPUT_ACCESSORY_VIEW_ID = 'communityInputAccessory';
 
 const CommunityScreen: React.FC = () => {
+  // Bottom clearance for the floating tab bar (12.2).
+  const tabBarInset = useTabBarInset();
   const {
     user,
     navigation,
@@ -217,7 +220,7 @@ const CommunityScreen: React.FC = () => {
           renderItem={renderPost}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={renderHeader()}
-          contentContainerStyle={styles.feedContent}
+          contentContainerStyle={[styles.feedContent, { paddingBottom: tabBarInset }]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
@@ -340,7 +343,9 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
   },
   feedContent: {
-    paddingBottom: Spacing.xl,
+    // NO BOTTOM PADDING HERE SINCE R2. The floating tab bar (12.2) no longer
+    // reserves its own space, so the clearance is not a constant; it is
+    // composed by `useTabBarInset()` at the call site.
   },
   recentActivityLabel: {
     fontSize: 11,

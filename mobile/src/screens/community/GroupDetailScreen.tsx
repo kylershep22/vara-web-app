@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import Text from '../../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTabBarInset } from '../../hooks/useTabBarInset';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { LoadingSpinner, Button, PostCard } from '../../components';
 import { InviteMembersModal, CreateChallengeFromGroupModal } from '../../components/community';
@@ -40,6 +41,11 @@ type GroupDetailRouteParams = {
 const INPUT_ACCESSORY_VIEW_ID = 'groupDetailInputAccessory';
 
 const GroupDetailScreen: React.FC = () => {
+  // Floating tab bar clearance (12.2). EDGES ALSO NARROWED TO ['top'] AT R2:
+  // this was the one route of the sixteen that took a bottom inset from
+  // SafeAreaView too, and useTabBarInset() already includes insets.bottom, so
+  // keeping 'bottom' would count the home indicator twice.
+  const tabBarInset = useTabBarInset();
   const route = useRoute<RouteProp<GroupDetailRouteParams, 'GroupDetail'>>();
   const { groupId, groupName: initialGroupName } = route.params;
 
@@ -148,13 +154,16 @@ const GroupDetailScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <FlatList
         data={visiblePosts}
         renderItem={renderPost}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={renderHeader}
-        contentContainerStyle={styles.content}
+        // `styles.content` held one key, a 32pt bottom padding, and R2 retires
+        // it: the floating bar's clearance is not a constant (12.2). The entry
+        // is gone rather than left as an empty object.
+        contentContainerStyle={{ paddingBottom: tabBarInset }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
@@ -274,9 +283,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.mistWhite,
-  },
-  content: {
-    paddingBottom: Spacing.xl,
   },
   emptyState: {
     alignItems: 'center',

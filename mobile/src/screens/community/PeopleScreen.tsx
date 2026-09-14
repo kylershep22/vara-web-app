@@ -16,6 +16,7 @@ import {
 import Text from '../../components/shared/Text';
 import TextInput from '../../components/shared/TextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTabBarInset } from '../../hooks/useTabBarInset';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, LoadingSpinner, PersonCard } from '../../components';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
@@ -35,6 +36,8 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 type FilterTab = 'connections' | 'discover' | 'requests';
 
 const PeopleScreen: React.FC = () => {
+  // Bottom clearance for the floating tab bar (12.2).
+  const tabBarInset = useTabBarInset();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const [filter, setFilter] = useState<FilterTab>('connections');
@@ -329,7 +332,7 @@ const PeopleScreen: React.FC = () => {
       <FlatList
         data={displayData}
         keyExtractor={(item) => item.uid || item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: tabBarInset }]}
         ListHeaderComponent={() => (
           <>
             {/* Suggested Connections Section (only show on My Network tab) */}
@@ -635,7 +638,9 @@ const styles = StyleSheet.create({
   // ── List content ────────────────────────────────────
   listContent: {
     paddingHorizontal: 16,
-    paddingBottom: 32,
+    // NO BOTTOM PADDING HERE SINCE R2. The floating tab bar (12.2) no longer
+    // reserves its own space, so the clearance is not a constant; it is
+    // composed by `useTabBarInset()` at the call site.
   },
 
   // ── Suggestions Section ─────────────────────────────
