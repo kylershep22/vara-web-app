@@ -3339,6 +3339,20 @@ plausibly fine; plausibly fine is what a walk replaces.
 **(4) SECTION C**, opportunistic, and **the `ANDROID` row**, which now carries two R2 items
 neither of which any device has seen.
 
+**ATTESTATIONS (Kyle, 2026-09-14), verbatim:**
+
+> - Suites green at tsc 141 / jest 3643 of 230 / sentinel 149 /
+>   lint 994 errors, 1358 warnings. ATTESTED.
+> - Section A walked in full on iPhone 14 Plus, large end only;
+>   Section B (R1a's fourteen) and Section C NOT RUN, required before
+>   R3. ATTESTED.
+
+**THE SECOND ATTESTATION SAYS "LARGE END ONLY" AND THAT IS THE WHOLE OF WHAT IT CLAIMS.**
+A reader coming to this row later should not read "Section A walked in full" as "Section A
+is closed": it is walked in full **on one device at one end of a two-device matrix**, and
+§18(d) names the other end. The attestation is precise about this and so is the walk
+record; the gap is the SE, it is enumerated above, and it rolls forward.
+
 ### 2026-09-14 - slice 7n built and merged: the tab reads Journey (branch `journey/slice-7n-rename`, FIVE commits, **merged `8f76b99` on 2026-09-14**, **WALKED 2026-09-14 on an iPhone 14 Plus and a journeyed account, eleven of eleven steps passed**, plan and results at `docs/walks/7n/WALK.md`)
 
 **FIVE STRINGS MOVED AND NOTHING ELSE DID.** `tabBarLabel` Practices -> **Journey**
