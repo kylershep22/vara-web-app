@@ -2,7 +2,7 @@
 
 **Row:** journey roadmap §5 row 7n, the Journey rename.
 **Branch:** `journey/slice-7n-rename`, built 2026-09-14.
-**Walker:** Kyle. **Status:** OUTSTANDING.
+**Walker:** Kyle. **Status:** WALKED 2026-09-14, ALL ELEVEN STEPS PASSED.
 
 ---
 
@@ -31,6 +31,10 @@ gated on it and cannot run without it. Ruled by Kyle at Step 0 review,
 2026-09-14.
 
 **Reference:** the branch is committed before the walk, per the workflow rule.
+
+**AS RUN, 2026-09-14:** iPhone 14 Plus, **dev client**, default Dynamic Type,
+Kyle's journeyed account. The data gate at step 5 was met, so no step was
+deferred.
 
 ---
 
@@ -119,18 +123,35 @@ neither fixes nor worsens.
 
 ## Result
 
-*To be completed by Kyle at the walk.*
+**WALKED 2026-09-14 (Kyle). iPhone 14 Plus, dev client, default Dynamic Type,
+Kyle's journeyed account. ELEVEN OF ELEVEN PASSED. Nothing deferred, nothing
+NOT RUN.**
 
 | Step | Result | Note |
 |---|---|---|
-| 1 | | |
-| 2 | | |
-| 3 | | |
-| 4 | | |
-| 5 | | |
-| 6 | | |
-| 7 | | |
-| 8 | | |
-| 9 | | |
-| 10 | | |
-| 11 | | |
+| 1 | **PASS** | Tab reads **Journey** |
+| 2 | **PASS** | Label fits; not truncated |
+| 3 | **PASS** | Map title reads **Your journey** |
+| 4 | **PASS** | Four cards and "Pick a place to start." unchanged |
+| 5 | **PASS** | Phase path drew - **data gate met** - and the phase page opened |
+| 6 | **PASS** | Phase page back label reads **Journey** |
+| 7 | **PASS** | Focus & Time back label reads **Journey** |
+| 8 | **PASS** | Stress Recovery back label reads **Journey** |
+| 9 | **PASS** | Labels stable across tab switches |
+| 10 | **PASS** | "Other options" title unchanged |
+| 11 | **PASS** | Identical under Reduce Motion |
+
+**ALL FIVE RENAMED STRINGS SEEN BY EYE.** The coverage caveat this document
+carried before the walk is now spent: step 5's data gate was met on Kyle's
+journeyed account, so `JourneyPhase`'s back label was confirmed in place rather
+than listed as unconfirmable. **No string in this slice is held by code reading
+alone**, which is the condition R1d could not reach and the reason this row's
+account requirement was set at Step 0 rather than discovered here.
+
+**Step 4 carried the walk's only untested claim** - that the six common-noun uses
+of "practices" did not move - and it passed by eye, which is the only evidence
+available for it.
+
+**Still not covered:** the iPhone SE, which carries no new exposure from this row
+(step 2's note: "Journey" is narrower than "Practices"). Its outstanding item is
+R1d's bottom-padding defect, untouched either way by 7n.
