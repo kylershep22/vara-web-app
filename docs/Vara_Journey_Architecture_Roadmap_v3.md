@@ -3251,6 +3251,13 @@ sentinel **149** · lint **994 errors / 1358 warnings** · `brandCompliance`,
 `brandCopyGuard` and `pillarRoutes` green. **A substitution slice should move none
 of them and moved none of them.**
 
+**ATTESTATIONS (Kyle, 2026-09-14), VERBATIM:**
+
+> - Suites green at tsc 141 / jest 3595 of 227 / sentinel 149 /
+>   lint 994 errors, 1358 warnings. ATTESTED.
+> - Walk passed, all eleven steps, iPhone 14 Plus, journeyed account.
+>   ATTESTED.
+
 ---
 
 ### 2026-09-13 - R1d built: the token mirrors become aliases, and two type errors turn out to have been shipping as visual defects (branch `design/slice-r1d-token-reconciliation`, NINE commits, **merged `139ef71` on 2026-09-14**, WALKED IN PART: one step passed, five of five `Spacing['4xl']` screens outstanding)
