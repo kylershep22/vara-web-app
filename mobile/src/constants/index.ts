@@ -7,6 +7,7 @@ export { Typography, TextStyles } from './typography';
 export { Spacing, Layout } from './spacing';
 export { theme, lightTheme, darkTheme } from './theme';
 export {
+  BlurTokens,
   ColorTokens,
   TypographyTokens,
   SpacingTokens,

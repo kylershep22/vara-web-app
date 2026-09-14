@@ -9,7 +9,13 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { Colors } from '../constants';
+import { Platform, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
+import { BlurTokens, Colors, Layout } from '../constants';
+import Text from '../components/shared/Text';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import { useReduceTransparency } from '../hooks/useReduceTransparency';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { stackOpts, tabOpts } from './types';
 import { screenBoundaryLayout } from './screenBoundary';
@@ -523,6 +529,103 @@ const BottomTabsNavigator = () => {
   );
 };
 
+/* ============================================================================
+   THE FLOATING TAB BAR (R2). UI Standards 12.2, 7 and 6.2.
+   ========================================================================= */
+
+/**
+ * Zero-duration show/hide, used only when Reduce Motion is on.
+ *
+ * WHY IT IS HERE AT ALL. `BottomTabBar` animates its own visibility with an
+ * `Animated.timing` on a translateY - 250ms in, 200ms out - and that animation
+ * lives inside the library, where `useReducedMotion` cannot reach it. 18(e)
+ * covers every animation on a touched surface, not only the ones a slice wrote,
+ * so a bar that slides under Reduce Motion is a failed assertion and not a
+ * caveat. `tabBarVisibilityAnimationConfig` is the one seam the library gives
+ * us, and setting both durations to 0 turns the slide into a cut.
+ *
+ * It only ever fires on `Chat`, which is the one route that hides the bar.
+ */
+const REDUCED_MOTION_VISIBILITY = {
+  show: { animation: 'timing', config: { duration: 0 } },
+  hide: { animation: 'timing', config: { duration: 0 } },
+} as const;
+
+/**
+ * The frosted ground behind the capsule. iOS only, and only with Reduce
+ * Transparency off; every other case returns `null` and takes the opaque
+ * fallback instead.
+ *
+ * THE RADIUS AND `overflow` LIVE ON THIS WRAPPER, NOT ON THE BAR. Putting
+ * `overflow: 'hidden'` on `tabBarStyle` would clip the blur to the capsule AND
+ * clip the bar's own shadow away with it. Clipping here keeps both.
+ *
+ * TWO LAYERS, DELIBERATELY. `BlurView` alone is neutral; 12.2 asks for warm
+ * translucency, and `tabBarTranslucent` is what supplies the warmth. It is also
+ * what will keep a 12pt label legible once R3 puts environmental artwork of
+ * unknown luminance underneath - which R2 cannot measure, because that asset
+ * does not exist yet.
+ */
+const renderTabBarGlass = () => (
+  <View style={[StyleSheet.absoluteFill, tabBarStyles.glassClip]}>
+    <BlurView
+      style={StyleSheet.absoluteFill}
+      tint={BlurTokens.tabBarTint}
+      intensity={BlurTokens.tabBarIntensity}
+    />
+    <View style={[StyleSheet.absoluteFill, tabBarStyles.glassOverlay]} />
+  </View>
+);
+
+/**
+ * A tab label rendered through the SHARED TEXT PRIMITIVE, which is the whole
+ * reason the tab options carry a render function instead of `tabBarLabelStyle`.
+ *
+ * React Navigation renders a STRING label through `@react-navigation/elements`'
+ * `Label`, which is a bare React Native `Text`. It takes the navigator theme's
+ * `fonts.medium` - a system face - plus whatever `tabBarLabelStyle` supplies.
+ * The bar therefore shipped `fontWeight: '600'` with NO `fontFamily`, and React
+ * Native does not synthesise a weight from a named custom family: the four tab
+ * labels have been rendering in the system font ever since Inter landed. R1a's
+ * lint, which bars `import { Text } from 'react-native'`, could not see it -
+ * the offending import is inside `node_modules`.
+ *
+ * Going through the primitive fixes three things at once and hand-rolls none of
+ * them. It resolves the weight to a registered Inter face. It applies
+ * `Typography.maxFontScale` (1.3), which `tabBarLabelStyle` CANNOT, because
+ * `maxFontSizeMultiplier` is a prop and not a style key. And it strips the
+ * weight on Android, where the text engine would otherwise synthesise a second
+ * bold on top of an already-bold face.
+ *
+ * `numberOfLines={1}` is what `Label` did, kept. The failure mode at 1.3x is
+ * therefore truncation rather than wrap, and "Community" at 375pt is the
+ * binding case - walk step A12.
+ *
+ * DEFINED AT MODULE LEVEL, not built per render. A component created inside the
+ * options object would be a new type on every render of `FivePillarTabs` and
+ * would remount the label each time.
+ */
+const TabBarLabel = ({ label, color }: { label: string; color: string }) => (
+  <Text numberOfLines={1} style={[tabBarStyles.label, { color }]}>
+    {label}
+  </Text>
+);
+
+const tabBarStyles = StyleSheet.create({
+  glassClip: {
+    borderRadius: Layout.tabBar.radius,
+    overflow: 'hidden',
+  },
+  glassOverlay: {
+    backgroundColor: Colors.tabBarTranslucent,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+});
+
 /**
  * The bottom tab navigator — IA restructure step 2 (nav skeleton).
  *
@@ -555,8 +658,35 @@ const BottomTabsNavigator = () => {
  * shells do not mount it — there is no surface for it to describe yet.
  *
  * Icons for the two new tabs are first-pass choices, not final.
+ *
+ * R2 RESTYLED THIS BLOCK AND DELIBERATELY DID NOT RESTYLE THE DEAD ONE. The
+ * legacy `BottomTabsNavigator` above still carries the pre-R2 literals - White
+ * fill, a 1pt `borderLight` hairline, paddingBottom/Top 5, height 62 - because
+ * FOUR_PILLAR_IA has been on since 2026-07-02 and that navigator is legacy
+ * pending removal, not something to extend. The two blocks have diverged and
+ * that is correct; the note is here rather than there so it sits with the code
+ * a reader is actually editing.
  */
 const FivePillarTabs = () => {
+  const insets = useSafeAreaInsets();
+  const reduceTransparency = useReduceTransparency();
+  const reduceMotion = useReducedMotion();
+
+  // GLASS IS iOS-ONLY AND OPT-OUT-ABLE (12.2). Android takes the opaque
+  // fallback unconditionally - expo-blur on Android is a dim-and-tint
+  // approximation, not a backdrop blur - and so does anyone with Reduce
+  // Transparency on. The fallback is DESIGNED, not degraded: White, with a
+  // hairline in `divider` all the way around the capsule.
+  const useGlass = Platform.OS === 'ios' && !reduceTransparency;
+
+  // THE SAME EXPRESSION `useTabBarInset` USES, AND IT MUST STAY THAT WAY.
+  // The bar sits this far off the bottom; the sixteen routes clear the bar's
+  // height PLUS this offset PLUS a gap. Both read `minBottomOffset`, so the
+  // floor moves in one place - but a change to the SHAPE of this expression
+  // has to be made in both. On the SE, where insets.bottom is 0, the floor is
+  // the only thing holding the capsule off the screen edge.
+  const bottomOffset = Math.max(insets.bottom, Layout.tabBar.minBottomOffset);
+
   return (
     <BottomTabs.Navigator
       // PER-TAB ERROR BOUNDARY (slice 7g). Wraps all four tab scenes; the tab
@@ -571,29 +701,72 @@ const FivePillarTabs = () => {
       screenLayout={screenBoundaryLayout}
       screenOptions={{
         headerShown: false,
+        // TINTS ARE UNCHANGED. R1b-i settled both; this row adds the glyph
+        // switch beside them rather than moving either value.
         tabBarActiveTintColor: Colors.evergreenTeal,
         tabBarInactiveTintColor: Colors.textSecondary,
+        tabBarBackground: useGlass ? renderTabBarGlass : undefined,
+        tabBarVisibilityAnimationConfig: reduceMotion
+          ? REDUCED_MOTION_VISIBILITY
+          : undefined,
         tabBarStyle: {
-          backgroundColor: Colors.surface,
-          borderTopColor: Colors.borderLight,
-          borderTopWidth: 1,
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 62,
+          // THE CAPSULE (12.2: "Absolutely positioned, capsule, clear of the
+          // bottom safe area"). Geometry is walk-tuned; see Layout.tabBar.
+          //
+          // `position: 'absolute'` is what makes the bar float, and it is also
+          // what stops BottomTabView reserving space for it - which is why
+          // every tab-bar-visible route now takes its own inset from
+          // `useTabBarInset()`. The library's own base style already supplies
+          // start/end/bottom 0, so only `position` and the overrides below are
+          // ours.
+          position: 'absolute',
+          height: Layout.tabBar.height,
+          bottom: bottomOffset,
+          // marginHorizontal, NOT left/right: the base style sets `start`/`end`
+          // and mixing those with left/right is direction-dependent.
+          marginHorizontal: Layout.tabBar.marginHorizontal,
+          borderRadius: Layout.tabBar.radius,
+          // Cancel the library's edge-to-edge hairline and BOTH of the paddings
+          // the old bar set. `paddingBottom: 5` is what used to override the
+          // library's `paddingBottom: insets.bottom` and leave the labels 5pt
+          // from the screen edge, inside the home-indicator region; with the
+          // capsule lifted by `bottom` there is nothing left for it to do.
+          borderTopWidth: 0,
+          paddingTop: 0,
+          paddingBottom: 0,
+          ...Layout.shadow.lg,
+          ...(useGlass
+            ? // Glass: NO backgroundColor. Supplying `tabBarBackground` makes
+              // the library set the bar transparent for us, and setting a
+              // colour here would paint over the blur.
+              { borderWidth: 0 }
+            : {
+                backgroundColor: Colors.white,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderColor: Colors.divider,
+              }),
         },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-        },
+        // NO tabBarLabelStyle. Labels go through the shared Text primitive via
+        // `TabBarLabel`; see its comment for why a style key cannot do the job.
+        // NO tabBarBadge anywhere: the bar is chrome and never carries state a
+        // user has to clear (12.2, FourPillar IA spec).
+        // NO tabBarHideOnKeyboard: its show/hide animation is library-internal
+        // and the keyboard case exists only on Community routes, which are out
+        // of redesign scope until R6+.
       }}
     >
       <BottomTabs.Screen
         name={ROUTES.Home}
         component={DashboardScreen}
         options={tabOpts({
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="view-dashboard" size={size} color={color} />
+          tabBarLabel: ({ color }) => <TabBarLabel label="Home" color={color} />,
+          tabBarIcon: ({ focused, color, size }) => (
+            <Icon
+              name={focused ? 'view-dashboard' : 'view-dashboard-outline'}
+              size={size}
+              color={color}
+            />
           ),
         })}
       />
@@ -610,9 +783,21 @@ const FivePillarTabs = () => {
           // supporting practice. The route NAME stays
           // PillarPractices regardless: renaming a registered route breaks
           // every deep link that names it, for a cosmetic gain.
-          tabBarLabel: 'Journey',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="leaf" size={size} color={color} />
+          tabBarLabel: ({ color }) => <TabBarLabel label="Journey" color={color} />,
+          // GLYPH CHANGED AT R2, AND IT HAD TO. 12.2 requires an outline
+          // variant for the inactive state and MCI ships no `leaf-outline` -
+          // `leaf`'s only relatives are the circled and maple forms, and
+          // `leaf-circle-outline` would pop a ring in and out between states.
+          // `sprout`/`sprout-outline` is a true MCI pair, is nature-derived per
+          // 7, and reads as growth over time, which is what a journey is.
+          // The ROUTE name is untouched: ROUTES.PillarPractices does not move.
+          //
+          // Icon `name` is typed to MCI's own glyph union, so a glyph that is
+          // not in the installed set is a tsc error rather than a blank square
+          // on a device. That is what catches `leaf-outline`, which does not
+          // exist - verified by mutation at the build.
+          tabBarIcon: ({ focused, color, size }) => (
+            <Icon name={focused ? 'sprout' : 'sprout-outline'} size={size} color={color} />
           ),
         })}
       />
@@ -620,9 +805,13 @@ const FivePillarTabs = () => {
         name={ROUTES.PillarLearn}
         component={LearnHubScreen}
         options={tabOpts({
-          tabBarLabel: 'Learn',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="book-open-variant" size={size} color={color} />
+          tabBarLabel: ({ color }) => <TabBarLabel label="Learn" color={color} />,
+          tabBarIcon: ({ focused, color, size }) => (
+            <Icon
+              name={focused ? 'book-open-variant' : 'book-open-variant-outline'}
+              size={size}
+              color={color}
+            />
           ),
         })}
       />
@@ -630,9 +819,13 @@ const FivePillarTabs = () => {
         name={ROUTES.Community}
         component={CommunityNavigator}
         options={tabOpts({
-          tabBarLabel: 'Community',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="account-group" size={size} color={color} />
+          tabBarLabel: ({ color }) => <TabBarLabel label="Community" color={color} />,
+          tabBarIcon: ({ focused, color, size }) => (
+            <Icon
+              name={focused ? 'account-group' : 'account-group-outline'}
+              size={size}
+              color={color}
+            />
           ),
         })}
       />
