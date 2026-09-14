@@ -10,7 +10,11 @@ commits its walk script.
 
 ## RESULT — walked 2026-09-14 (Kyle)
 
-**iPhone 14 Plus**, dev client, default Dynamic Type. SE simulator not run.
+**iPhone 14 Plus**, dev client, default Dynamic Type. **SE: NOT WALKABLE IN THIS SETUP**
+(amended 2026-09-14 - there is no SE device and no SE simulator here; Windows, and an iOS
+simulator needs a Mac). This line read "SE simulator not run" until then, which invited a
+run that cannot happen. See §18(d) for the condition, the mitigation and what it leaves
+unverified.
 
 **PASSED: step 6** — the Journal search empty state. Searched `zzzz`; the glyph renders at a
 normal size, in proportion with the surrounding text. **It could not render at all before this
@@ -117,7 +121,7 @@ copy does not collide with the bottom edge and nothing is clipped.
 **Note:** the padding not scaling is correct, not a defect. What is being checked is that the
 re-flowed content still clears it.
 
-### 3. `MasterclassDetail`, SE simulator, default and 1.3× — **NOT RUN. THE STEP THAT WOULD PROVE THE FIX**
+### 3. `MasterclassDetail`, SE simulator, default and 1.3× — **NOT WALKABLE IN THIS SETUP. THE STEP THAT WOULD PROVE THE FIX**
 
 iPhone SE (3rd gen) simulator, 375 × 667 @2x.
 
@@ -126,7 +130,10 @@ clears the physical screen edge by that margin at both type sizes.
 
 Step 1 only proves the fix did not regress the generous case. This is the one that proves it.
 
-**If no SE simulator is available:** record the step as NOT RUN and say so. Do not read step 1's
+**AMENDED 2026-09-14: there is no SE simulator in this setup and there is not going to be
+one until the toolchain changes**, so this step is **NOT WALKABLE**, which is a stronger
+statement than not run and is why it is worth the edit. **The fix it would prove is still
+unproven.** Do not read step 1's
 pass as covering it — the whole finding is that the 14 Plus hides this.
 
 ### 4. `SleepDetail`, `Movement`, `MovementDetail` — **DEFERRED, ROUTE DARK**

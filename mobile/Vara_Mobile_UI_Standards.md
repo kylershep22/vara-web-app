@@ -214,6 +214,10 @@ Tokens are semantic: `category-role-variant`. Code exposes them as PascalCase ob
 | Dynamic Type ceiling | `src/constants/typography.ts` | `Typography.maxFontScale` (1.3). Applied by the shared text primitive (5.1); a caller passes `maxFontSizeMultiplier` only to OVERRIDE it. Added in R1a, collapsing 17 hardcoded sites: seven module-local `MAX_FONT_SCALE` consts and ten inline `1.3` literals |
 | Spacing scale, layout constants, radius, button heights | `src/constants/spacing.ts` | `Spacing`, `Layout` (radius is `Layout.borderRadius`, heights are `Layout.buttonHeight`) |
 | Flat aliases and animation values | `src/constants/designTokens.ts` | `ColorTokens` and `TypographyTokens` (aliases of `Colors` / `Typography` since R1d), `SpacingTokens` (alias of `Spacing`), `RadiusTokens` (alias of `Layout.borderRadius`), `ShadowTokens` (alias of `Layout.shadow` plus a `none` key), `SizeTokens`, `AnimationTokens` |
+| Floating-element elevation | `src/constants/spacing.ts` | `Layout.shadow.floating` - `0 8px 24px rgba(0,0,0,0.12)`, Android `elevation: 12`. Aliased into `ShadowTokens` with the rest of `Layout.shadow`. Added at R2's walk, 6.4. **Named for the role, not the size** |
+| Floating tab bar geometry | `src/constants/spacing.ts` | `Layout.tabBar` - `height` (60), `radius` (30), `marginHorizontal`, `minBottomOffset`, `contentGap`. Added in R2. **`Layout.tabBarHeight` (56) is a different key and is not what the navigator renders**; see 6.2 |
+| Floating tab bar translucent fill | `src/constants/colors.ts` | `Colors.tabBarTranslucent` (`rgba(250,250,246,0.35)`) - **a declaration, not an alias.** Mist White at 0.35; `colors.ts` carries Mist White at full alpha and at zero and at no value between, so there is nothing to point at. Aliased into `ColorTokens.tabBarTranslucent` per this section's contract. Added in R2 at 0.55, **walk-tuned to 0.35 at A0b** |
+| Floating tab bar blur | `src/constants/designTokens.ts` | `BlurTokens` - `tabBarIntensity` (40) and `tabBarTint` (`'light'`). **Declarations, not aliases, and nothing here could be one:** `tint` is one of `BlurView`'s own enum strings and `intensity` is its 0-100 scale, so no canonical Vara scale has a key either could reference. iOS only (12.2). Added in R2 |
 | Timer track tint | `src/constants/designTokens.ts` | `ColorTokens.secondaryLight` (`rgba(184, 205, 186, 0.25)`) - **a declaration, not an alias.** Silver Sage at 0.25; `colors.ts` carries 0.3, 0.4, 0.5, 0.6 and 0.8 and not this one, so there is nothing to point at. Promoting it to `colors.ts` is a scale addition and belongs to the row that owns scale additions |
 | Pomodoro timer size | `src/constants/designTokens.ts` | `TypographyTokens.fontTimerLarge` (52) - **a declaration, not an alias.** The canonical `Typography.fontSize.timer` is 48 and is what `ActiveRoutinePlayer` renders. Both sizes ship; see the Timer row in 5.2 |
 | Timer tracking | `src/constants/designTokens.ts` | `TypographyTokens.letterSpacingTimer` (-0.02) - **a declaration, not an alias, and not a point value.** An em ratio multiplied by font size at the call site; the tracking scale in 5.2 is absolute points, so there is no key this could mean |
@@ -396,9 +400,14 @@ Every spacing value is a multiple of 4. No arbitrary values.
 | `cardMargin` | 16 |
 | `inputHeight` | 48 |
 | `headerHeight` | 56 |
-| `tabBarHeight` | 56; not read by the navigator today, which sets 62 inline. The floating bar's height is [PENDING R2]; see 12.2 |
+| `tabBarHeight` | **56, NOT what the navigator renders, and read by nothing.** Legacy: written for an opaque bar that sat in the layout. A grep of `src/` at R2 found its declaration and **zero consumers**, so it is dead rather than load-bearing; it stands only because deleting an exported token is a different kind of change from restyling a bar. Removal booked to `docs/TECH_DEBT_BACKLOG.md`. Do not use it for new work |
+| `tabBar.height` | **60 - the live floating-bar height (R2).** `Layout.tabBar.height`, with `radius` 30, `marginHorizontal` 16, `minBottomOffset` 12 and `contentGap` 16 beside it. **Walk-tuned:** derived from the content box and 6.2's gutter, settled by walk assertion 18(d) on the SE at 667pt. See 12.2 |
 
 Screen rules: 16 horizontal padding on both sides, always. Vertical scroll only; horizontal scrolling is reserved for a deliberate carousel with visible affordance. 32 between major sections, 16 within. Respect safe-area insets everywhere. A scrollable region that ends above a tab bar or sticky CTA carries 48 bottom padding so the last item is never trapped. **Retired for routes where the tab bar is visible: those take their inset from `useBottomTabBarHeight()`; see 12.2. The 48 rule stands for any other fixed bottom control.**
+
+**THE RETIREMENT IS APPLIED, NOT ONLY DECLARED (R2, 2026-09-14).** All fifteen screen files behind the sixteen tab-bar-visible route slots now call `useTabBarInset()`; none carries a bottom-padding literal any more. It was a retirement of something only one of them was actually doing: **Today alone carried 48**. The journey map, Learn, `CommunityMain`, `People` and `Conversations` carried 32 or less; `ChallengeDetail` had no scroll-content padding at all and was relying on which child happened to be last; `UserProfile` had **no bottom clearance of any kind**; `ReportDetail` hardcoded `34`, an iPhone home-indicator inset that is wrong on an SE and on every Android device; and `GroupDetail` took a second bottom inset from `SafeAreaView` on top of its padding. **The walk, not this paragraph, is what confirms the sixteen are clear** - assertion 18(d), every route scrolled fully to the bottom, on both matrix devices.
+
+**Where the 48 still stands:** every route without a visible tab bar - 2.8's pushed hubs and journey surfaces, every other pushed screen, and the `ProfileNavigator` routes - plus, per the clause above, any fixed bottom control anywhere. `useTabBarInset()` returns exactly 48 when there is no bottom-tab ancestor, so the rule is one call at either kind of call site rather than two things to remember.
 
 ### 6.3 Corner radius (encodes hierarchy)
 
@@ -429,8 +438,13 @@ Code: the shadow tokens in `designTokens.ts`.
 | `sm` | `0 1px 3px rgba(0,0,0,0.04)` | Surface | Cards on Mist White |
 | `md` | `0 2px 8px rgba(0,0,0,0.06)` | Float | Elevated cards, the Guide pill, a hero card |
 | `lg` | `0 4px 16px rgba(0,0,0,0.08)` | Float | Sheets, modals |
+| `floating` | `0 8px 24px rgba(0,0,0,0.12)` | **Off-page** | The floating tab bar (12.2), and nothing else today |
 
 Shadows are structural: they say which tier a thing is on. Never on text, icons, or the logo. A card on a Dew Sage wash uses no shadow; the wash already separates it.
+
+**`floating` is a different KIND, not a bigger `lg`, which is why it is named for its role (added at R2's walk, 2026-09-14).** `sm`, `md` and `lg` all describe something that sits IN the page flow and is separated from a ground it touches - a card on Mist White, a sheet over a scrim - and a hairline of depth is the whole job. **The floating bar has content passing underneath it**, and has to keep reading as a separate plane while that happens. That wants a wider, softer, lower-slung cast: the shadow of something held above the page rather than the lift of something resting on it. Calling the key `xl` would have invited the next person to reach for it as "more `lg`" on a card, where it would read as a smudge.
+
+**Its Android value is unwalked**, per the journey roadmap's `ANDROID` pre-launch row. `elevation: 12` is Material's floating tier and matches the iOS intent, but Android elevation on a 30pt-radius view clips to the shape and can read as a hard band rather than a soft cast. It also **overrides React Navigation's own `elevation: 8`** on the tab bar's base style, so this is the value that ships there.
 
 ---
 
@@ -449,13 +463,17 @@ Shadows are structural: they say which tier a thing is on. Never on text, icons,
 | Context | Size | Color |
 | Context | Size | Color |
 |---|---|---|
-| Tab bar | 24 | Active: filled variant, Teal. Inactive: outline variant, Muted Sage Gray |
+| Tab bar | 24 | Active: filled variant, Teal. Inactive: outline variant, Muted Sage Gray. The four pairs are named in 12.2 |
 | Inline with text, list items | 20 | Muted Sage Gray, or Charcoal when it carries meaning |
 | Card accent | 24 to 32 | Teal, or the screen's one warm point |
 | Feature (onboarding, hubs) | 48 | Teal or Sage, often inside a `dewSageLight` circle |
 | Inside buttons | 20 | Inherits button text color |
 
 Rules: filled variants for active or selected states only, never as the default. Nature-derived metaphors (leaf, wave, sunrise, hill, flow) are encouraged; literal brain iconography is banned. Never a red icon. Attention states use Amber on a wash; error states use Coral.
+
+**NOT EVERY MCI GLYPH HAS AN OUTLINE VARIANT, AND THE PAIR IS PART OF THE CHOICE (recorded at R2, 2026-09-14).** MCI is not a systematically paired set. `leaf` - which this section's own list of encouraged metaphors names - **has no `leaf-outline`**: its only relatives are `leaf-circle`, `leaf-circle-outline`, `leaf-maple` and `leaf-off`, and a circled outline against a bare fill would pop a ring in and out between states. The Journey tab shipped `leaf` from the four-tab restructure until R2, which is how a glyph with no outline came to sit in the one place the outline rule is mandatory, and R2 moved it to **`sprout` / `sprout-outline`**.
+
+**So: where a state change depends on the variant - the tab bar, and any selected state - confirm the pair exists before choosing the glyph.** The installed glyph map is the authority, not the MCI website, which lists icons newer than the pinned `@expo/vector-icons`. In the navigator this is now typed: the `name` prop is MCI's own glyph union, so a nonexistent variant is a `tsc` error rather than a blank square on a device.
 
 ---
 
@@ -836,21 +854,74 @@ v2.0 specified `NativeTabs` via expo-router and a Liquid Glass posture. **The ap
 
 **Translucency and its fallback.**
 - `expo-blur` **on iOS only.** It is already a dependency and is used nowhere today.
-- **Android and Reduce Transparency get a designed opaque fallback, not a degraded one: White with a `divider` hairline top border.** This promise has been in the document since v2.0 and has never been walked; walk assertion 18(f) is what makes it checkable.
+- **THE HAIRLINE IS IN BOTH STATES, NOT ONLY THE FALLBACK (walk A0b, 2026-09-14).** The translucent capsule carries the same `divider` hairline the opaque one does, all the way around. A lower-alpha fill needs an edge **more** than a high-alpha one does: the fill is what used to define the shape, and once it stops doing that the border is what makes the capsule read as an object rather than a smudge. It is the same token, the same width and the same radius in both states. **Where it is attached differs, and only for a mechanical reason:** the library renders `tabBarBackground` inside a `StyleSheet.absoluteFill` wrapper that covers the strip a border on the bar would draw in, so the translucent branch draws its hairline as the topmost layer inside that wrapper instead. A `borderWidth` on `tabBarStyle` would be present, correct-looking and invisible there.
+- **Android and Reduce Transparency get a designed opaque fallback, not a degraded one: White, with a `divider` hairline border ALL THE WAY AROUND the capsule.** This promise has been in the document since v2.0 and has never been walked; walk assertion 18(f) is what makes it checkable. **The border is a full one, not top-only, as of R2 (2026-09-14):** "hairline top border" was written for a bar that spanned the screen, and a top-only hairline on a 30pt-radius capsule is geometry left over from a shape the bar no longer has. Note also that the fallback is a **change** from the pre-R2 bar and not a preservation of it: that bar used `borderLight` (Silver Sage at 0.3) at a full 1pt, and this is `divider` (0.4) at `StyleSheet.hairlineWidth`.
+- **Detection is `hooks/useReduceTransparency.ts`**, a sibling of `useReducedMotion`. It reads `AccessibilityInfo.isReduceTransparencyEnabled()` on mount and subscribes to `reduceTransparencyChanged`, so the bar follows the setting being toggled while the app is open as well as being launched with it already on. Both halves are walked; a hook that does one and not the other passes a casual walk and fails a real one. The setting is iOS-only and resolves `false` on Android, which costs nothing because the `Platform.OS` check forces the opaque branch there first - **but it means an Android pass is not evidence the fallback works.**
 
-**Height, capsule radius and blur intensity: [PENDING R2].** No numbers are set here. A floating bar's height is a function of the safe-area inset and the label treatment, and writing a figure before the bar exists is how a token gets hardcoded against a guess.
+**Height, capsule radius and blur intensity (set at R2, 2026-09-14).** All five live in `Layout.tabBar` and `BlurTokens` (3.3); none is written into the navigator.
 
-**Content clearance. Every route with the tab bar visible (16 today: 4 tab roots plus the 12 `CommunityNavigator` routes) takes its bottom inset from `useBottomTabBarHeight()`.** The fixed 48 in 6.2 is **retired for those routes**: a floating bar's footprint is not a constant, and 6.2's figure was written for an opaque bar that sat in the layout. `useBottomTabBarHeight` is used nowhere in the app today. Routes without a visible tab bar keep 6.2 unchanged.
+| What | Token | Value |
+|---|---|---|
+| Bar height | `Layout.tabBar.height` | **60** |
+| Capsule radius | `Layout.tabBar.radius` | **30** (height / 2: a true capsule) |
+| Horizontal margin | `Layout.tabBar.marginHorizontal` | **16**, aligned to 6.2's screen gutter |
+| Bottom offset | `Layout.tabBar.minBottomOffset` | **`max(insets.bottom, 12)`** - 34 on a device with a home indicator, 12 on an SE |
+| Blur intensity / tint | `BlurTokens.tabBarIntensity` / `.tabBarTint` | **40** / **`'light'`** |
+| Translucent fill | `Colors.tabBarTranslucent` | **Mist White at 0.35** (walk-tuned from 0.55) |
+| Elevation | `Layout.shadow.floating` | **`0 8px 24px rgba(0,0,0,0.12)`**, Android `elevation: 12` (6.4) |
+
+**These are walk-tuned figures and the walk is what settles them.** 60 comes from the content box - a 24pt icon, a 2pt gap and a 12pt label at its line height is about 41pt, which centres in 60 leaving about 9.5pt either side - and the binding case is the iPhone SE at 667pt, where `insets.bottom` is 0 and `minBottomOffset` is the only thing holding the capsule off the screen edge. **Assertion 18(d) is what confirms or moves them.** A change here after a walk is the process working, not a regression. They are tokens precisely so that tuning is one edit rather than a hunt through the navigator.
+
+**AND ONE OF THEM HAS ALREADY MOVED, WHICH IS THE CLAUSE ABOVE WORKING RATHER THAN FAILING.** The fill shipped at **0.55** and was tuned to **0.35** at walk step A0b (2026-09-14, iPhone 14 Plus). The blur was linking and doing visible work - content was legibly blurred at the bar's edge - but Mist White at 0.55 over a Mist White ground is very nearly the ground, and near enough to the card fills that **the capsule dissolved into the page while scrolling**. The fill was flattening out the effect it was meant to warm. **The blur does the work; the fill tints it.**
+
+**The order of levers, if it still reads flat.** Alpha first, then the edge, then the shadow - **not the blur intensity.** Raising `tabBarIntensity` over a near-white ground returns more near-white, because blurring Mist White gives Mist White; it is the wrong knob for a separation problem and will look like it did nothing. The intensity stays at 40 until there is a ground worth blurring, which is R3's.
+
+**THREE OF THOSE LEVERS WERE SPENT, IN THAT ORDER, AND THE THIRD CLOSED IT.** Fill `0.55 -> 0.35` (A0b, first run); the `divider` hairline added to the translucent state (same commit); `Layout.shadow.floating` replacing `Layout.shadow.lg` (A0b, second run). **A0b passed on the third and the tuning is closed** (2026-09-14, iPhone 14 Plus): the capsule reads as a distinct floating object with content scrolling behind it, checked on Today and on a Community photo post - a photo being the harder case, since it is the one ground in the app today that is neither near-white nor flat.
+
+**A fourth lever was prepared and is closed as UNNEEDED:** `tabBarTranslucent` moving from Mist White to White at about 0.5, so the bar would read brighter than the page rather than equal to it. It was held back so that the shadow could be judged on its own, and the shadow closed the gap. **The bar stays Mist White**, which is worth more than the change would have been: 4.1's derived-alpha rule holds, the translucency is Mist White's own RGB with the alpha doing all the work, and there is no hue shift against the ground to re-check when R3 changes what the ground is.
+
+**THE TRANSLUCENT STATE CASTS ITS SHADOW PROPERLY, WHICH WAS AN OPEN STRUCTURAL QUESTION AND IS NOW CLOSED.** In the translucent state the library sets the bar's `backgroundColor` to `transparent`, and iOS derives a layer's shadow from its rendered content when there is no opaque background to cast from - so it was not certain the shadow would render there at all, and a shadow that was present opaque and absent translucent would have been a restructuring job rather than a number to raise. **Measured by comparing the two states directly at A0b: comparable with Reduce Transparency off and on.** Recorded because the next person to put a shadow on a view whose background the library controls will ask the same question.
+
+**ALL OF THIS IS TUNED AGAINST MIST WHITE GROUNDS, AND THAT IS A DATED CONDITION RATHER THAN A SETTLED RESULT.** Every tab root today is Mist White or White, so the bar is being tuned to separate from near-white. **R3 puts environmental artwork under Today** (2.8, 8.1), and the same settings will read differently over it: a bar tuned to pop against near-white may read **heavy** over watercolour, and a shadow sized for a flat pale ground is the first thing that will show. **R3 re-walks A0b with the artwork beneath the bar**, and is entitled to move these values back.
+
+**Content clearance. Every route with the tab bar visible (16 today: 4 tab roots plus the 12 `CommunityNavigator` routes) takes its bottom inset from `useBottomTabBarHeight()`, THROUGH `hooks/useTabBarInset.ts`.** The fixed 48 in 6.2 is **retired for those routes**: a floating bar's footprint is not a constant, and 6.2's figure was written for an opaque bar that sat in the layout. Routes without a visible tab bar keep 6.2 unchanged.
+
+**Sixteen route slots, fifteen screen files.** The `Community` tab root IS `CommunityNavigator`, which 2.8 says carries no surface of its own, and it renders `CommunityMain` - already one of the twelve. Recorded so a checklist does not go hunting a sixteenth screen.
+
+**THE RAW HOOK IS NOT THE INSET, AND THIS CLAUSE EXISTS BECAUSE THE SENTENCE ABOVE READS AS IF IT WERE (added at R2 from its Step 0).** React Navigation reports the bar's **own measured frame** and nothing more: `BottomTabBar` attaches an `onLayout`, hands the measured height up through `BottomTabBarHeightCallbackContext`, and `BottomTabView` publishes exactly that number, which is what `useBottomTabBarHeight()` returns. An `onLayout` height excludes margin and excludes the `bottom` offset an absolutely positioned bar sits at. So the hook returns **60** while the capsule's actual footprint on a device with a home indicator is **94**. Consuming it raw leaves every one of the sixteen routes short by the offset plus the gap, and the symptom is a **trapped last item on one screen scrolled fully to the bottom** - which is R1d's defect shape, and which the 14 Plus's 34pt inset masked once already.
+
+`useTabBarInset()` composes the three terms, so this section's rule is satisfied literally and the gap is closed:
+
+> bar height (measured) + `max(insets.bottom, minBottomOffset)` + `contentGap`
+> = **110** on a 14 Plus / 16 Pro Max, **88** on an SE.
+
+**Outside a bottom-tab navigator it returns 6.2's 48**, which is 6.2's own rule ("the 48 rule stands for any other fixed bottom control") rather than a fallback: a caller with no bar above it is asking for exactly 48. That also keeps the hook total, where `useBottomTabBarHeight()` throws.
+
+**A hidden bar still reports its height.** `tabBarStyle: { display: 'none' }` does not make the hook return 0 - `getTabBarHeight` short-circuits on the numeric `height` and never reads `display`. **A route that hides the bar must use `insets.bottom` directly**, or it reserves a phantom inset for a bar that is not on screen. `Chat` is the one such route today and does exactly that.
 
 **No badges, counts or dots on the bar**, per `docs/Vara_FourPillar_IA_Spec.md`. The bar is chrome; it never carries state the user has to clear.
 
 **Icons and labels.** Active: **filled** MCI variant, Teal, with a 12pt Teal label. Inactive: **outline** variant, Muted Sage Gray, with a Muted Sage Gray label (7). Tab switch: instant content swap, no transition, light haptic.
 
+**The four glyph pairs, named (R2):** `view-dashboard` / `view-dashboard-outline` (Today), **`sprout` / `sprout-outline`** (Journey), `book-open-variant` / `book-open-variant-outline` (Learn), `account-group` / `account-group-outline` (Community).
+
+**The Journey tab is NOT a leaf, and 7's own rule is why.** MCI ships no `leaf-outline`; `leaf`'s only relatives are the circled and maple forms, and `leaf-circle-outline` would pop a ring in and out between states. There is therefore no way to satisfy the outline-inactive rule with a leaf. `sprout` is a true pair, is nature-derived per 7, and reads as growth over time. **The route name does not move: `ROUTES.PillarPractices` is unchanged**, here as in 7n.
+
+**Why filled-versus-outline is load-bearing and not decoration.** Before R2 no tab read `focused` at all, so active and inactive differed only by hue - `#1B5E57` against `#56655D`, two dark desaturated greens - plus the label. A glyph switch is a **shape** difference: it survives colour blindness, survives a glance without reading labels, and survives any later move of either tint. It is why the `#6F7F77` inactive-icon token held in reserve since R1b-i is **not built**.
+
+**Labels render through the shared text primitive (5.1), via a `tabBarLabel` render function rather than `tabBarLabelStyle`.** React Navigation renders a string label through a bare React Native `Text` carrying the navigator theme's system face, so `tabBarLabelStyle`'s `fontWeight` selected nothing from Inter and **the four tab labels shipped in the system font from the day Inter landed until R2**. The R1a lint could not see it: the offending import is inside `node_modules`. The render function is also the only way the labels can carry `maxFontSizeMultiplier`, which is a prop and not a style key, so before R2 they were **uncapped** against 5.3's 1.3x ceiling. They keep `numberOfLines={1}`, so the failure at 1.3x is truncation rather than wrap.
+
 **Content surfaces never use glass.** Cards, Today, hubs, sheets and sessions stay opaque Mist White, White and Dew Sage. Translucency belongs to the floating bar and nowhere else. An immersive Today (11E) is artwork, not glass, and the distinction matters under Reduce Transparency: artwork renders identically, glass does not.
 
 **Frozen, and owned by React Navigation rather than by this document:** routing, tab state, route names, tab order, lazy mounting, and `screenLayout` error-boundary placement. **R2 restyles the bar. It does not touch any of those.**
 
-**Visibility is unchanged:** the tab bar is hidden during sessions (template G) and on pushed screens.
+**Visibility:** the tab bar is hidden during sessions (template G) and on pushed screens. Both are navigator nesting rather than a setting - a pushed screen is a native-stack card above the whole tab navigator - so there is nothing to configure and nothing that can drift.
+
+**ONE ROUTE HIDES IT DELIBERATELY: `Chat` (added at R2, 2026-09-14).** A keyboard-driven composer under a floating translucent bar is a composition problem and not an inset: the bar sits over the input, and lifting the input past it buys nothing. With the bar gone the composer is the screen's bottom edge, takes `insets.bottom` directly, and the screen is simply simpler. **`Chat` is the only exception, and adding another is an edit to this clause.**
+
+**It is hidden from the TAB, not from the screen, and that is a correctness point rather than a style one.** `Chat` is registered on `CommunityStack`, a native stack, and `tabBarStyle` is a bottom-tab option that a native-stack screen does not read. Written on the `Chat` registration it would be **inert** - it would look exactly like the rule being applied and would do nothing at all. The tab that owns the nested stack reads the focused route and spreads `tabBarStyle: { display: 'none' }` in only when it applies. **Setting the key to `undefined` otherwise is also wrong**, because a key present in a screen's options wins over `screenOptions` even when its value is undefined, and would blank the capsule's whole style on every other Community route.
+
+**`tabBarHideOnKeyboard` is not set, and that is a decision.** Its show and hide run an `Animated.timing` inside `@react-navigation/bottom-tabs`, where `useReducedMotion` cannot reach it, and 18(e) covers every animation on a touched surface rather than only the ones a slice wrote. The keyboard-up case exists on three Community routes, which 2.8 marks retained-as-is until R6+; setting it would buy a Community-only fix at the price of an unreducible animation app-wide. `tabBarVisibilityAnimationConfig` is set to zero durations under Reduce Motion as a standing guard, and **has no trigger today** - `display: 'none'` is instant.
 
 ### 12.3 Top navigation
 
@@ -1042,7 +1113,19 @@ Each assertion has a pass condition. **A walk reports each one by number, pass o
 
 **(d) Floating bar clearance.** The bar is clear of content **on the smallest and the largest supported device**, scrolled fully to the bottom, **on every tab**.
 
-> **The device matrix, so the assertion is checkable.** **Smallest: iPhone SE (3rd generation), 375 x 667 pt at @2x, 750 x 1334 px. Largest: iPhone 16 Pro Max, 430 x 932 pt at @3x, 1290 x 2796 px.** **Physical or simulator, either is acceptable, and the walk records which**, because (d) is geometry and not rendering fidelity: a simulator reproduces point dimensions, scale factor and safe-area insets exactly, and those are the whole of what the assertion tests. **Kyle's physical walk device is an iPhone 14 Plus (428 x 926 pt at @3x, 47pt notch), which is neither matrix entry but sits within 2pt of the 16 Pro Max and therefore covers the large end for every width-sensitive assertion; the SE end is walked on simulator.** Recorded here (R1b-i, 2026-09-13) so a walk naming the 14 Plus is read as the large end covered and the small end outstanding, rather than as one of the two. **Its 47pt notch is its own case and proxies neither entry**: it falls between the SE's 20pt status bar and the Pro Max's 59pt Dynamic Island, so a top-inset finding seen on it is not the worst case and one absent from it is not cleared.
+> **The device matrix, so the assertion is checkable.** **Smallest: iPhone SE (3rd generation), 375 x 667 pt at @2x, 750 x 1334 px. Largest: iPhone 16 Pro Max, 430 x 932 pt at @3x, 1290 x 2796 px.** **Physical or simulator, either is acceptable, and the walk records which**, because (d) is geometry and not rendering fidelity: a simulator reproduces point dimensions, scale factor and safe-area insets exactly, and those are the whole of what the assertion tests. **Kyle's physical walk device is an iPhone 14 Plus (428 x 926 pt at @3x, 47pt notch), which is neither matrix entry but sits within 2pt of the 16 Pro Max and therefore covers the large end for every width-sensitive assertion; the SE end is not walked; there is no SE device or simulator in this setup, and small-end risk is monitored through beta and support feedback until one exists (Kyle, 2026-09-14).** Recorded here (R1b-i, 2026-09-13) so a walk naming the 14 Plus is read as the large end covered and the small end outstanding, rather than as one of the two.
+
+> **THE MATRIX IS UNCHANGED AND THE SMALL END IS UNWALKABLE, WHICH ARE TWO DIFFERENT FACTS (amended 2026-09-14).** The SE stays the smallest supported device and stays in the matrix above: it is what 375 x 667 at @2x means, and it is still the right target. What changed is that **no walk can reach it in this setup** - the toolchain is Windows, and an iOS simulator needs a Mac. **A walk step naming the SE reads "not walkable in this setup", never "not run"**, because the two mean different things to whoever reads the record next: "not run" invites someone to run it, and "not walkable" says the gap needs a machine before it needs a walker.
+>
+> **WHAT THIS LEAVES UNVERIFIED, ENUMERATED SO IT IS A KNOWN GAP RATHER THAN AN ASSUMED PASS.** Each of these is binding at the small end and is **not** proxied by the 14 Plus:
+>
+> - **`Layout.tabBar.minBottomOffset` at a 0pt bottom inset.** On a device with a home indicator the floating bar is lifted by `insets.bottom` (34pt) and the 12pt floor never engages. On the SE the floor is the **only** thing holding the capsule off the screen edge, so the one value it exists for has never been exercised.
+> - **18(d) itself at 667pt.** The SE is the shortest current iPhone as well as the narrowest; bottom clearance scrolled fully down is a function of both, and a pass at 926pt does not carry.
+> - **18(g)'s @2x half.** The matrix spans both scale factors because a raster background resolves differently at each. Only @3x has been walked.
+> - **`ChatScreen`'s `keyboardVerticalOffset`.** Hardcoded at 90, which assumes a 47pt notch plus a stack header. On a 20pt status bar it is roughly 26pt too much. The SE is the discriminating device and its TECH_DEBT item cannot close without one.
+> - **Tab-label truncation at 375pt, and "Community" is the binding string.** Labels render `numberOfLines={1}`, so the failure mode is truncation rather than wrap. The bar is 53pt narrower on an SE and the labels are in Inter as of R2, whose metrics are not the system font's. **Passing at 428pt does not clear this**, at default type or at 1.3x.
+>
+> **The mitigation is beta and support feedback, and it is a mitigation rather than a substitute.** None of the five above is a thing a user reports clearly: a trapped last row, a clipped label and a composer sitting 26pt high all read as "it looks a bit off" rather than as a bug with a name. **Whoever acquires a Mac or an SE runs these five first.** **Its 47pt notch is its own case and proxies neither entry**: it falls between the SE's 20pt status bar and the Pro Max's 59pt Dynamic Island, so a top-inset finding seen on it is not the worst case and one absent from it is not cleared.
 >
 > **Why these two.** The SE is the narrowest and the shortest current iPhone, so one device is the binding case for horizontal layout at 375pt (hub card rows, nav labels, 5.4's 65 to 75 character line length) and for bottom clearance at 667pt scrolled fully down, at the same time. The 16 Pro Max is the tallest and the widest. The matrix also spans **both scale factors, @2x and @3x**, which (g) needs: a raster background resolves differently at each.
 >
@@ -1258,6 +1341,66 @@ The design-authority reconciliation for the visual redesign, journey roadmap row
     that did not exist when it was written falsifies the record. Appendix B's own rule -
     each block is never rewritten by a later one - is the rule being followed here, not an
     exception to it.
+
+### Amendments at R2, the floating navigation (2026-09-14)
+
+**Not a version bump. v2.1 is still the version**; these are the clauses R2 was
+authorised to fill in, plus four findings from its Step 0 that changed what the
+existing text said. Recorded as its own dated block per this appendix's rule that a
+block is never rewritten by a later one.
+
+- **12.2's `[PENDING R2]` is resolved.** Height 60, capsule radius 30, horizontal
+  margin 16, bottom offset `max(insets.bottom, 12)`, blur intensity 40 at tint
+  `'light'` - all as tokens (3.3), none written into the navigator, and all recorded
+  as **walk-tuned proposals** that assertion 18(d) settles. The two `[PENDING R2]`
+  mentions still in the v2.0-to-v2.1 block above are **left standing**: they record
+  what was true at R0 and are history, not a live tag.
+
+- **12.2 gains the `useTabBarInset` clause, and it is a correction rather than an
+  addition.** "Takes its bottom inset from `useBottomTabBarHeight()`" is not
+  sufficient on its own: React Navigation publishes the bar's own **measured frame**,
+  which excludes the `bottom` offset an absolutely positioned bar sits at. The raw
+  hook returns 60 where the footprint is 94, and consuming it directly would have left
+  all sixteen routes short - R1d's defect shape, reproduced sixteen times.
+
+- **12.2's opaque fallback border is now a FULL hairline, not top-only.** "Hairline
+  top border" was written for a bar that spanned the screen. The clause also now
+  states that the fallback is a **change** from the pre-R2 bar rather than a
+  preservation of it: that bar used `borderLight` at a full 1pt, and this is `divider`
+  at `StyleSheet.hairlineWidth`.
+
+- **12.2's visibility clause gains `Chat`**, the one route that hides the bar, with
+  the reason (a keyboard composer under a floating translucent bar is a composition
+  problem, not an inset) and the mechanism. The mechanism is in the standards because
+  the obvious implementation is **inert**: `Chat` is on a native stack, which does not
+  read `tabBarStyle`, so the hiding has to come from the tab that owns the stack.
+
+- **12.2 names the four glyph pairs, and 7 gains the rule behind one of them.** MCI is
+  not a systematically paired set: **`leaf` has no `leaf-outline`**, so the glyph the
+  Journey tab had been carrying could not satisfy 12.2's outline-inactive rule at all.
+  It is now `sprout` / `sprout-outline`. 7 now says to confirm the pair exists before
+  choosing a glyph for anything whose state depends on the variant.
+
+- **12.2 records that the tab labels were not in Inter.** React Navigation renders a
+  string label through a bare RN `Text` carrying the theme's system face, so
+  `tabBarLabelStyle`'s `fontWeight` selected nothing and the four labels shipped in
+  the system font from R1a until R2 - invisible to R1a's lint, because the import is
+  inside `node_modules`. They also carried no `maxFontSizeMultiplier`, which a style
+  key cannot supply, so they were **uncapped against 5.3's 1.3x ceiling**.
+
+- **6.2's `tabBarHeight` row is rewritten and its 48 retirement is confirmed as
+  applied.** 56 is legacy, is not what the navigator renders, and a grep at R2 found
+  **zero consumers** - so it is dead rather than load-bearing, and its removal is
+  booked to `docs/TECH_DEBT_BACKLOG.md`. The retirement of the fixed 48 turned out to
+  retire something only **one** of the sixteen routes was doing: Today alone carried
+  48, one screen had no bottom clearance of any kind, and one hardcoded `34`.
+
+- **3.3 gains three rows**, for `Layout.tabBar`, `Colors.tabBarTranslucent` and
+  `BlurTokens`, landed in the same commit as the tokens per 3.3's own rule.
+
+**What R2 did NOT change:** routing, tab state, route names, tab order, lazy mounting,
+`screenLayout` placement, both tint values, and the legacy `BottomTabsNavigator`, which
+keeps its pre-R2 literals because it is retired IA that does not mount.
 
 ### What changed from v1.0 to v2.0 (August 2026)
 

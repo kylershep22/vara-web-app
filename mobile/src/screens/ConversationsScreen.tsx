@@ -21,6 +21,7 @@ import TextInput from '../components/shared/TextInput';
 import { Ionicons, MaterialCommunityIcons as MCIcon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTabBarInset } from '../hooks/useTabBarInset';
 import { useAuth } from '../context/AuthContext';
 import { useConversations } from '../hooks/useConversations';
 import { useConnections, useStartConversation } from '../hooks';
@@ -34,6 +35,9 @@ const SHEET_HEIGHT = SCREEN_HEIGHT * 0.78;
 const SWIPE_THRESHOLD = 80;
 
 const ConversationsScreen = () => {
+  // Bottom clearance for the floating tab bar (12.2). Used twice on this
+  // screen: for the list's scroll content here, and for the FAB's anchor.
+  const tabBarInset = useTabBarInset();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
@@ -256,13 +260,21 @@ const ConversationsScreen = () => {
             />
           )}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: tabBarInset }]}
         />
       )}
 
-      {/* FAB for New Message */}
+      {/*
+        FAB RE-ANCHORED AT R2. `styles.fab` sat at `bottom: Spacing.lg` (24),
+        which worked only because the opaque bar ended where it began. Under a
+        60pt capsule lifted 34pt off the bottom on a 14 Plus, a FAB at 24 is
+        WHOLLY BEHIND the bar. `useTabBarInset()` already carries the bar's
+        height, its offset and the gap, so it is the anchor here as well as the
+        scroll inset above - the only bottom-anchored control in the sixteen
+        that actually collides.
+      */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { bottom: tabBarInset }]}
         onPress={openSheet}
         activeOpacity={0.8}
       >
@@ -493,7 +505,9 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: Spacing.lg,
-    bottom: Spacing.lg,
+    // `bottom` comes from useTabBarInset() at the call site (12.2). It is not
+    // a constant: the floating bar's footprint depends on the device inset.
+
     width: 56,
     height: 56,
     borderRadius: 9999,

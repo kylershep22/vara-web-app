@@ -60,6 +60,7 @@ export const ColorTokens = {
   // Derived colors with opacity
   primaryLight: Colors.tealLight,        // Teal tint backgrounds for selected states
   disabled: Colors.textDisabled,         // Disabled elements
+  tabBarTranslucent: Colors.tabBarTranslucent, // Floating tab bar's warm overlay (R2; 12.2)
 
   // NOT AN ALIAS, AND THE ONLY ONE IN THIS OBJECT.
   // Silver Sage at 0.25. `colors.ts` carries Silver Sage at 0.3, 0.4, 0.5, 0.6
@@ -137,6 +138,28 @@ export const RadiusTokens = Layout.borderRadius;
 export const ShadowTokens = {
   none: {},
   ...Layout.shadow,
+} as const;
+
+// ===========================================
+// BLUR TOKENS (R2). UI Standards 12.2.
+//
+// NOT ALIASES, AND THERE IS NOTHING TO ALIAS. These are `expo-blur` inputs, not
+// colours or sizes: `tint` is one of BlurView's own enum strings and
+// `intensity` is its 0-100 scale. No canonical Vara scale has a key for either,
+// so this object is their declaration, in the same shape and for the same
+// reason as `ColorTokens.secondaryLight` and the two timer values below.
+//
+// iOS ONLY. 12.2 rules `expo-blur` out on Android, which takes the opaque
+// fallback unconditionally, so nothing reads these there.
+//
+// INTENSITY IS WALK-TUNED. 40 is a proposal. Over today's Mist White grounds
+// the blur will be very nearly invisible and that is the correct result, not a
+// bug to fix by raising this number - the bar has nothing interesting to blur
+// until R3's environmental artwork lands underneath it.
+// ===========================================
+export const BlurTokens = {
+  tabBarIntensity: 40,
+  tabBarTint: 'light',
 } as const;
 
 // ===========================================

@@ -16,6 +16,7 @@ import {
 import Text from '../../components/shared/Text';
 import TextInput from '../../components/shared/TextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTabBarInset } from '../../hooks/useTabBarInset';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Button, LoadingSpinner, Card } from '../../components';
 import { InviteMembersModal } from '../../components/community';
@@ -56,6 +57,14 @@ const getCheckInPrompt = (category?: string): string => {
 };
 
 const ChallengeDetailScreen: React.FC = () => {
+  // Bottom clearance for the floating tab bar (12.2).
+  //
+  // THIS SCREEN HAD NO SCROLL-CONTENT PADDING AT ALL. Its ScrollView carried a
+  // `style` and no `contentContainerStyle`, so what kept the last control off
+  // the old opaque bar was `actionsSection`'s own 32pt bottom padding - a
+  // coincidence of the last child, not a clearance. Step 0 found it; it gains
+  // a real contentContainerStyle here.
+  const tabBarInset = useTabBarInset();
   const {
     navigation,
     challenge,
@@ -129,6 +138,7 @@ const ChallengeDetailScreen: React.FC = () => {
 
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={{ paddingBottom: tabBarInset }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.evergreenTeal]} />
         }

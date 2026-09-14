@@ -8,12 +8,26 @@ import {
   View,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
 } from 'react-native';
+// SAFE AREA FROM `react-native-safe-area-context`, NOT FROM `react-native`
+// (R2). The RN component applies on iOS only and applies ALL FOUR edges; on
+// Android it is a plain View, and app.json sets `edgeToEdgeEnabled: true`
+// there, so this screen was drawing under the system bars with nothing
+// reserving space. The context version is what the other 80 files in `src/`
+// already use, and `edges` makes the choice explicit rather than implied.
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Text from '../../components/shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 
+// NO TAB-BAR INSET ON THIS SCREEN, AND THAT IS A DECISION.
+//
+// It is the sixteenth route and it has no scroll region: the content is a
+// single centred block in a `flex: 1` container. There is nothing whose last
+// item could be trapped, so `useTabBarInset()` would only push a centred
+// message off centre. 18(d) still applies - the walk confirms the confirmation
+// text and its button are not OCCLUDED by the floating bar - but occlusion is
+// checked by eye here rather than prevented by padding.
 const ReportConfirmationScreen = ({ navigation }: any) => {
   const handleReturn = () => {
     // Pop all 3 report screens to get back to the community feed
@@ -21,7 +35,7 @@ const ReportConfirmationScreen = ({ navigation }: any) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Close button */}
       <TouchableOpacity
         style={styles.closeButton}

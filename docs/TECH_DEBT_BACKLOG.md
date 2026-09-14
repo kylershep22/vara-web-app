@@ -2062,3 +2062,141 @@ roadmap preamble (reachability has two gates; a Step 0 that calls a
 screen walkable checks both and says which) holds the line until then,
 but it puts the work on every Step 0 instead of in the document that
 exists to save it.
+
+---
+
+## `Layout.tabBarHeight` (56) is dead and still exported
+
+**Source:** R2 Step 0 and build, 2026-09-14.
+
+`src/constants/spacing.ts:69`. It was written for an opaque bar that sat
+in the layout. **The navigator has never read it**, and since R2 the bar
+is a floating capsule whose live height is `Layout.tabBar.height` (60).
+
+**A grep of `src/` at R2 found the declaration and ZERO consumers.** It is
+not kept for its callers; it has none. R2's first draft of this note
+claimed it did, which is worth recording because it is the kind of
+plausible sentence that survives review — the check took one grep.
+
+**Scope:** delete the key; confirm the grep still returns nothing; remove
+its row from UI Standards 6.2, which currently documents it as legacy
+rather than absent. **The web app has its own copy at
+`src/constants/spacing.js:48`** and is dormant; that one is not this
+item's business, and touching it needs Kyle per the root `CLAUDE.md`.
+
+**Priority:** low. It is dead weight, not a defect. Bundle with any pass
+already editing `spacing.ts`.
+
+---
+
+## `MessagesScreen` is imported by the navigator and mounted nowhere
+
+**Source:** R2 Step 0, 2026-09-14.
+
+`src/navigation/AppNavigator.tsx:95` imports `MessagesScreen` from the
+community barrel. **Nothing mounts it.** The `Conversations` route uses
+`ConversationsScreen` from `src/screens/ConversationsScreen`, and the
+comment on that registration still reads *"MessagesScreen has custom
+header"* — so the file, the import and the comment all point at a screen
+that is not the one rendering.
+
+It is one of the seven standing eslint errors in that file
+(`@typescript-eslint/no-unused-vars`), so removing the import is worth
+**-1 on the lint error baseline**.
+
+**Worth knowing before deleting the file itself:** `MessagesScreen.tsx`
+has a FAB at `bottom: Spacing.lg`, the same anchor R2 had to fix on
+`ConversationsScreen` because a floating bar sits over it. If the file is
+ever relit rather than deleted, that FAB is already wrong.
+
+**Scope:** remove the import; correct the stale comment; decide whether
+the file is deleted or kept, and say which and why.
+
+**Priority:** low, but it is three lines and it buys a lint error back.
+
+---
+
+## `ChatScreen`'s `keyboardVerticalOffset` is a per-device constant hardcoded for one device
+
+**Source:** R2 build, 2026-09-14 (ruling 2 asked for it to be re-checked).
+
+`src/screens/ChatScreen.tsx`, `keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}`.
+
+90 assumes a 47pt notch plus a roughly 44pt stack header — **an iPhone 14
+Plus, which is Kyle's device and neither entry in 18(d)'s matrix**. On an
+SE (20pt status bar) it is about 26pt too much; on a 16 Pro Max (59pt
+Dynamic Island) about 12pt too little.
+
+**R2 deliberately did not change it.** It is a distance from the TOP of
+the window, so the bar moving at the bottom does not affect it; changing
+it is a magic-number fix this row did not introduce and could not verify
+without both ends of the matrix. The assumption is now written at the
+call site rather than left implicit.
+
+**Scope:** replace with `insets.top + headerHeight`, then verify on both
+matrix devices with the keyboard up. Note that 12.3 puts the top nav at 44
+excluding the status bar while `Layout.headerHeight` is 56 — **those two
+disagree, and that disagreement is part of this item**, not something to
+paper over by picking one.
+
+**Priority:** after R2's walk step A11 reports what the gap actually looks
+like on the SE. If A11 passes on both devices this is cosmetic; if it
+fails, it is the fix.
+
+---
+
+## The new-message sheet opens unusable: keyboard up, header off-screen, no way out
+
+**Source:** found while running R2's walk step A5b, 2026-09-14, iPhone 14 Plus (Kyle).
+**NOT R2's defect and not fixed there.** See the scope note at the bottom.
+
+### What was seen
+
+Tapping the FAB on `Conversations` opens the new-message surface **with the keyboard
+already raised**, the search field **scrolled up under the status bar**, and **no visible
+header and no visible way to dismiss the screen**. It is unusable as it stands: the close
+control exists in the markup but is not on screen.
+
+### It is a MODAL SHEET, not a screen, and looking for a screen file will waste a pass
+
+There is no route and no screen component for this. It is a `<Modal>` rendered inside
+`src/screens/ConversationsScreen.tsx` and opened by `openSheet` (`:59`), which is also
+what the FAB (`:278`) and the empty state's action (`:236`) call. Anyone grepping the
+navigator for a "new message" screen will find nothing.
+
+### Likely causes, to CHECK rather than to assume
+
+These are candidates read off the source after the walk, **not a confirmed diagnosis**.
+Nobody has reproduced this under a debugger, and the first job when this is picked up is
+to establish which of them is actually responsible - a fix that makes the symptom go away
+proves the fix, not the cause.
+
+1. **The keyboard autofocuses on mount.** `autoFocus` on the sheet's search `TextInput`
+   (`:358`). This is what makes the state arrive immediately rather than after a tap, and
+   it is why the screen is broken on arrival rather than broken after interaction.
+2. **The sheet's `KeyboardAvoidingView` has no `keyboardVerticalOffset`** (`:292-294`,
+   `behavior: 'padding'` on iOS). A bottom-anchored sheet of near-full height, padded
+   from the bottom by the keyboard's full height, is pushed up by that amount - which is
+   consistent with the header and the drag handle travelling off the top of the screen.
+3. **The sheet has no top safe-area handling of its own.** `sheetHeader` (`:553`) carries
+   a flat `paddingTop: 24` and no `insets.top`, and the `Modal` sets
+   `statusBarTranslucent` (`:289`), so nothing is reserving the status bar.
+
+**(2) and (3) compound**: the first moves the header up, the second means there is no
+inset stopping it at the status bar.
+
+### Scope
+
+- **A COMMUNITY SURFACE**, which UI Standards 2.8 marks **FOCUS, retained as-is, out of
+  redesign scope until R6+**. It is not a redesign job and should not be folded into one.
+- **IT PREDATES R2.** `autoFocus`, the `KeyboardAvoidingView` and the header's padding are
+  all unchanged by that slice.
+- **R2 TOUCHED ONLY THE FAB'S ANCHOR** on the screen behind this sheet - `bottom` moved
+  from a literal `Spacing.lg` to `useTabBarInset()` (`6e9a590`), so the FAB clears the
+  floating capsule. It changed nothing about what the FAB opens. A5b, the step that found
+  this, **passed**: the FAB is clear and tappable, which is how the sheet got opened.
+
+**Priority:** higher than its position in this file suggests. It is not cosmetic - the
+surface cannot be dismissed without backgrounding the app - and it is reachable from two
+entry points on a shipped screen. It wants its own slice rather than a bundle, because
+the fix is a behaviour change on a surface that is otherwise frozen until R6+.

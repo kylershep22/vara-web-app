@@ -17,6 +17,7 @@ import Text from '../../components/shared/Text';
 import { Ionicons, MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTabBarInset } from '../../hooks/useTabBarInset';
 import { ProfileHeader } from '../../components';
 import { Colors as colors, Spacing as spacing, Layout } from '../../constants';
 import { db } from '../../config/firebase';
@@ -43,6 +44,14 @@ interface UserProfileData {
 }
 
 const UserProfileScreen = () => {
+  // Bottom clearance for the floating tab bar (12.2).
+  //
+  // THIS SCREEN HAD NO BOTTOM CLEARANCE OF ANY KIND - not a
+  // contentContainerStyle, not a SafeAreaView bottom edge, not a trailing
+  // margin. Its last row sat directly against the old opaque bar and would
+  // have sat UNDER the floating one. It is the worst of the sixteen and is
+  // walked first.
+  const tabBarInset = useTabBarInset();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -180,7 +189,10 @@ const UserProfileScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollContainer}>
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={{ paddingBottom: tabBarInset }}
+      >
         <ProfileHeader
           avatarUrl={profile.avatarUrl}
           bannerUrl={profile.bannerUrl}

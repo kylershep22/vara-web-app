@@ -19,6 +19,7 @@ import {
 import Text from '../../components/shared/Text';
 import TextInput from '../../components/shared/TextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTabBarInset } from '../../hooks/useTabBarInset';
 import { useNavigation } from '@react-navigation/native';
 import { Button, LoadingSpinner, Input, GroupCard } from '../../components';
 import { InvitePermissionPicker, InvitePermission } from '../../components/community';
@@ -38,6 +39,11 @@ import { GroupCategory, GroupInvite } from '../../types/models';
 import { getAllPendingInvites, acceptGroupInvite, declineGroupInvite } from '../../services/firebase/invites.service';
 
 const GroupsScreen: React.FC = () => {
+  // Bottom clearance for the floating tab bar (12.2). BOTH lists below take it:
+  // this screen renders a search-results list and a groups list, and only one
+  // of them is mounted at a time, so missing either leaves half the screen
+  // trapping its last row.
+  const tabBarInset = useTabBarInset();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const [filter, setFilter] = useState<'my' | 'discover' | 'invites'>('my');
@@ -352,7 +358,7 @@ const GroupsScreen: React.FC = () => {
               </View>
             )}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingBottom: tabBarInset }]}
           />
         )
       ) : (
@@ -404,7 +410,7 @@ const GroupsScreen: React.FC = () => {
               />
             )}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingBottom: tabBarInset }]}
             ListFooterComponent={
               <TouchableOpacity
                 style={styles.inlineCreateButton}
@@ -696,7 +702,9 @@ const styles = StyleSheet.create({
   // Groups List
   listContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl * 2,
+    // NO BOTTOM PADDING HERE SINCE R2. The floating tab bar (12.2) no longer
+    // reserves its own space, so the clearance is not a constant; it is
+    // composed by `useTabBarInset()` at the call site.
   },
 
   // Empty State

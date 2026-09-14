@@ -16,6 +16,7 @@ import Text from '../components/shared/Text';
 import TextInput from '../components/shared/TextInput';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useConversation } from '../hooks/useConversations';
 import { Colors, Spacing, Typography, Layout } from '../constants';
@@ -50,6 +51,15 @@ type ListItem =
   | { type: 'dateDivider'; date: Date; id: string };
 
 const ChatScreen = () => {
+  // NOT `useTabBarInset()`, AND THAT IS THE POINT (Step 0, the phantom-inset
+  // trap). This route hides the tab bar - AppNavigator registers it with
+  // `tabBarStyle: { display: 'none' }` - but `display` does not make
+  // `useBottomTabBarHeight()` report 0: `getTabBarHeight` short-circuits on the
+  // numeric `height` and never looks at `display`. The hook would hand back the
+  // full 110pt footprint of a bar that is not on screen, and the composer would
+  // float that far above the keyboard for no reason. With no bar here, the
+  // composer IS the screen's bottom edge and takes the raw safe-area inset.
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
@@ -242,6 +252,20 @@ const ChatScreen = () => {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      // RE-CHECKED AT R2 AND LEFT AS IT IS, WITH ITS ASSUMPTION WRITTEN DOWN.
+      //
+      // 90 is a distance from the top of the window, so it is unaffected by the
+      // bar moving at the bottom - which is why R2 does not change it. What it
+      // assumes is a 47pt notch plus a ~44pt stack header, i.e. Kyle's iPhone
+      // 14 Plus. On an SE (20pt status bar) that is roughly 26pt too much, and
+      // on a 16 Pro Max (59pt Dynamic Island) roughly 12pt too little. The
+      // honest figure is `insets.top + headerHeight`, which is a change to a
+      // magic number this row did not introduce and cannot verify without a
+      // device on both ends of the matrix.
+      //
+      // Walk step A11 is where it gets looked at on both devices; if it reads
+      // wrong there, it becomes its own edit rather than a guess folded into a
+      // navigation restyle. Booked to TECH_DEBT either way.
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <FlatList
@@ -262,7 +286,7 @@ const ChatScreen = () => {
       />
 
       {/* Input Bar */}
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, { paddingBottom: insets.bottom }]}>
         <TextInput
           style={styles.input}
           value={newMessage}
@@ -369,7 +393,13 @@ const styles = StyleSheet.create({
   // Input
   inputContainer: {
     flexDirection: 'row',
-    padding: Spacing.md,
+    // `padding` no longer sets the bottom: with the tab bar hidden on this
+    // route (12.2), this bar is the screen's bottom edge and owes the home
+    // indicator its own clearance. `paddingBottom: insets.bottom` is added at
+    // the call site. Before R2 the opaque tab bar covered the indicator and
+    // this control never had to think about it.
+    paddingTop: Spacing.md,
+    paddingHorizontal: Spacing.md,
     backgroundColor: Colors.surface,
     borderTopWidth: Layout.borderWidth.thin,
     borderTopColor: Colors.borderLight,

@@ -26,6 +26,14 @@ the iPhone 16 Pro Max at 430 × 932 @3x. The 14 Plus is **428 × 926 @3x with a 
 
 **The SE half of the matrix is open and rolls forward to R2's walk.**
 
+> **AMENDED 2026-09-14: IT IS NOT WALKABLE, NOT MERELY UNWALKED.** There is no SE device
+> and no SE simulator in this setup (Windows; an iOS simulator needs a Mac). Every SE step
+> in this script reads **"not walkable in this setup"** rather than "not run" - the second
+> invites someone to go and run it, and the first says the gap needs a machine before it
+> needs a walker. It did not roll forward to R2's walk and it did not close there;
+> §18(d) now records the condition and the mitigation (beta and support feedback), and
+> names what stays unverified at the small end.
+
 **PASSED:** 1, 2, 3, 4 · 5 · 6 · 7 · 10 · 11 · 12 · 13 (Today and Energy) · 18 (chevrons and
 menus).
 
@@ -147,6 +155,14 @@ field is a worse defect than the contrast it fixes.
 **FAIL if not distinguishable.**
 **Fallback if fail:** the inactive icon tint gets its own token at `#6F7F77` (which passes
 the 3:1 non-text floor); labels stay on `#56655D`; recorded as a new row for R2.
+
+> **CLOSED 2026-09-14 AT R2's WALK, STEP A10b. THE FALLBACK WAS NEVER BUILT AND WILL NOT
+> BE.** This step passed here on hue and label, and the pass was recorded as weaker than
+> before - which is why the fallback was held. R2 restyled the bar and made active and
+> inactive differ by **glyph** (filled vs outline) rather than by tint alone, and A10b
+> re-ran this same judgement **in Grayscale, with hue removed entirely**: still
+> distinguishable, by shape. A separate inactive-icon tint is no longer the fix for a
+> problem that no longer depends on tint.
 
 > Context for the walker: the tab bar reads `Colors.textSecondary`, which moved with the
 > other three declarations in this slice, so the inactive state **did** darken. The risk is

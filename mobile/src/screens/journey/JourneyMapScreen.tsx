@@ -72,6 +72,7 @@ import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Text from '../../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTabBarInset } from '../../hooks/useTabBarInset';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -181,6 +182,8 @@ const PILLARS: PillarCardConfig[] = [
 ];
 
 export function JourneyMapScreen() {
+  // Bottom clearance for the floating tab bar (12.2).
+  const tabBarInset = useTabBarInset();
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   // Keyed on the UID, not the user OBJECT: useFocusEffect re-runs whenever the
@@ -234,7 +237,10 @@ export function JourneyMapScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} testID="journey-map">
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: tabBarInset }]}
+        testID="journey-map"
+      >
         <View style={styles.titleRow}>
           <Text style={styles.title} maxFontSizeMultiplier={Typography.maxFontScale}>
             Your journey
@@ -342,7 +348,11 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    // NO BOTTOM PADDING HERE SINCE R2. The floating tab bar (12.2) no longer
+    // reserves its own space, so the clearance is not a constant - it is the
+    // bar's height plus its offset plus a gap, composed by `useTabBarInset()`
+    // at the call site. This screen carried Spacing.xl (32), which was BELOW
+    // even 6.2's retired 48 and is what the R2 row named as the trap.
   },
   titleRow: {
     flexDirection: 'row',

@@ -8,11 +8,18 @@ import {
   View,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   Alert,
 } from 'react-native';
+// SAFE AREA FROM `react-native-safe-area-context`, NOT FROM `react-native`
+// (R2). The RN component applies on iOS only and applies ALL FOUR edges; on
+// Android it is a plain View, and app.json sets `edgeToEdgeEnabled: true`
+// there, so this screen was drawing under the system bars with nothing
+// reserving space. The context version is what the other 80 files in `src/`
+// already use, and `edges` makes the choice explicit rather than implied.
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTabBarInset } from '../../hooks/useTabBarInset';
 import Text from '../../components/shared/Text';
 import TextInput from '../../components/shared/TextInput';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -25,6 +32,10 @@ const MAX_CHARS = 500;
 const SHOW_COUNT_THRESHOLD = 400;
 
 const ReportDetailScreen = ({ navigation, route }: any) => {
+  // Bottom clearance for the floating tab bar (12.2). This screen's sticky
+  // action block is a fixed bottom control UNDER a floating bar, so it takes
+  // the inset directly rather than through a scroll container.
+  const tabBarInset = useTabBarInset();
   const { postId, reportedUserId, reason } = (route.params ?? {}) as {
     postId?: string;
     reportedUserId?: string;
@@ -69,7 +80,7 @@ const ReportDetailScreen = ({ navigation, route }: any) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Nav bar */}
       <View style={styles.navBar}>
         <TouchableOpacity
@@ -139,7 +150,7 @@ const ReportDetailScreen = ({ navigation, route }: any) => {
         </View>
 
         {/* Bottom sticky actions */}
-        <View style={styles.bottomActions}>
+        <View style={[styles.bottomActions, { paddingBottom: tabBarInset }]}>
           <TouchableOpacity
             style={[styles.primaryButton, isSubmitting && styles.buttonDisabled]}
             onPress={() => handleSubmit(true)}
@@ -273,7 +284,12 @@ const styles = StyleSheet.create({
   },
   bottomActions: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: 34,
+    // THE RAW 34 IS GONE (R2). It was a hardcoded iPhone home-indicator inset:
+    // right on a 14 Plus, wrong on an SE where the inset is 0, and wrong on
+    // every Android device. 6.2's closing clause - "the 48 rule stands for any
+    // other fixed bottom control" - is what this block is, and on a
+    // tab-bar-visible route that resolves to `useTabBarInset()` at the call
+    // site above, because the bar floats over this control.
     gap: Spacing.sm,
   },
   primaryButton: {
