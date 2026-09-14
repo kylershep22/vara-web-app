@@ -4,7 +4,11 @@
  */
 
 import React from 'react';
-import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  createNavigationContainerRef,
+  getFocusedRouteNameFromRoute,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
@@ -544,7 +548,13 @@ const BottomTabsNavigator = () => {
  * caveat. `tabBarVisibilityAnimationConfig` is the one seam the library gives
  * us, and setting both durations to 0 turns the slide into a cut.
  *
- * It only ever fires on `Chat`, which is the one route that hides the bar.
+ * IT HAS NO TRIGGER TODAY, AND SAYING SO IS MORE USEFUL THAN IMPLYING ONE.
+ * The only route that hides the bar is `Chat`, and it hides it with
+ * `display: 'none'`, which is instant and runs no animation;
+ * `tabBarHideOnKeyboard` - the one thing that drives this code path - is
+ * deliberately unset. This stands as a guard so that the day something DOES
+ * drive it, the slide is already suppressed under Reduce Motion rather than
+ * discovered at a walk.
  */
 const REDUCED_MOTION_VISIBILITY = {
   show: { animation: 'timing', config: { duration: 0 } },
@@ -610,6 +620,31 @@ const TabBarLabel = ({ label, color }: { label: string; color: string }) => (
     {label}
   </Text>
 );
+
+/**
+ * The one route inside the Community tab that hides the bar, and why it is
+ * decided HERE rather than on the screen itself.
+ *
+ * `Chat` is registered on `CommunityStack`, a NATIVE STACK. `tabBarStyle` is a
+ * bottom-tab option and a native-stack screen does not read it, so setting it
+ * on the `Chat` registration would be inert - it would look like the rule was
+ * applied and change nothing. The tab that OWNS the nested stack is the only
+ * place that can hide the bar, which is what this reads.
+ *
+ * WHY CHAT AT ALL (12.2, amended at R2). A keyboard-driven composer under a
+ * floating translucent bar is a composition problem, not an inset: the bar
+ * would sit over the input, and the input would have to be lifted past it for
+ * no gain. With the bar gone the composer IS the screen's bottom edge, which is
+ * the simpler thing to make right - and `ChatScreen` takes `insets.bottom`
+ * directly rather than `useTabBarInset()`, because a hidden bar still reports
+ * its height (see hooks/useTabBarInset.ts on the phantom-inset trap).
+ *
+ * `getFocusedRouteNameFromRoute` returns undefined until the nested navigator
+ * has state, which reads as the initial route - `CommunityMain` - so the bar
+ * shows by default and hides only once Chat is actually focused.
+ */
+const hidesTabBar = (route: Parameters<typeof getFocusedRouteNameFromRoute>[0]) =>
+  getFocusedRouteNameFromRoute(route) === 'Chat';
 
 const tabBarStyles = StyleSheet.create({
   glassClip: {
@@ -818,16 +853,26 @@ const FivePillarTabs = () => {
       <BottomTabs.Screen
         name={ROUTES.Community}
         component={CommunityNavigator}
-        options={tabOpts({
-          tabBarLabel: ({ color }) => <TabBarLabel label="Community" color={color} />,
-          tabBarIcon: ({ focused, color, size }) => (
-            <Icon
-              name={focused ? 'account-group' : 'account-group-outline'}
-              size={size}
-              color={color}
-            />
-          ),
-        })}
+        options={({ route }) =>
+          tabOpts({
+            tabBarLabel: ({ color }) => <TabBarLabel label="Community" color={color} />,
+            tabBarIcon: ({ focused, color, size }) => (
+              <Icon
+                name={focused ? 'account-group' : 'account-group-outline'}
+                size={size}
+                color={color}
+              />
+            ),
+            // SPREAD, NOT SET TO undefined. A key present in a screen's options
+            // wins over `screenOptions` even when its value is undefined, so
+            // writing `tabBarStyle: isChat ? hidden : undefined` would blank the
+            // capsule's whole style on every other Community route. Absent when
+            // it does not apply is the only safe shape.
+            ...(hidesTabBar(route)
+              ? { tabBarStyle: { display: 'none' as const } }
+              : {}),
+          })
+        }
       />
     </BottomTabs.Navigator>
   );

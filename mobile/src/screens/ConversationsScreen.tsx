@@ -264,9 +264,17 @@ const ConversationsScreen = () => {
         />
       )}
 
-      {/* FAB for New Message */}
+      {/*
+        FAB RE-ANCHORED AT R2. `styles.fab` sat at `bottom: Spacing.lg` (24),
+        which worked only because the opaque bar ended where it began. Under a
+        60pt capsule lifted 34pt off the bottom on a 14 Plus, a FAB at 24 is
+        WHOLLY BEHIND the bar. `useTabBarInset()` already carries the bar's
+        height, its offset and the gap, so it is the anchor here as well as the
+        scroll inset above - the only bottom-anchored control in the sixteen
+        that actually collides.
+      */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { bottom: tabBarInset }]}
         onPress={openSheet}
         activeOpacity={0.8}
       >
@@ -497,7 +505,9 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: Spacing.lg,
-    bottom: Spacing.lg,
+    // `bottom` comes from useTabBarInset() at the call site (12.2). It is not
+    // a constant: the floating bar's footprint depends on the device inset.
+
     width: 56,
     height: 56,
     borderRadius: 9999,

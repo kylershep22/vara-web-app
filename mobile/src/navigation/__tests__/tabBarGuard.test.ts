@@ -200,6 +200,51 @@ describe('(iv) tabBarHideOnKeyboard stays unset', () => {
   });
 });
 
+describe('(v) Chat hides the bar from the TAB, not from the stack screen', () => {
+  /**
+   * THE FAILURE THIS PREVENTS IS A SILENT ONE. `Chat` is registered on
+   * `CommunityStack`, a native stack. `tabBarStyle` is a BOTTOM-TAB option, so
+   * a native-stack screen does not read it: writing
+   * `options={{ tabBarStyle: { display: 'none' } }}` on the Chat registration
+   * would look exactly like the rule being applied and would do nothing at all.
+   * The tab that owns the nested stack is the only place that can hide it.
+   */
+  const chatRegistration = (): string => {
+    const start = NAVIGATOR_SOURCE.indexOf('name="Chat"');
+    expect(start).toBeGreaterThan(-1);
+    const block = NAVIGATOR_SOURCE.slice(start, start + 400);
+    expect(block).toContain('ChatScreen');
+    return block;
+  };
+
+  it('the Chat stack registration sets no tabBarStyle, because it could not work', () => {
+    expect(stripComments(chatRegistration())).not.toMatch(/tabBarStyle/);
+  });
+
+  it('the Community TAB is what hides it, keyed on the focused route', () => {
+    const body = stripComments(liveNavigatorSource());
+    expect(body).toContain('hidesTabBar(route)');
+    expect(body).toMatch(/display:\s*'none'/);
+  });
+
+  it('the hide is SPREAD conditionally rather than set to undefined', () => {
+    // A key present in a screen's options wins over screenOptions even when its
+    // value is undefined, so `tabBarStyle: isChat ? hidden : undefined` would
+    // blank the capsule's entire style on every other Community route. Absent
+    // when it does not apply is the only safe shape.
+    const body = stripComments(liveNavigatorSource());
+    expect(body).toMatch(/\.\.\.\(hidesTabBar\(route\)/);
+  });
+
+  it('hidesTabBar names Chat and nothing else', () => {
+    const start = NAVIGATOR_SOURCE.indexOf('const hidesTabBar =');
+    expect(start).toBeGreaterThan(-1);
+    const block = NAVIGATOR_SOURCE.slice(start, start + 200);
+    const names = [...block.matchAll(/=== '([A-Za-z]+)'/g)].map(([, n]) => n);
+    expect(names).toEqual(['Chat']);
+  });
+});
+
 describe('the legacy navigator is out of scope and stays that way', () => {
   /**
    * Pinned so a later reader does not "finish the job" by restyling a navigator
