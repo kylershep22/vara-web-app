@@ -241,6 +241,20 @@ export type ProtocolVariantMatrix = Record<
  * so `pickVariant` can no longer assume the class it finds is the only
  * candidate; `orderForDestination` is what decides which of them leads.
  *
+ * THAT SENTENCE DESCRIBED AN INTENTION UNTIL SLICE 7l, AND IT NOW DESCRIBES
+ * THE CODE. Between the 3b-ii-a reshape and 7l no variant carried a
+ * `destinationWeight`, so `orderForDestination` returned authored order
+ * untouched and `pickVariant`'s `Array.find` took the lowest-indexed variant of
+ * the asked class. FIVE OF THE NINE AUTHORED RECOVER PROTOCOLS COULD NOT BE
+ * SERVED TO ANYONE: R2, R5, R6, R8 and R9. Not a 7i regression - the stand-ins
+ * had the same shape - but after 7i the gap hid approved clinical content
+ * rather than build-and-test filler, which is what made it a row.
+ *
+ * 7l closes it with VALUES AND NOTHING ELSE. The nine weights below are Jen's
+ * (Content Pack v1 `§destination-weighting`, 2026-09-12); `selectProtocol.ts`
+ * is unchanged. All nine are reachable, enumerated rather than reasoned, and
+ * `__tests__/recoverServeTable.test.ts` pins the full 36-cell result.
+ *
  * `rewire` IS THE ONLY PHASE STILL HOLDING PLACEHOLDERS, and after slice 7i it
  * holds all three that remain in the matrix. Its stand-ins carry
  * `placeholder: true` and a title prefixed "[PLACEHOLDER] ", they exist so the
@@ -432,6 +446,16 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         estMinutes: 15,
         whyItWorks:
           'Slowing the breath can help you settle, and a real break gives your attention fewer demands to keep processing.',
+        // R1, the downshift/break mechanism at normal capacity.
+        //
+        // CALM AND FOCUS SHARE THIS PATHWAY DELIBERATELY, and the value is
+        // where that is recorded because it reads as an oversight and is not
+        // one (Jen, 2026-09-12). There are three Recover mechanisms and four
+        // destinations. Inventing a fourth mechanism so every destination could
+        // have its own would be worse product design than letting two
+        // destinations that both want the nervous system to come down share the
+        // one that does it. The same pairing repeats on R4 and R7.
+        destinationWeight: { calm: 1, focus: 1 },
       }),
       protocol('recover', 'normal', {
         name: 'Build a recovery anchor',
@@ -440,6 +464,17 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         estMinutes: 10,
         whyItWorks:
           'Repeating the same sequence reduces the decisions required to start recovering and makes the routine easier to return to.',
+        // R2, the anchor/routine mechanism at normal capacity. DARK BEFORE 7l:
+        // R1 sits at index 0 and shares `medium`, so `Array.find` never reached
+        // this row. The weight is what moves it to the head for Routines.
+        //
+        // REACHABLE ON A SHORT OR MEDIUM ASK ONLY. On `long` this cell serves
+        // R3, because R3 is its only long variant and the time ladder matches
+        // the asked class before ordering has any say. That divergence from
+        // Jen's table is measured, expected, and pinned in
+        // `__tests__/recoverServeTable.test.ts`; do NOT try to close it by
+        // moving a duration (Protocol Engine Contract 11.1).
+        destinationWeight: { routines: 1 },
       }),
       protocol('recover', 'normal', {
         name: 'Set the morning signal',
@@ -448,6 +483,20 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         estMinutes: 20,
         whyItWorks:
           'Daylight, movement, and a consistent wake time reinforce the cues that help your body know when to be alert and when to wind down.',
+        // R3, the light/day-rhythm mechanism at normal capacity.
+        //
+        // THE ONLY WEIGHTED LEAD THAT IS NOT ITS CELL'S ANSWER AT EVERY TIME
+        // CLASS, and the only `long` variant in any Recover cell. Energy gets
+        // R3 on a `long` ask and on a `short` ask (the step-3 fallback, which
+        // reads the REORDERED array), but on a `medium` ask R3 is ineligible
+        // and Energy falls to R1. Every other destination gets R3 on `long` for
+        // the same reason, ahead of its own lead.
+        //
+        // `recover.normal` is the only mixed-class cell in the phase, which is
+        // why this happens here and nowhere else. It is not fixable inside 7l:
+        // the aligning edit is moving 20 across the 15-minute boundary, which
+        // is the rejected route (b) and the exact edit contract 11.1 forbids.
+        destinationWeight: { energy: 1 },
       }),
     ],
     limited: [
@@ -458,14 +507,26 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         estMinutes: 10,
         whyItWorks:
           'Pairing a physical downshift with fewer incoming demands gives both body and attention a chance to reset.',
+        // R4, downshift/break at limited capacity. Calm and Focus share it, as
+        // on R1 and R7.
+        destinationWeight: { calm: 1, focus: 1 },
       }),
       protocol('recover', 'limited', {
         name: 'Use a two-part reset',
         dailyAction:
           'Choose two small actions and repeat them in the same order when you need a reset. Water then a stretch. A few slow breaths then a walk. Keep it easy to start.',
+        // 6, AND THE NUMBER IS WHY CONTRACT 11.1 EXISTS. Jen proposed 6 -> 5 in
+        // slice 7k, reading the figure as descriptive. It is not: `timeClass`
+        // is derived from it, and 6 -> 5 crosses the short boundary. R5 would
+        // have left `recover.limited`'s medium set, and the weight below routes
+        // Routines/Limited here - so a one-minute edit made for tidiness would
+        // have broken the weighting delivered the same day. R5 STAYS AT 6.
         estMinutes: 6,
         whyItWorks:
           'A short, repeatable sequence gives you a reliable way to shift state without deciding what to do each time.',
+        // R5, anchor/routine at limited capacity. DARK BEFORE 7l: all three of
+        // this cell are `medium`, so R4 at index 0 answered every ask.
+        destinationWeight: { routines: 1 },
       }),
       protocol('recover', 'limited', {
         name: 'Start with light',
@@ -474,6 +535,9 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         estMinutes: 10,
         whyItWorks:
           'Morning light and a steadier wake time strengthen the daily timing cues that support energy and sleep.',
+        // R6, light/day-rhythm at limited capacity. DARK BEFORE 7l, for the
+        // same reason as R5: R4 shadowed both, not R5 shadowing R6.
+        destinationWeight: { energy: 1 },
       }),
     ],
     slammed: [
@@ -515,6 +579,9 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         // reads neither this list nor that field directly. Collapsing them
         // would merge two decisions that happen to coincide on one row.
         supportingPracticeIds: ['extended-exhale-2'],
+        // R7, downshift/break at slammed capacity. Calm and Focus share it, as
+        // on R1 and R4.
+        destinationWeight: { calm: 1, focus: 1 },
       }),
       protocol('recover', 'slammed', {
         name: 'Use one recovery cue',
@@ -523,6 +590,9 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         estMinutes: 2,
         whyItWorks:
           'Attaching a reset to an existing cue makes it easier to remember and easier to repeat when your capacity is low.',
+        // R8, anchor/routine at slammed capacity. DARK BEFORE 7l: all three of
+        // this cell are `short`, so R7 at index 0 answered every ask.
+        destinationWeight: { routines: 1 },
       }),
       protocol('recover', 'slammed', {
         name: 'Get some morning light',
@@ -543,15 +613,18 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         // lengths, not a first choice and a fallback, and nothing here ranks
         // them.
         //
-        // THIS VARIANT IS UNREACHABLE TODAY AND THE MAPPING LANDS ANYWAY.
-        // `pickVariant` serves the first variant of the asked time class and
-        // all three of this cell are `short`, so R9 cannot be served to anyone
-        // until row 7l gives the Recover variants their `destinationWeight`
-        // (Energy routes to it there). Landing the value now costs nothing,
-        // because no code reads this field at all, and it means 7l makes a
-        // protocol reachable whose bridge is already populated rather than
-        // reopening this row to finish an answer Jen had already given.
+        // THIS VARIANT WAS UNREACHABLE WHEN THE MAPPING LANDED, AND IT LANDED
+        // ANYWAY. 7k wrote it knowing `pickVariant` served the first variant of
+        // the asked time class and that all three of this cell are `short`, so
+        // R9 could not be served to anyone until row 7l gave the Recover
+        // variants their `destinationWeight`. 7l did (Energy, below), and the
+        // bet paid: the protocol became reachable with its practice bridge
+        // already populated, rather than reopening 7k to finish an answer Jen
+        // had already given.
         supportingPracticeIds: ['bright-light-10', 'bright-light-20'],
+        // R9, light/day-rhythm at slammed capacity. Energy's lead here, and the
+        // row 7k's comment above was waiting on.
+        destinationWeight: { energy: 1 },
       }),
     ],
   },

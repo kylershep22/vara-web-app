@@ -1,5 +1,7 @@
+// `orderForDestination` is deliberately NOT imported here any more. Its only
+// use in this file was the identity test deleted in slice 7l, and its coverage
+// now lives in `orderForDestination.test.ts`.
 import {
-  orderForDestination,
   orderForFamily,
   representativeProtocol,
   selectProtocol,
@@ -21,12 +23,22 @@ const CAPACITIES: CapacityTier[] = ['normal', 'limited', 'slammed'];
 /**
  * The destination every call below passes unless it is testing ordering.
  *
- * ARBITRARY AND SAFE TODAY: no variant carries a destinationWeight, so
- * `orderForDestination` is the identity and the choice cannot affect a single
- * assertion in this file. It stops being arbitrary the moment Jen defines
- * weights, and 'destination ordering is still the identity on every shipped
- * cell' at the bottom of this file is the test that will go red to say so.
- * (That test used to live in `retagParity.test.ts`, deleted in slice 7i.)
+ * NO LONGER ARBITRARY, AND NO LONGER SAFE TO READ AS ARBITRARY (slice 7l).
+ * This comment used to say the choice could not affect a single assertion in
+ * this file, because no variant carried a `destinationWeight` and
+ * `orderForDestination` was the identity. Jen's weights landed in 7l and that
+ * premise is gone.
+ *
+ * THE CHOICE STILL CHANGES NOTHING HERE, FOR A NEW AND MUCH NARROWER REASON:
+ * Focus's weighted lead in every Recover cell is R1 / R4 / R7, which is exactly
+ * what index order served before the weights existed. So this file's
+ * assertions are unmoved by 7l - and that is precisely the problem with using
+ * it to check 7l. FOCUS IS THE ONE DESTINATION BLIND TO THE WEIGHTING. Every
+ * assertion below would stay green if all nine weights were reverted.
+ *
+ * DO NOT ADD DESTINATION-SENSITIVE CASES TO THIS FILE. They would inherit that
+ * blindness. `recoverServeTable.test.ts` crosses all four destinations against
+ * all three time classes and is where any such case belongs.
  */
 const ANY_DESTINATION: DestinationKey = 'focus';
 
@@ -449,8 +461,14 @@ describe('invariants rehomed from retagParity.test.ts (deleted in slice 7i)', ()
       // THE DELTA OVER THE EXISTING TOTALITY TEST, which is why this one is not
       // a duplicate: the test at the top of this file resolves every
       // phase x capacity x timeClass against ONE destination. This crosses all
-      // four. They are equivalent only while orderForDestination is the
-      // identity, and the moment Jen defines destinationWeight they stop being.
+      // four. They were equivalent only while orderForDestination was the
+      // identity, and slice 7l's weights ended that: the four destinations now
+      // resolve Recover differently from one another.
+      //
+      // IT ASSERTS NON-EMPTINESS ONLY, AND MUST NOT BE MISTAKEN FOR
+      // REACHABILITY COVERAGE. It cannot tell R2 from R1, and it would stay
+      // green if every destination collapsed back onto one variant - which is
+      // the defect 7l fixed. `recoverServeTable.test.ts` is what holds that.
       for (const capacity of CAPACITIES) {
         for (const time of TIME_CLASSES) {
           for (const destination of DESTINATIONS) {
@@ -463,19 +481,25 @@ describe('invariants rehomed from retagParity.test.ts (deleted in slice 7i)', ()
     }
   );
 
-  it('destination ordering is still the identity on every shipped cell', () => {
-    // No variant carries a destinationWeight yet, so orderForDestination must
-    // return authored order untouched. When Jen defines weights this goes red,
-    // and that is the signal that ordering has become real rather than a bug.
-    for (const phase of PHASES) {
-      for (const capacity of CAPACITIES) {
-        const cell = PROTOCOL_MATRIX[phase][capacity];
-        for (const destination of DESTINATIONS) {
-          expect(orderForDestination(cell, destination)).toEqual(cell);
-        }
-      }
-    }
-  });
+  // 'destination ordering is still the identity on every shipped cell' STOOD
+  // HERE AND IS GONE (slice 7l). It asserted that `orderForDestination`
+  // returned authored order untouched, and it documented its own lifetime while
+  // doing so: "when Jen defines weights this goes red, and that is the signal
+  // that ordering has become real rather than a bug". 7l defined them and it
+  // went red, exactly as written.
+  //
+  // DELETED RATHER THAN RELAXED. Its premise - that no variant carries a
+  // `destinationWeight` - is now false, and a test whose premise is false
+  // asserts the absence of the wrong thing. Loosening it to permit reordering
+  // would have left an assertion that passes on every possible input.
+  //
+  // ITS GUARD DUTY WENT TO TWO PLACES, AND NEITHER IS A COPY OF IT.
+  // `recoverServeTable.test.ts` pins what ordering actually produces, across
+  // all 36 (capacity x time x destination) triples, and pins that no variant is
+  // left dark. `orderForDestination.test.ts` pins the sort itself against
+  // hand-built weighted cells - descending order, absent weight as zero, stable
+  // tiebreak, and the never-filters guarantee - which is coverage this file
+  // never had. Between them the function is better held than it was.
 });
 
 describe("Jen's supportingPracticeIds mapping (slice 7k)", () => {
@@ -509,8 +533,8 @@ describe("Jen's supportingPracticeIds mapping (slice 7k)", () => {
   it('maps R7 and R9 BY IDENTITY, and both sit in recover/slammed', () => {
     // Asserted on name AND cell, not on array position: a re-order inside the
     // cell must not be able to silently move a mapping onto a different
-    // protocol. Row 7l is going to re-order Recover by destinationWeight, so
-    // this is a live concern rather than a hypothetical one.
+    // protocol. Row 7l DID re-order Recover by destinationWeight, so this is a
+    // concern that has already come true rather than a hypothetical one.
     const mapped = withMapping();
     expect(mapped.map((v) => v.name).sort()).toEqual(
       MAPPED.map(([name]) => name).sort()

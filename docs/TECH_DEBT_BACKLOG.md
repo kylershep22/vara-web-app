@@ -2206,3 +2206,130 @@ against the three candidates above, not a patch against the symptom.
 **It is on the roadmap board too**, in §5 beside the R-series, so it is visible to whoever
 is choosing what to build next rather than only to whoever opens this file. The detail
 lives here; the board carries the pointer.
+
+---
+
+## Three comments in the destination path went false at slice 7l, and one of them fails silently
+
+**Found at slice 7l's build (2026-09-14), outside that slice's fence, recorded
+rather than fixed.** 7l gave the nine Recover variants their `destinationWeight`
+(Content Pack v1 `§destination-weighting`), which made `orderForDestination` a
+live sort for the first time. Three comments elsewhere in the codebase assert
+the state of affairs that had held until then. All three are now wrong, none of
+them is wrong in a way the compiler or any test can see, and they are the kind
+of thing a future reader reasons from.
+
+**7l's fence covered `protocolEngine/protocolMatrix.ts`,
+`protocolEngine/selectProtocol.ts` (doc-comment only) and the protocol engine's
+tests. None of these three sites is in it.** They are listed here so the fix is
+a decision someone takes rather than a drive-by inside a slice that had no
+mandate for it.
+
+### (1) `mobile/src/protocolEngine/types.ts:165` — flatly false
+
+On the `destinationWeight` field's own doc-comment:
+
+> "Absent means 'no preference', which sorts as authored order, and that is the
+> state of every variant today: **Jen has not defined weights, so
+> `orderForDestination` is currently the identity.**"
+
+Jen defined them and they shipped on the branch. The first half of the sentence
+is still correct and should stay; only the "state of every variant today" claim
+is dead. **It is now true of `remove`, `refocus` and `rewire` and false of
+`recover`**, which is a more useful thing for the comment to say than either
+absolute.
+
+### (2) `mobile/src/hooks/useTodayCard.ts:376-381` — flatly false, in two places
+
+At the `selectProtocol` call site, and the first sentence is the sharper of the
+two errors:
+
+> "THE PICKED TIME AND THE DESTINATION ARE BOTH PASSED HONESTLY, and **neither
+> changes what is served today.** The off-diagonal time slots are unauthored and
+> **no variant carries a `destinationWeight`, so the ladder and the ordering are
+> both currently degenerate.** They are passed rather than withheld so that the
+> day the content lands, this line already does the right thing."
+
+**The destination now changes what is served on every Recover day**, which is the
+whole of slice 7l, so "neither changes what is served today" is false at the one
+call site that does the serving. The ordering is likewise no longer degenerate.
+
+The comment's *purpose* was vindicated - the values were passed honestly, the
+content landed, and the line did the right thing with no code change - so this
+wants rewriting into the past tense rather than deleting. **The claim about the
+TIME ladder is still true** and should survive: the off-diagonal slots remain
+unauthored, so time is still degenerate even though destination is not. Do not
+rewrite the two halves as one.
+
+### (3) `mobile/src/hooks/useTodayCard.ts:266-269` — THE DANGEROUS ONE
+
+The legacy flag-off path hard-codes `destination: 'focus'`, because a legacy
+weekly cycle has no destination on it. The comment justifies that:
+
+> "destination only ORDERS a cell: **with no weights authored the ordering is the
+> identity, so this choice changes nothing today** and is the reason the
+> flag-off path is still byte-identical."
+
+**THE CONCLUSION SURVIVES AND THE REASONING IS DEAD.** The flag-off path *is*
+still byte-identical after 7l. But not for the reason given, and not for any
+reason that lives in the engine:
+
+**It is byte-identical only because Jen weighted Focus onto the index-0 variant
+in all three Recover cells.** Focus leads to R1, R4 and R7, which is exactly what
+index order served when no weights existed. That is a **coincidence of the
+content**, not a property of the code.
+
+**WHY THIS IS THE ITEM AND NOT A TYPO.** A future reweight - a rotation slice, a
+content revision, anything that moves Focus off index 0 in any Recover cell -
+**silently changes what the flag-off path serves**, and:
+
+- no test fails, because nothing walks the legacy path against the weighted matrix;
+- no type changes;
+- the comment still *reads* as a justification, so the reviewer who checks it
+  finds a sentence that sounds like it covers the case;
+- the flag ships ON, so nobody is on that path in normal operation and the
+  change would surface only during a revert - the worst possible moment to
+  discover it.
+
+**The fix is a comment that states the real dependency**: `'focus'` is safe here
+because Focus's weighted lead is the authored head in every Recover cell, and
+that must be re-checked if Recover is ever reweighted. Optionally a test pinning
+it, which would turn a silent failure into a loud one.
+
+**The flag does not rescue this.** `JOURNEY_IA` is the revert lever and there is
+**no scheduled retirement row** for it - §11's post-beta list does not carry one.
+`legacyPhaseFor`'s own doc-comment says it "dies with JOURNEY_IA flag
+retirement", which is a real end date but not a dated one, so this site outlives
+any assumption that it is about to disappear.
+
+### Which slice should take them
+
+**`REPRESENTATIVE-PROTOCOL`** (§5 board, own slice, before beta), and the fit is
+genuine rather than convenient. That row exists because
+`representativeProtocol` ignores destination while the Today card now honours it,
+so whoever builds it is already reading the destination flow end to end: both
+`types.ts`'s `destinationWeight` doc and `useTodayCard.ts:266-298`, which is
+where `destination` is derived and where site (3) lives.
+
+**If that row resolves as route (b)** - preview copy stops implying a specific
+protocol, touching no engine code - **then these three do NOT come along with
+it**, and they fall to the next slice that opens either file. They are comment
+corrections in two files and should never be the reason a slice grows.
+
+**Related, same file, same shape:** "**`ProtocolVariant.variantKey` is documented
+as unique per variant and is not**" (above in this backlog) is the other standing
+doc-comment defect in the protocol engine. The two are independent but a slice
+opening `types.ts` should clear both rather than leave one.
+
+### Acceptance
+
+- `types.ts:165` says weights are live on `recover` and absent on the other
+  three phases, rather than absent everywhere.
+- `useTodayCard.ts:378-380` reads in the past tense for ordering, keeps the
+  still-true claim about unauthored off-diagonal time slots.
+- `useTodayCard.ts:266-269` states the real dependency - Focus's weighted lead is
+  the authored head in every Recover cell - and says to re-check it on any
+  Recover reweight. **The behaviour does not change; only the justification
+  becomes true.**
+- Decide whether to pin (3) with a test. Not required, and it is the difference
+  between a silent break and a loud one.
