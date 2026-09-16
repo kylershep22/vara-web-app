@@ -289,20 +289,53 @@ const ConversationsScreen = () => {
         statusBarTranslucent
         onRequestClose={closeSheet}
       >
+        {/*
+          OVERLAY SITS OUTSIDE THE KeyboardAvoidingView, AND THAT IS THE POINT.
+          Inside, it was `absoluteFillObject` resolved against the KAV's PADDING
+          box. The moment the keyboard raised, the KAV's `paddingBottom` shrank
+          that box to exactly the region the sheet already covered, so there was
+          no exposed overlay pixel anywhere on screen and tap-to-dismiss
+          silently stopped working. Out here it fills the modal instead.
+          `HabitNoteSheet.tsx` has always had it this way.
+        */}
+        <TouchableWithoutFeedback onPress={closeSheet}>
+          <Animated.View
+            style={[
+              styles.overlay,
+              { opacity: overlayAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.3] }) },
+            ]}
+          />
+        </TouchableWithoutFeedback>
+
+        {/*
+          TWO PROPS HERE ARE LOAD BEARING AND NEITHER IS OBVIOUS.
+
+          `pointerEvents="box-none"`. The KAV is `flex: 1`, so it covers the
+          whole modal, and it now paints OVER the overlay rather than containing
+          it. A plain View is its own hit-test target, so without this the KAV
+          would swallow every tap in the backdrop and tap-to-dismiss would end
+          up MORE broken than it was before the overlay moved. `box-none` makes
+          the KAV itself untargetable while leaving its child — the sheet —
+          targetable exactly as before.
+
+          NO `keyboardVerticalOffset`, AND ADDING A POSITIVE ONE IS NOT THE FIX.
+          RN ADDS the offset to the padding it computes:
+
+            paddingBottom = frame.y + frame.height - (keyboardScreenY - offset)
+
+          This KAV is full-screen, so that already resolves to exactly the
+          keyboard's height and 0 is the arithmetically correct value. A
+          positive offset — 64 from `utils/keyboard.ts`, 100 from
+          `EnhancedModal` — displaces the sheet FURTHER up by that amount, which
+          is the defect this slice exists to fix. A positive offset is for a KAV
+          that is NOT full-screen and so under-pads. The sheet yields through
+          `flexShrink` on `styles.sheet` instead; see the note on that style.
+        */}
         <KeyboardAvoidingView
-          style={styles.sheetWrapper}
+          pointerEvents="box-none"
+          style={[styles.sheetWrapper, { paddingTop: insets.top }]}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          {/* Overlay */}
-          <TouchableWithoutFeedback onPress={closeSheet}>
-            <Animated.View
-              style={[
-                styles.overlay,
-                { opacity: overlayAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.3] }) },
-              ]}
-            />
-          </TouchableWithoutFeedback>
-
           {/* Sheet */}
           <Animated.View
             style={[
@@ -536,6 +569,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
+    // `flexShrink: 1` IS THE FIX, and Yoga's default of 0 is why this surface
+    // was unusable. The sheet's `height` (SHEET_HEIGHT, set inline at the call
+    // site) is its flex BASIS. Its parent is the KeyboardAvoidingView, which
+    // shrinks by the keyboard's full height under `behavior: 'padding'`. With
+    // the default `flexShrink: 0` a 78%-of-screen basis could not yield, so it
+    // overflowed — and because the wrapper is `justifyContent: 'flex-end'`, the
+    // overflow went off the TOP: handle, title, subtitle and the close control
+    // all rendered above y=0, leaving no visible way out of the sheet. With
+    // shrink enabled the sheet resolves to min(basis, available) instead, and
+    // `sheetListContainer`'s `flex: 1` absorbs all of it, so the header and the
+    // search field keep their exact dimensions and the list gets the remainder.
+    // Nothing about the no-keyboard state changes: the basis fits, so it does
+    // not shrink. REMOVING THIS RESTORES THE DEFECT.
+    flexShrink: 1,
   },
   // Handle
   handleArea: {
