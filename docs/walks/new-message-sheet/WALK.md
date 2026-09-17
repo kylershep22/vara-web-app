@@ -17,7 +17,13 @@ The defect was **geometric**: the sheet's handle, title, subtitle and close cont
 
 ## Before you start
 
-### 1. The before-state capture is STEP 0 AND IT IS NOT OPTIONAL
+### 1. The before-state capture is STEP 0 AND IT IS NOT OPTIONAL — ✅ DONE, all three passed
+
+> **RUN AND CLOSED on `main` at `1cc0746`, iPhone 14 Plus (Kyle). Steps 0, 0b and 0c all
+> PASSED; results and the screenshot are recorded under the on-`main` table below. The
+> mechanism is confirmed on hardware and Step 0's diagnosis holds — no re-derivation.**
+> Nothing here needs running again, and after the merge nothing here *can* be run again.
+> The rest of this subsection is kept as the reason it had to go first.
 
 Steps 0, 0b and 0c run **on `main` at `1cc0746`**, not on the branch. They are a before/after comparison, and per R1a's step 10 a before/after step run after the after has shipped compares nothing. **`main` is the only place the defect still exists.** Once the branch merges, these steps become unrunnable forever.
 
@@ -52,11 +58,76 @@ Zero connections is itself a state to walk (step 9) — it is the state a real b
 
 ### On `main` at `1cc0746` — before-state capture
 
+> **RUN AND PASSED, all three steps, iPhone 14 Plus, on `main` at `1cc0746` (Kyle,
+> attested 2026-09-14 per the report; the script these steps are numbered against was
+> committed 2026-09-16, so if the sitting was actually that day the date moves — flagged
+> rather than silently corrected, because an attestation is the walker's words).
+> **Results are recorded in full below the table. Steps 0, 0b and 0c are CLOSED and are
+> not re-runnable: `main` is the only place the defect exists.**
+
 | # | Step | Pass condition |
 |---|---|---|
-| **0** | Open Conversations → tap the FAB. **Screenshot.** | The defect is captured as shipped: no header, no close control, search field under the status bar. **This is the only chance to record it.** |
-| **0b** | With the sheet open, attempt all four dismissals in order: (i) tap where the close control should be; (ii) tap anywhere outside the sheet; (iii) swipe down from the top edge; (iv) swipe down from the sheet body. | **All four fail.** Confirms the surface has no working dismissal, affordance by affordance. Background the app to escape. |
-| **0c** | With the sheet open, press the keyboard's **Search** key. | **THE FALSIFIER FOR THE WHOLE DIAGNOSIS.** If the sheet snaps down and the header appears, the KeyboardAvoidingView mechanism is confirmed on hardware. **If the header stays off-screen, STOP AND REPORT — Step 0's diagnosis is wrong and the fix must be re-derived.** Also confirms the undesigned escape path: an unlabelled keypress was the only way out. |
+| **0** ✅ | Open Conversations → tap the FAB. **Screenshot.** | The defect is captured as shipped: no header, no close control, search field under the status bar. **This is the only chance to record it.** |
+| **0b** ✅ | With the sheet open, attempt all four dismissals in order: (i) tap where the close control should be; (ii) tap anywhere outside the sheet; (iii) swipe down from the top edge; (iv) swipe down from the sheet body. | **All four fail.** Confirms the surface has no working dismissal, affordance by affordance. Background the app to escape. |
+| **0c** ✅ | With the sheet open, press the keyboard's **Search** key. | **THE FALSIFIER FOR THE WHOLE DIAGNOSIS.** If the sheet snaps down and the header appears, the KeyboardAvoidingView mechanism is confirmed on hardware. **If the header stays off-screen, STOP AND REPORT — Step 0's diagnosis is wrong and the fix must be re-derived.** Also confirms the undesigned escape path: an unlabelled keypress was the only way out. |
+
+#### Results — steps 0, 0b, 0c, iPhone 14 Plus, `main` at `1cc0746`
+
+**STEP 0 — PASS. Defect captured, screenshot taken.** The sheet opens with the keyboard
+already up and **no handle, no title, no subtitle and no close control** on screen. The
+search field is **clipped at the top under the status bar**.
+
+This is the predicted state item for item. Step 0's arithmetic put the handle at screen
+y = -132 to -112, the entire header at -112 to -36, and the search field straddling y = 0
+underneath the 47pt status bar. **Every one of those elements was in the component tree
+the whole time** — which is the reason no jest test could have caught this and the reason
+the two suites on the branch say so in their own headers.
+
+**STEP 0b — PASS. All four exits dead.** Confirmed one at a time rather than inferred:
+
+- **Close control** — off-screen and untappable.
+- **Tap outside** — **no exposed backdrop anywhere on screen to tap.** This is the
+  non-obvious one and it is now confirmed on hardware: the overlay was
+  `absoluteFillObject` *inside* the `KeyboardAvoidingView`, and Yoga resolves absolute
+  insets against the parent's **padding** box, so the keyboard's padding shrank the
+  backdrop to exactly the region the sheet already covered. Not one pixel left over.
+- **Swipe from the top edge** — nothing. The `PanResponder` is spread on the handle strip
+  only, and the handle is off-screen, so the responder can never be set.
+- **Swipe from the sheet body** — nothing. No other element accepts the gesture.
+
+**Escaped by backgrounding the app.** Kyle's original "cannot be dismissed without
+backgrounding the app" is now confirmed affordance by affordance rather than taken on
+report.
+
+**STEP 0c — PASS. THE MECHANISM IS CONFIRMED AND STEP 0'S DIAGNOSIS HOLDS. No
+re-derivation needed.** Pressing the keyboard's Search key drops the sheet to its correct
+position with the handle, "New Message", "Select a connection to message", the close X and
+the search field **all fully visible and clear of the status bar**.
+
+**And the second half of the falsifier passed too, which is the part that rules out a
+rival explanation.** Tapping the search field raises the keyboard and returns the sheet to
+the broken state. **The displacement therefore TRACKS THE KEYBOARD rather than being a
+one-time layout error** — it is reversible, repeatable, and driven by the keyboard's
+presence, which is exactly what `behavior: 'padding'` recomputing `paddingBottom` on every
+keyboard event predicts and what a static mis-layout cannot produce.
+
+#### The undesigned escape path is NOT a usable exit, and 0c is what proves it
+
+Step 0 flagged the Search key as an unverified recovery path derived from the shared
+`TextInput` setting no `blurOnSubmit` (so RN's single-line default of `true` applies). It
+is real. **It is also not an exit.**
+
+**The Search key restores the header — and touching the search field, which is the sheet's
+entire purpose, returns it to the broken state immediately.** So the "escape" only holds
+for as long as the user does not do the one thing the surface exists for. A user who
+presses Search, sees the close X appear, and then reaches for the search box to actually
+search their connections is back where they started, with the X gone again.
+
+**This makes the before-state worse than "hard to dismiss": it is a trap loop.** The
+recovery and the primary interaction are mutually exclusive, and the only affordance that
+survives touching the search field is one that is off-screen. It also means the Search key
+was never a mitigation worth weighing against the fix — recording it was about falsifying
+the diagnosis, not about softening the defect.
 
 ### On `fix/new-message-sheet`
 
@@ -99,6 +170,8 @@ So step 6b should pass: there is a real, tappable backdrop where before there wa
 
 **Step 7 must pass, or the attestation names it unrun and says the seeding did not happen.** It does not pass by assumption.
 
-**Two steps can send the slice back to Step 0:** 0c (if dismissing the keyboard does not restore the header, the mechanism is wrong) and 10 (if 1.3x clips the header, the fix is incomplete).
+**One step can still send the slice back to Step 0: step 10.** If 1.3x Dynamic Type clips the header, the fix is incomplete — the header and search block grow while `SHEET_HEIGHT` does not, so the shrink has least room there.
+
+**The other one is spent. 0c PASSED**, so the KeyboardAvoidingView mechanism is confirmed on hardware and the diagnosis is no longer a hypothesis. Anything that fails from here is a fault in the fix, not in the reading of the defect.
 
 **Not run and not owed:** every SE step (not walkable in this setup, see above), and Android (no build; mechanism does not apply).
