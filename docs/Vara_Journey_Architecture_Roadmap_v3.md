@@ -7782,6 +7782,16 @@ four ways. Corrected here so the next seeded walk does not rediscover them:
 
 **AND IT IS SPECIFICALLY NOT THE TRAP LOOP, WHICH IS THE DISTINCTION THAT KEEPS THIS OUT OF THE SLICE.** Before the fix, pressing Search restored the header and touching the search field took it away again, so **recovery and the primary interaction were mutually exclusive**. After the fix the header never leaves, so pressing Search is an ordinary keyboard dismissal on a surface that stays usable either way. What is left is the **absence of a dismissal affordance**, which is a standards gap on every typing surface in the app rather than a fault on this one. **Booked as `KEYBOARD-DISMISS-UNIFORM`, a §5 row, before beta** - see the entry below for the Step-0 findings that were derived while writing it, two of which contradict the row's own founding premise before anyone has started building.
 
+**KYLE'S ATTESTATION, RECORDED VERBATIM AND LAST.** *(The report carried its date as a placeholder. It is recorded here as **2026-09-17**, the date the walk was reported - **observed, not inherited from any of the dates already sitting in this row's prose**, per the rule this slice's own attestation-date correction produced one commit earlier. If the sitting itself fell on a different day, that is a one-line correction and this note is where to make it.)*
+
+**ATTESTATIONS (Kyle, 2026-09-17):**
+
+- Suites green at tsc 141 / jest 3711 of 234 / sentinel 149 /
+  lint 994 errors, 1358 warnings. ATTESTED.
+- Walk passed: before-state 0/0b/0c on main, branch steps 1-6, 6b,
+  8-13 on iPhone 14 Plus at default and 1.3x type. Step 7 not run,
+  no seeded connection. SE not walkable in this setup. ATTESTED.
+
 ---
 
 ### 2026-09-17 - KEYBOARD-DISMISS-UNIFORM added: a walk observation becomes an app-wide row, and writing the row corrected two of its own premises (row added at NEW-MESSAGE-SHEET's walk; no code, docs only)
