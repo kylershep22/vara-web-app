@@ -510,8 +510,14 @@ describe('DashboardScreen - the journey-action slot', () => {
   // suite cannot see. Without them the adjust branch could stay unreachable and
   // every existing test would still be green.
   // -------------------------------------------------------------------------
+  // RE-FIXTURED TO `recover` IN SLICE 7c. Jen's ruling 1 of 2026-09-17 activates
+  // the alternatives for Recover only, so every adjust fixture in this file had
+  // to move off `remove` or stop surfacing anything. `PHASE` itself stays
+  // `remove`, because the capture and advance blocks are about that phase and
+  // are unaffected. Only the adjust fixtures move, and only the phase moves.
   const dueForAdjust = {
     ...PHASE,
+    phaseKey: 'recover',
     hasRemoveCapture: true,
     enteredAtIso: '2026-08-01',
     adjustArmedFromIso: '2026-08-01',
@@ -525,7 +531,7 @@ describe('DashboardScreen - the journey-action slot', () => {
       weekStart: '2026-08-24',
       weekEnd: '2026-08-30',
       phaseRead: 'not_moving',
-      phaseKeyAtRead: 'remove',
+      phaseKeyAtRead: 'recover',
     },
     {
       id: 'w2',
@@ -533,7 +539,7 @@ describe('DashboardScreen - the journey-action slot', () => {
       weekStart: '2026-08-31',
       weekEnd: '2026-09-06',
       phaseRead: 'not_moving',
-      phaseKeyAtRead: 'remove',
+      phaseKeyAtRead: 'recover',
     },
   ];
 
@@ -573,16 +579,31 @@ describe('DashboardScreen - the journey-action slot', () => {
     expect(queryByTestId('home-adjustment')).toBeNull();
   });
 
-  test('the capture card still beats C2', async () => {
-    mockGetCyclesSince.mockResolvedValue(twoNotMoving as any);
-    mockResolveJourney.mockResolvedValue({
-      target: 'today',
-      phase: { ...dueForAdjust, hasRemoveCapture: false },
-    });
-    const { getByTestId, queryByTestId } = render(<DashboardScreen />);
-    await waitFor(() => expect(getByTestId('home-remove-capture')).toBeTruthy());
-    expect(queryByTestId('home-adjustment')).toBeNull();
-  });
+  /**
+   * RETIRED IN SLICE 7c, AND RECORDED RATHER THAN DELETED.
+   *
+   * IT READ: "the capture card still beats C2". A remove user with no capture
+   * and two not_moving reads saw the capture card and not the adjustment card,
+   * which proved the capture > adjust half of `journeyActionFor`'s precedence
+   * through the real screen wiring.
+   *
+   * JEN'S RULING 1 MAKES THE SCENARIO UNREACHABLE. Capture exists only in
+   * `remove`; the alternatives are activated only in `recover`. The two cards
+   * can no longer contend for the slot in any phase, so a re-fixtured version of
+   * this test would pass because C2 was gated, not because capture outranked it
+   * - an exclusion satisfied for the wrong reason, which is worse than no test.
+   *
+   * WHAT STILL COVERS IT: `journey/__tests__/journeyAction.test.ts` asserts
+   * capture > adjust > advance directly. That function is untouched by this
+   * slice; the gate is upstream of it. The RULE is as covered as it was. What is
+   * gone is the screen-level proof that the rule and the wiring compose, which
+   * is what 7b and 7d built this case for. The identical casualty in
+   * `hooks/__tests__/useAdjustOffer.test.ts` is recorded there too.
+   *
+   * IF `remove` IS EVER ACTIVATED, restore both from git history rather than
+   * rewriting them.
+   */
+
 
   test('one not_moving read is not enough for a card', async () => {
     mockGetCyclesSince.mockResolvedValue([twoNotMoving[1]] as any);
@@ -603,8 +624,12 @@ describe('DashboardScreen - the journey-action slot', () => {
 
     fireEvent.press(getByTestId('home-adjustment-try-different'));
 
+    // `recover` since slice 7c re-fixtured this block, AND THE ASSERTION IS NOT
+    // a pass-through of the fixture: the card's primary must open the CURRENT
+    // phase, so a bug that opened the NEXT one would navigate to `rewire` and
+    // this would say so.
     expect(mockNavigate).toHaveBeenCalledWith('JourneyPhase', {
-      phase: 'remove',
+      phase: 'recover',
       destination: 'calm',
     });
   });
@@ -648,8 +673,19 @@ describe('DashboardScreen - the exposure spends on the slot (slice 7d)', () => {
     enteredAtIso: '2026-01-01',
   };
 
-  /** Adjust is due too: two consecutive not_moving reads in this phase. */
-  const dueForBoth = { ...dueForAdvance, adjustArmedFromIso: '2026-01-01' };
+  /**
+   * Adjust is due too: two consecutive not_moving reads in this phase.
+   *
+   * ON `recover` SINCE SLICE 7c, where `dueForAdvance` above stays on `remove`.
+   * The two fixtures differ by phase now, and deliberately: the capture cases
+   * need `remove` and the C2 cases need an activated phase. Advance is due in
+   * both, so the exposure question this block is about is unchanged.
+   */
+  const dueForBoth = {
+    ...dueForAdvance,
+    phaseKey: 'recover',
+    adjustArmedFromIso: '2026-01-01',
+  };
 
   const twoNotMoving = [
     {
@@ -658,7 +694,7 @@ describe('DashboardScreen - the exposure spends on the slot (slice 7d)', () => {
       weekStart: '2026-08-24',
       weekEnd: '2026-08-30',
       phaseRead: 'not_moving',
-      phaseKeyAtRead: 'remove',
+      phaseKeyAtRead: 'recover',
     },
     {
       id: 'w2',
@@ -666,7 +702,7 @@ describe('DashboardScreen - the exposure spends on the slot (slice 7d)', () => {
       weekStart: '2026-08-31',
       weekEnd: '2026-09-06',
       phaseRead: 'not_moving',
-      phaseKeyAtRead: 'remove',
+      phaseKeyAtRead: 'recover',
     },
   ];
 
@@ -758,8 +794,14 @@ describe('DashboardScreen - the exposure spends on the slot (slice 7d)', () => {
 describe('DashboardScreen - the door stamps on the slot (slice 7d)', () => {
   beforeEach(primeHome);
 
+  // RE-FIXTURED TO `recover` IN SLICE 7c. Jen's ruling 1 of 2026-09-17 activates
+  // the alternatives for Recover only, so every adjust fixture in this file had
+  // to move off `remove` or stop surfacing anything. `PHASE` itself stays
+  // `remove`, because the capture and advance blocks are about that phase and
+  // are unaffected. Only the adjust fixtures move, and only the phase moves.
   const dueForAdjust = {
     ...PHASE,
+    phaseKey: 'recover',
     hasRemoveCapture: true,
     enteredAtIso: '2026-08-01',
     adjustArmedFromIso: '2026-08-01',
@@ -772,7 +814,7 @@ describe('DashboardScreen - the door stamps on the slot (slice 7d)', () => {
       weekStart: '2026-08-24',
       weekEnd: '2026-08-30',
       phaseRead: 'not_moving',
-      phaseKeyAtRead: 'remove',
+      phaseKeyAtRead: 'recover',
     },
     {
       id: 'w2',
@@ -780,7 +822,7 @@ describe('DashboardScreen - the door stamps on the slot (slice 7d)', () => {
       weekStart: '2026-08-31',
       weekEnd: '2026-09-06',
       phaseRead: 'not_moving',
-      phaseKeyAtRead: 'remove',
+      phaseKeyAtRead: 'recover',
     },
   ];
 
@@ -792,17 +834,27 @@ describe('DashboardScreen - the door stamps on the slot (slice 7d)', () => {
     await waitFor(() => expect(mockRecordAdjustOffered).toHaveBeenCalledWith('u1'));
   });
 
-  test('DOES NOT stamp while the capture card holds the slot', async () => {
-    // The reachable case, not a contrived one: a user in `remove` who never
-    // made the capture and has told us not_moving twice. Before 7d this
-    // unlocked the phase page's door without C2 ever drawing.
-    mockGetCyclesSince.mockResolvedValue(twoNotMoving as any);
+  test('DOES NOT stamp in an unactivated phase, however due the offer is', async () => {
+    // REPURPOSED IN SLICE 7c. It read "DOES NOT stamp while the capture card
+    // holds the slot" and was 7d's own reachable case: a remove user who never
+    // captured and told us not_moving twice, whose phase-page door used to open
+    // without C2 ever drawing.
+    //
+    // Ruling 1 removes that contention (see the retirement note in the
+    // journey-action slot block above), so what this now pins is the OTHER
+    // reason no stamp fires in `remove` - and it is the reason that matters for
+    // 7c, because the stamp is what opens a door onto nine options that would do
+    // nothing. The capture is left OUT of this fixture on purpose: with it set
+    // to false the assertion would hold for two reasons and prove neither.
+    mockGetCyclesSince.mockResolvedValue(
+      twoNotMoving.map((c) => ({ ...c, phaseKeyAtRead: 'remove' })) as any
+    );
     mockResolveJourney.mockResolvedValue({
       target: 'today',
-      phase: { ...dueForAdjust, hasRemoveCapture: false },
+      phase: { ...dueForAdjust, phaseKey: 'remove' },
     });
     const { getByTestId, queryByTestId } = render(<DashboardScreen />);
-    await waitFor(() => expect(getByTestId('home-remove-capture')).toBeTruthy());
+    await waitFor(() => expect(getByTestId('home-journey-line')).toBeTruthy());
     expect(queryByTestId('home-adjustment')).toBeNull();
     expect(mockRecordAdjustOffered).not.toHaveBeenCalled();
   });

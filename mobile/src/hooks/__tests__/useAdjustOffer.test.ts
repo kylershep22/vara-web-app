@@ -56,8 +56,21 @@ jest.mock('../../services/firebase/analyticsEvents.service', () => ({
 
 const TODAY = '2026-09-10';
 
+/**
+ * RE-FIXTURED TO `recover` IN SLICE 7c, AND IT IS A DELIBERATE UPDATE RATHER
+ * THAN A RELAXATION.
+ *
+ * Every fixture in this file was `remove` when it was written, for no reason
+ * other than that `remove` is the first phase. Jen's ruling 1 of 2026-09-17
+ * activates the alternatives for Recover only, so a `remove` fixture now
+ * exercises the offer's UNACTIVATED path and every placement test below would
+ * have gone green by never surfacing anything - the exact "exclusion that stops
+ * existing" shape. The cases are unchanged; only the phase they are asked about
+ * is. The unactivated path gets its own tests, at the foot of this file, rather
+ * than being smuggled into these.
+ */
 const phase = (over: Partial<PhaseContext> = {}): PhaseContext => ({
-  phaseKey: 'remove',
+  phaseKey: 'recover',
   destination: 'focus',
   capacitySeed: 'normal',
   revisionToken: 1,
@@ -77,7 +90,7 @@ const week = (
   weekStart: string,
   weekEnd: string,
   phaseRead?: PhaseRead,
-  phaseKeyAtRead: PhaseKey = 'remove'
+  phaseKeyAtRead: PhaseKey = 'recover'
 ): WeeklyCycle =>
   ({
     id: 'c-' + weekStart,
@@ -315,13 +328,43 @@ describe('useAdjustDoorStamp - the door-opening write', () => {
   // asked. Every test below has a DUE offer - the placement is 'today'
   // throughout - and something else on the slot.
   // -------------------------------------------------------------------------
-  test('NOTHING is stamped while the capture card holds the slot', async () => {
+  /**
+   * REWRITTEN IN SLICE 7c, AND THE COVERAGE IT USED TO CARRY IS RECORDED AS LOST
+   * RATHER THAN QUIETLY ABSORBED.
+   *
+   * IT USED TO PROVE capture-BEATS-adjust END TO END: a remove user with no
+   * capture and two not_moving reads had an ELIGIBLE offer ('today') that the
+   * capture card outranked, so no stamp fired. Both halves mattered, and the
+   * comment said so - without the eligibility assertion it would have passed on
+   * an offer that was simply not due.
+   *
+   * JEN'S RULING 1 MAKES THAT SITUATION UNREACHABLE. Capture exists only in
+   * `remove`; the alternatives are activated only in `recover`. The two can no
+   * longer compete for the slot in any phase, so the integration proof has no
+   * scenario left to run. This is a REAL REDUCTION caused by the ruling, not by
+   * a weaker test.
+   *
+   * WHAT STILL COVERS THE PRECEDENCE: `journey/__tests__/journeyAction.test.ts`
+   * asserts capture > adjust > advance directly, by handing `journeyActionFor`
+   * both placements. That function is untouched by this slice - the gate is
+   * upstream of it, in the hook - so the RULE is as covered as it ever was. What
+   * is gone is the proof that the hook and the rule compose, which is what 7d
+   * built this case for. If the nine are ever wired and `remove` activates, this
+   * test should go back to its original form.
+   *
+   * WHAT IT ASSERTS NOW: no stamp in an unactivated phase. That is true for two
+   * independent reasons today, and a test true for two reasons proves neither -
+   * so it is paired with the activation tests at the foot of this file, which
+   * isolate the second reason against a recover control.
+   */
+  test('NOTHING is stamped in an unactivated phase', async () => {
     mockGetCycles.mockResolvedValue(DUE);
-    const { result } = renderSlot({ hasRemoveCapture: false }, false);
+    const { result } = renderSlot({ phaseKey: 'remove', hasRemoveCapture: false }, false);
+    // Waiting on the ACTION, not on the placement: `placement` starts 'hidden'
+    // and stays 'hidden', so a waitFor on it passes on frame one and asserts
+    // nothing about the settled state. The action is null until the read lands.
     await waitFor(() => expect(result.current.action).toBe('capture'));
-    // Eligible, and outranked. Both halves matter: without the first this
-    // would pass on an offer that was simply not due.
-    expect(result.current.placement).toBe('today');
+    expect(result.current.placement).toBe('hidden');
     expect(mockRecordOffered).not.toHaveBeenCalled();
     expect(mockLogEvent).not.toHaveBeenCalled();
   });
@@ -344,17 +387,32 @@ describe('useAdjustDoorStamp - the door-opening write', () => {
     expect(mockRecordOffered).toHaveBeenCalledTimes(1);
   });
 
-  test('a capture completed later unlocks the door THEN, and exactly once', async () => {
-    // The door is deferred, never forfeited: the user who captures at noon is
-    // offered C2 in the afternoon and the door opens on that drawing.
-    mockGetCycles.mockResolvedValue(DUE);
-    const { rerender, result } = renderSlot({ hasRemoveCapture: false }, false);
-    await waitFor(() => expect(result.current.action).toBe('capture'));
-    expect(mockRecordOffered).not.toHaveBeenCalled();
+  /**
+   * RETIRED IN SLICE 7c, AND RECORDED HERE RATHER THAN DELETED SILENTLY.
+   *
+   * IT READ: "a capture completed later unlocks the door THEN, and exactly
+   * once". A remove user with no capture and two not_moving reads saw the
+   * capture card; completing the capture at noon let C2 draw in the afternoon
+   * and the door opened on that drawing. The property was "the door is DEFERRED,
+   * never forfeited".
+   *
+   * JEN'S RULING 1 MAKES THE PROPERTY UNTRUE RATHER THAN UNTESTED, which is why
+   * it is retired and not re-fixtured. Completing the capture in `remove` no
+   * longer unlocks anything: the alternatives are not activated there, so there
+   * is no offer to defer. And the analogous journey-level case - "it opens when
+   * the user reaches recover" - is not deferral either, because `CLEARED_OFFERS`
+   * nulls `adjustOfferedAt` on the advance, so the incoming phase starts with no
+   * stamp and has to earn one.
+   *
+   * THE DEFERRAL THAT REMAINS is the one the frame-race test above covers:
+   * nothing is stamped until the weekly read answers, and then exactly once. The
+   * capture leg is gone with the scenario.
+   *
+   * IF `remove` IS EVER ACTIVATED, restore this test from git history at
+   * `044c06d~1` rather than rewriting it from the description above. The
+   * rerender-with-capture shape is the part that was hard to get right.
+   */
 
-    rerender({ p: phase({ hasRemoveCapture: true }), cap: true });
-    await waitFor(() => expect(mockRecordOffered).toHaveBeenCalledTimes(1));
-  });
 });
 
 describe('useAdjustOffer - declining', () => {
@@ -416,5 +474,92 @@ describe('useAdjustOffer - which body', () => {
       'placement',
       'settled',
     ]);
+  });
+});
+
+/**
+ * THE ACTIVATION GATE (slice 7c; Jen ruling 1, 2026-09-17).
+ *
+ * WHY THESE ARE NEW TESTS AND NOT A RE-READING OF THE ONES ABOVE. Re-fixturing
+ * moved every existing case onto the activated phase, which is right - they are
+ * about the weekly reads, the cap and the placement, and none of them is about
+ * activation. But it also means nothing in this file would notice the gate being
+ * deleted. These are what notices.
+ *
+ * ASSERTED AS A DIFFERENCE, NOT AS AN ABSENCE. Each case builds a phase that
+ * WOULD be on Today but for the phase it is in, and checks the recover control
+ * beside it in the same test. An absence test with no positive control passes
+ * just as well when the hook is broken.
+ */
+describe('useAdjustOffer - activation (slice 7c)', () => {
+  /**
+   * DUE FOR A NAMED PHASE, AND BUILDING IT THIS WAY IS NOT A CONVENIENCE.
+   *
+   * `deriveAdjustDue` keeps a cycle only when `phaseKeyAtRead` equals the phase
+   * in progress, and the `DUE` fixture above reads `recover` since this file was
+   * re-fixtured. Handing `DUE` to a `remove` phase produces a hidden placement
+   * because the READS do not match - not because of the activation gate - and
+   * every test below would then pass with the gate deleted. That is the exact
+   * vacuity this slice was written to avoid creating, and it was caught by the
+   * M3 mutation run rather than by reading.
+   */
+  const dueFor = (phaseKey: PhaseKey) =>
+    DUE.map((c) => ({ ...c, phaseKeyAtRead: phaseKey }) as typeof c);
+
+  it.each(['remove', 'rewire', 'refocus'] as const)(
+    'a fully due %s user gets no offer, where the same recover user gets one',
+    async (phaseKey) => {
+      mockGetCycles.mockResolvedValue(dueFor(phaseKey));
+      const unactivated = renderHook(() =>
+        useAdjustOffer({ uid: 'u1', phase: phase({ phaseKey }), todayIso: TODAY })
+      );
+      await waitFor(() => expect(unactivated.result.current.settled).toBe(true));
+      expect(unactivated.result.current.placement).toBe('hidden');
+
+      // THE POSITIVE CONTROL, in the same test rather than in another file: the
+      // only thing that differs between these two is the phase. The reads are
+      // rebuilt for it so that the control proves the offer WOULD have fired.
+      mockGetCycles.mockResolvedValue(dueFor('recover'));
+      const activated = renderHook(() =>
+        useAdjustOffer({
+          uid: 'u1',
+          phase: phase({ phaseKey: 'recover' }),
+          todayIso: TODAY,
+        })
+      );
+      await waitFor(() => expect(activated.result.current.settled).toBe(true));
+      expect(activated.result.current.placement).toBe('today');
+    }
+  );
+
+  it('an unactivated phase still SETTLES, so Home does not hold the slot open', async () => {
+    // `settled` gates Today's whole journey-action slot (slice 7d). An
+    // activation gate that left it false would withhold the capture card and
+    // the advancement card from every remove user, which is a far larger
+    // behaviour change than this slice is making. Gated at the PLACEMENT and not
+    // at the read is what keeps this true, and this is the test that says so.
+    mockGetCycles.mockResolvedValue(dueFor('remove'));
+    const view = renderHook(() =>
+      useAdjustOffer({ uid: 'u1', phase: phase({ phaseKey: 'remove' }), todayIso: TODAY })
+    );
+    await waitFor(() => expect(view.result.current.settled).toBe(true));
+    expect(view.result.current.placement).toBe('hidden');
+  });
+
+  it('hidden, never journey: an unactivated phase has no door to demote to', async () => {
+    // 'journey' means "demoted, reachable from the map". A phase whose door is
+    // also gated has nowhere to demote TO, so the honest answer is 'hidden'.
+    // Pinned because 'journey' is what the two-offer cap returns and is the
+    // nearest wrong answer.
+    mockGetCycles.mockResolvedValue(dueFor('refocus'));
+    const view = renderHook(() =>
+      useAdjustOffer({
+        uid: 'u1',
+        phase: phase({ phaseKey: 'refocus', adjustDeclines: 2 }),
+        todayIso: TODAY,
+      })
+    );
+    await waitFor(() => expect(view.result.current.settled).toBe(true));
+    expect(view.result.current.placement).toBe('hidden');
   });
 });

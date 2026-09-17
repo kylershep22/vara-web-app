@@ -51,6 +51,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { Colors, Layout, SizeTokens, Spacing, TextStyles, Typography } from '../../constants';
 import { PHASE_DISPLAY, PHASE_ORDER } from '../../constants/journey';
 import {
+  adjustAlternativesActive,
   ADJUST_ALTERNATIVES,
   ADJUST_COPY,
   ADVANCE_PREVIEW_COPY,
@@ -201,8 +202,30 @@ export function JourneyPhaseScreen() {
   //
   // A USER WHO HAS NEVER BEEN OFFERED SEES NOTHING, on the same terms browsing
   // ahead shows no commit control: browsing is not an invitation.
+  //
+  // THE ACTIVATION GATE IS THE THIRD CONJUNCT (slice 7c; Jen ruling 1). A phase
+  // whose alternatives Vara cannot yet materially honour does not open its door,
+  // and it is checked HERE as well as at the card because this door is reachable
+  // from the journey map without the card ever having been answered.
+  //
+  // IT RETRACTS SOMETHING, AND THE RETRACTION IS DELIBERATE. A non-null
+  // `adjustOfferedAt` on a remove, rewire or refocus document stops opening the
+  // door, where section 9 R5 promised "the door is open, Vara just stops
+  // knocking". Jen's "are not exposed yet" is read as intending that. The
+  // population most likely to hold such a stamp is the one slice 7d was named
+  // for - before 7d the stamp fired on ELIGIBILITY, so a user could have the door
+  // waiting having never been asked anything - and for them this is a correction.
+  //
+  // `phase` IS THE ROUTE PARAM, NOT `journey.phaseKey`, and the two are already
+  // required to be equal on the line above. Reading the param is what makes the
+  // guard hold for a param outside the union: `adjustAlternativesActive` compares
+  // `=== true`, so an unrecognised phase is unactivated rather than
+  // undefined-and-falsy by luck.
   const isAdjustDoor =
-    !!journey && phase === journey.phaseKey && !!journey.adjustOfferedAt;
+    !!journey &&
+    phase === journey.phaseKey &&
+    !!journey.adjustOfferedAt &&
+    adjustAlternativesActive(phase);
 
   // THE STATE EYEBROW IS SUPPRESSED IN PREVIEW (Kyle, slice 7a). The state word
   // answers "where am I"; the preview answers "shall I go here". Rendering

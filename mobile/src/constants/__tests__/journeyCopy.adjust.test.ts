@@ -15,7 +15,11 @@
  * meant to move with it. That question having to be answered out loud is the
  * entire point.
  */
-import { ADJUST_ALTERNATIVES, ADJUST_COPY } from '../journeyCopy';
+import {
+  adjustAlternativesActive,
+  ADJUST_ALTERNATIVES,
+  ADJUST_COPY,
+} from '../journeyCopy';
 import { PHASE_ORDER } from '../journey';
 import type { PhaseKey } from '../../types/models';
 
@@ -211,5 +215,72 @@ describe('the C2 card copy', () => {
       'Three ways to change the approach for this stretch.'
     );
     expect(ADJUST_ALTERNATIVES.remove).toHaveLength(3);
+  });
+});
+
+/**
+ * WHICH PHASES MAY SURFACE THEIR ALTERNATIVES (slice 7c; Jen ruling 1,
+ * 2026-09-17).
+ *
+ * THE TWO CLAIMS ARE SEPARATE AND BOTH MATTER. All twelve alternatives stay in
+ * the content contract - which the "every phase has exactly three" test above
+ * already asserts and which this slice deliberately does NOT weaken - and only
+ * Recover may surface them. A slice that expressed "not yet" by deleting nine
+ * approved strings would have to get them back from Jen to express "now".
+ */
+describe('the activation gate (slice 7c)', () => {
+  test('recover is activated and the other three are not', () => {
+    expect(adjustAlternativesActive('recover')).toBe(true);
+    for (const phaseKey of ['remove', 'rewire', 'refocus'] as const) {
+      expect(adjustAlternativesActive(phaseKey)).toBe(false);
+    }
+  });
+
+  test('exactly one phase is activated', () => {
+    // Counted over PHASE_ORDER rather than over a hand-typed list, so activating
+    // a second phase is a change this test reports rather than absorbs. When the
+    // nine are wired this number moves, deliberately and out loud.
+    expect(PHASE_ORDER.filter(adjustAlternativesActive)).toEqual(['recover']);
+  });
+
+  test('activation is KEYED, never an index or a slice of PHASE_ORDER', () => {
+    // THE SAME CONTRACT `ADJUST_ALTERNATIVES` CARRIES, and the same failure it
+    // exists to prevent: reordering PHASE_ORDER is a product decision the
+    // roadmap explicitly allows, and an ordinal activation would silently
+    // activate whichever phase landed second. Asserted by checking that the
+    // activated phase is the one NAMED recover rather than the one at index 1.
+    expect(PHASE_ORDER.indexOf('recover')).toBe(1);
+    const atIndexOne = PHASE_ORDER[1];
+    expect(atIndexOne).toBe('recover');
+    // If the two ever disagree, the line above fails first and asks whether the
+    // ACTIVATION was meant to move with the order. That question having to be
+    // answered out loud is the point, exactly as it is for the mapping above.
+  });
+
+  test('the nine unactivated strings are still in the contract, unchanged', () => {
+    // Ruling 1's first half, asserted as its own claim. Unwiring a surface is
+    // not retiring content, and nothing in this slice may quietly reduce what
+    // Jen has approved.
+    for (const phaseKey of ['remove', 'rewire', 'refocus'] as const) {
+      expect(ADJUST_ALTERNATIVES[phaseKey]).toHaveLength(3);
+      for (const option of ADJUST_ALTERNATIVES[phaseKey]) {
+        expect(option.label.length).toBeGreaterThan(0);
+        expect(option.body.length).toBeGreaterThan(0);
+      }
+    }
+    expect(
+      (['remove', 'recover', 'rewire', 'refocus'] as const).flatMap(
+        (p) => ADJUST_ALTERNATIVES[p]
+      )
+    ).toHaveLength(12);
+  });
+
+  test('a phase outside the union is unactivated, not undefined', () => {
+    // The phase page takes its phase as a ROUTE PARAM, which the types declare
+    // closed and which slice 7f's tests prove can arrive as anything. The
+    // accessor compares `=== true` so an unrecognised key is a hard false rather
+    // than a falsy undefined that happens to work.
+    expect(adjustAlternativesActive('reboot' as never)).toBe(false);
+    expect(adjustAlternativesActive(undefined as never)).toBe(false);
   });
 });
