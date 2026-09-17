@@ -20,6 +20,7 @@ export type {
   OutcomeKey,
   CapacityTier,
   TimeClass,
+  RecoverMechanism,
   ProtocolVariant,
   ResolvedProtocolVariant,
 } from './types';

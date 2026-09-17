@@ -128,6 +128,7 @@ const protocol = (
         | 'quickWinPracticeId'
         | 'supportingPracticeIds'
         | 'destinationWeight'
+        | 'mechanism'
         | 'placeholder'
         | 'family'
         | 'acknowledgment'
@@ -254,6 +255,18 @@ export type ProtocolVariantMatrix = Record<
  * (Content Pack v1 `§destination-weighting`, 2026-09-12); `selectProtocol.ts`
  * is unchanged. All nine are reachable, enumerated rather than reasoned, and
  * `__tests__/recoverServeTable.test.ts` pins the full 36-cell result.
+ *
+ * EVERY RECOVER VARIANT ALSO CARRIES A `mechanism` AS OF SLICE 7c, and the two
+ * fields beside each other are not a duplication. `destinationWeight` answers
+ * "which variant leads for a user who came here for X". `mechanism` answers
+ * "which of Jen's three lanes is this", which is a property of the CONTENT and
+ * does not change when a weight does. Until 7c the second question could only
+ * be asked by asking the first, so re-weighting a variant would have silently
+ * re-targeted the adjustment offer at the same time. The values agree today by
+ * construction - downshift is what Calm and Focus weight, reanchor what
+ * Routines weights, refill what Energy weights - and that agreement is
+ * ASSERTED, in `__tests__/protocolMatrix.mechanisms.test.ts`, so the day they
+ * are meant to diverge the divergence is a decision rather than a drift.
  *
  * `rewire` IS THE ONLY PHASE STILL HOLDING PLACEHOLDERS, and after slice 7i it
  * holds all three that remain in the matrix. Its stand-ins carry
@@ -455,6 +468,7 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         // have its own would be worse product design than letting two
         // destinations that both want the nervous system to come down share the
         // one that does it. The same pairing repeats on R4 and R7.
+        mechanism: 'downshift',
         destinationWeight: { calm: 1, focus: 1 },
       }),
       protocol('recover', 'normal', {
@@ -474,6 +488,7 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         // Jen's table is measured, expected, and pinned in
         // `__tests__/recoverServeTable.test.ts`; do NOT try to close it by
         // moving a duration (Protocol Engine Contract 11.1).
+        mechanism: 'reanchor',
         destinationWeight: { routines: 1 },
       }),
       protocol('recover', 'normal', {
@@ -496,6 +511,7 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         // why this happens here and nowhere else. It is not fixable inside 7l:
         // the aligning edit is moving 20 across the 15-minute boundary, which
         // is the rejected route (b) and the exact edit contract 11.1 forbids.
+        mechanism: 'refill',
         destinationWeight: { energy: 1 },
       }),
     ],
@@ -509,6 +525,7 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
           'Pairing a physical downshift with fewer incoming demands gives both body and attention a chance to reset.',
         // R4, downshift/break at limited capacity. Calm and Focus share it, as
         // on R1 and R7.
+        mechanism: 'downshift',
         destinationWeight: { calm: 1, focus: 1 },
       }),
       protocol('recover', 'limited', {
@@ -526,6 +543,7 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
           'A short, repeatable sequence gives you a reliable way to shift state without deciding what to do each time.',
         // R5, anchor/routine at limited capacity. DARK BEFORE 7l: all three of
         // this cell are `medium`, so R4 at index 0 answered every ask.
+        mechanism: 'reanchor',
         destinationWeight: { routines: 1 },
       }),
       protocol('recover', 'limited', {
@@ -537,6 +555,7 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
           'Morning light and a steadier wake time strengthen the daily timing cues that support energy and sleep.',
         // R6, light/day-rhythm at limited capacity. DARK BEFORE 7l, for the
         // same reason as R5: R4 shadowed both, not R5 shadowing R6.
+        mechanism: 'refill',
         destinationWeight: { energy: 1 },
       }),
     ],
@@ -581,6 +600,7 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         supportingPracticeIds: ['extended-exhale-2'],
         // R7, downshift/break at slammed capacity. Calm and Focus share it, as
         // on R1 and R4.
+        mechanism: 'downshift',
         destinationWeight: { calm: 1, focus: 1 },
       }),
       protocol('recover', 'slammed', {
@@ -592,6 +612,7 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
           'Attaching a reset to an existing cue makes it easier to remember and easier to repeat when your capacity is low.',
         // R8, anchor/routine at slammed capacity. DARK BEFORE 7l: all three of
         // this cell are `short`, so R7 at index 0 answered every ask.
+        mechanism: 'reanchor',
         destinationWeight: { routines: 1 },
       }),
       protocol('recover', 'slammed', {
@@ -624,6 +645,7 @@ export const PROTOCOL_MATRIX: ProtocolVariantMatrix = {
         supportingPracticeIds: ['bright-light-10', 'bright-light-20'],
         // R9, light/day-rhythm at slammed capacity. Energy's lead here, and the
         // row 7k's comment above was waiting on.
+        mechanism: 'refill',
         destinationWeight: { energy: 1 },
       }),
     ],
