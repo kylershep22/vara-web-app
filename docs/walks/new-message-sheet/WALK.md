@@ -19,9 +19,10 @@ The defect was **geometric**: the sheet's handle, title, subtitle and close cont
 
 ### 1. The before-state capture is STEP 0 AND IT IS NOT OPTIONAL — ✅ DONE, all three passed
 
-> **RUN AND CLOSED on `main` at `1cc0746`, iPhone 14 Plus (Kyle). Steps 0, 0b and 0c all
-> PASSED; results and the screenshot are recorded under the on-`main` table below. The
-> mechanism is confirmed on hardware and Step 0's diagnosis holds — no re-derivation.**
+> **RUN AND CLOSED on `main` at `1cc0746`, iPhone 14 Plus (Kyle, 2026-09-16). Steps 0, 0b
+> and 0c all PASSED; results and the screenshot are recorded under the on-`main` table
+> below. The mechanism is confirmed on hardware and Step 0's diagnosis holds — no
+> re-derivation.**
 > Nothing here needs running again, and after the merge nothing here *can* be run again.
 > The rest of this subsection is kept as the reason it had to go first.
 
@@ -58,12 +59,25 @@ Zero connections is itself a state to walk (step 9) — it is the state a real b
 
 ### On `main` at `1cc0746` — before-state capture
 
-> **RUN AND PASSED, all three steps, iPhone 14 Plus, on `main` at `1cc0746` (Kyle,
-> attested 2026-09-14 per the report; the script these steps are numbered against was
-> committed 2026-09-16, so if the sitting was actually that day the date moves — flagged
-> rather than silently corrected, because an attestation is the walker's words).
+> **RUN AND PASSED, all three steps, iPhone 14 Plus, on `main` at `1cc0746`
+> (Kyle, 2026-09-16).**
 > **Results are recorded in full below the table. Steps 0, 0b and 0c are CLOSED and are
 > not re-runnable: `main` is the only place the defect exists.**
+>
+> **DATE CORRECTED 2026-09-16, and the correction is worth a line because of where the
+> wrong date came from.** This first recorded **2026-09-14**, which is not when the
+> sitting happened. **2026-09-14 is the date of everything else about this row** — R2's
+> walk step A5b that found the defect, Kyle's "own slice, before beta" scheduling ruling,
+> ruling 2, and the row's own creation — so it appears many times in this slice's prose,
+> and it was carried into the attestation header **by template rather than by
+> observation**. The capture actually ran on **2026-09-16**, the same day the branch was
+> built and this script was committed.
+>
+> **The tell was in the repository, not in anyone's memory:** a walk cannot have been run
+> against a script that did not exist yet, so a 09-14 sitting numbered against a 09-16
+> script was impossible on its face. **A date repeated a dozen times in a row's prose is
+> exactly the kind of value that gets re-used instead of re-derived** — the same class of
+> error as a stale baseline quoted from an older slice's pin.
 
 | # | Step | Pass condition |
 |---|---|---|

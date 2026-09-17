@@ -2246,11 +2246,54 @@ insets against the parent's **padding** box — so the keyboard's padding shrank
 exactly the region the sheet already covered. Not one exposed pixel. The close control was
 off-screen and the `PanResponder` was spread on the handle strip only, which was also
 off-screen. **Kyle's "cannot be dismissed without backgrounding the app" is confirmed
-affordance by affordance.** One undesigned escape existed and is walk step 0c: the shared
-`TextInput` does not set `blurOnSubmit`, so RN's single-line default of `true` applies and
-the keyboard's Search key blurs the field, collapsing the padding and dropping the sheet back
-into view. An unlabelled keypress is not a dismiss control, and it changed nothing about the
-fix — but it is also the falsifier for the whole diagnosis, which is why it is walked.
+affordance by affordance.** One undesigned escape existed: the shared `TextInput` does not
+set `blurOnSubmit`, so RN's single-line default of `true` applies and the keyboard's Search
+key blurs the field, collapsing the padding and dropping the sheet back into view. An
+unlabelled keypress is not a dismiss control, and it changed nothing about the fix — but it
+is also the falsifier for the whole diagnosis, which is why it was walked first.
+
+### CONFIRMED ON HARDWARE 2026-09-16 — the mechanism is no longer a reading
+
+**Walk steps 0, 0b and 0c RUN AND PASSED on `main` at `1cc0746`, iPhone 14 Plus (Kyle,
+2026-09-16).** The amendment above was derived from RN source and arithmetic; this is the
+device confirming it. **The three steps are CLOSED and not re-runnable** — `main` is the only
+place the defect exists and it stops existing there at the merge. Full results in
+`docs/walks/new-message-sheet/WALK.md`; the row and §13 carry the same record.
+
+**STEP 0 — the predicted geometry, item for item.** Keyboard up; no handle, no title, no
+subtitle, no close control; search field clipped at the top under the status bar.
+Screenshotted. **Every one of those elements was in the component tree the whole time**,
+which is why no jest test could have caught it.
+
+**STEP 0b — all four exits dead, checked one at a time rather than inferred.** Close control
+off-screen and untappable. **No exposed backdrop anywhere on screen to tap**, which is the
+non-obvious one above confirmed on hardware. Swipe from the top edge dead, because the handle
+carrying the `PanResponder` is off-screen. Swipe from the body dead. Escaped by backgrounding
+the app.
+
+**STEP 0c — PASSED, AND BOTH HALVES OF IT.** The Search key drops the sheet to its correct
+position with the handle, title, subtitle, close X and search field all fully visible and
+clear of the status bar. **And tapping the search field raises the keyboard and returns the
+sheet to the broken state**, so the displacement **TRACKS THE KEYBOARD** rather than being a
+one-time layout error — reversible, repeatable, driven by the keyboard's presence. That is
+what `behavior: 'padding'` recomputing on every keyboard event predicts and what a static
+mis-layout cannot produce, so it rules out the rival explanation rather than merely
+supporting the favoured one.
+
+**THE UNDESIGNED ESCAPE IS NOT A USABLE EXIT, AND 0c IS WHAT PROVES IT.** The Search key
+restores the header — **and touching the search field, which is the sheet's entire purpose,
+returns it to the broken state immediately.** The escape holds only for as long as the user
+does not do the one thing the surface exists for. **That makes the before-state a TRAP LOOP
+rather than a surface that is merely hard to dismiss:** the recovery and the primary
+interaction are mutually exclusive, and the only affordance that survives touching the search
+field is one that is off-screen. It also settles that the Search key was never a mitigation
+to weigh against the fix — recording it was about falsifying the diagnosis, not about
+softening the defect.
+
+**WHAT IS STILL OPEN:** the branch half of the walk. **Step 10 (1.3x Dynamic Type) is the one
+remaining step that could send the slice back to Step 0**; the other falsifier is spent, so
+anything failing from here is a fault in the fix rather than in the reading of the defect.
+**Step 7 is blocked on a seeded connection.**
 
 ### What shipped
 
