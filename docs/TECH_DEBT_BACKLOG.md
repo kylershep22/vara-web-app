@@ -2147,7 +2147,7 @@ fails, it is the fix.
 
 ## ~~The new-message sheet opens unusable: keyboard up, header off-screen, no way out~~
 
-**CLOSED 2026-09-16 by slice `NEW-MESSAGE-SHEET`, branch `fix/new-message-sheet`.** The
+**CLOSED 2026-09-16 by slice `NEW-MESSAGE-SHEET`, branch `fix/new-message-sheet`; MERGED `416edba` on 2026-09-17.** The
 diagnosis below is AMENDED rather than left standing: Step 0 established the mechanism and
 **two of the three candidate causes were wrong about their own role**. The amendment block
 sits immediately under the candidate list and supersedes it wherever the two differ. The
