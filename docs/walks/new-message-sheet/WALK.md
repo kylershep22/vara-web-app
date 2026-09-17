@@ -5,6 +5,8 @@
 **Backlog entry:** `docs/TECH_DEBT_BACKLOG.md`, "The new-message sheet opens unusable: keyboard up, header off-screen, no way out".
 **Surface:** the new-message `Modal` inside `mobile/src/screens/ConversationsScreen.tsx`. There is no route and no screen file — grepping the navigator for a "new message" screen finds nothing.
 
+**STATUS: WALK COMPLETE AND ATTESTED.** Before-state 0/0b/0c on `main` at `1cc0746`, 2026-09-16. Branch steps 1-6, 6b and 8-13 on `fix/new-message-sheet`, 2026-09-17, at default Dynamic Type and again at 1.3x. **Step 7 NOT RUN — no seeded connection.** iPhone 14 Plus throughout; SE not walkable in this setup. Attestations at the foot of this file.
+
 ---
 
 ## Why this walk carries more than usual
@@ -34,7 +36,13 @@ git checkout main            # must be at 1cc0746
 
 Run 0, 0b, 0c. **Then** `git checkout fix/new-message-sheet` and run the rest.
 
-### 2. Step 7 needs a seeded connection, and Kyle's accounts have none
+### 2. Step 7 needs a seeded connection, and Kyle's accounts have none — ❌ NOT ARRANGED; STEP 7 WAS NOT RUN
+
+> **THE SEEDING DID NOT HAPPEN AND STEP 7 DID NOT RUN (Kyle, 2026-09-17).** The clause below
+> was written before the sitting and it is the clause that now applies: *"If the seeding does
+> not happen, the attestation says step 7 was not run. It does not say the walk passed."*
+> The attestation says exactly that. **The connections list inside the shrunken sheet is
+> UNEXERCISED** — see the branch results for what that costs.
 
 Step 7 is the only step that exercises the connections **list**. It needs **at least one accepted connection**: a second account, a connection request sent, and that request accepted. `useConnections` reads accepted connection docs only, so a sent-but-unaccepted request does not count.
 
@@ -145,22 +153,107 @@ the diagnosis, not about softening the defect.
 
 ### On `fix/new-message-sheet`
 
+> **RUN AND PASSED 2026-09-17, iPhone 14 Plus, dev client. STEPS 1-6, 6b AND 8-13 ALL
+> PASSED, at default Dynamic Type and again at 1.3x.**
+>
+> **STEP 7 NOT RUN — no seeded connection existed at the sitting.**
+>
+> **STEP 10 PASSED, WHICH SPENDS THE LAST BACK-TO-STEP-0 STEP.** Both falsifiers are now
+> gone: 0c settled the mechanism, 10 settled the shrink at the binding type size. **Nothing
+> outstanding on this branch can send the slice back to Step 0.**
+
 | # | Step | Pass condition |
 |---|---|---|
-| **1** | Zero-conversation account: Conversations → tap the empty state's **"New Message"**. Default type. | Sheet opens. **Handle, "New Message", "Select a connection to message" and the close control all fully visible and clear of the status bar.** Search field fully visible and focused, keyboard up. |
-| **2** | Same, opened from **the FAB**. | **Identical to step 1.** Both controls call the same `openSheet`; this is that claim on hardware. |
-| **3** | From step 2's state, tap the close control. | Sheet dismisses. Returns to Conversations. No visual residue. |
-| **4** | Reopen. Dismiss the keyboard (Search key). | Sheet drops to its full 78% height, header still visible, **nothing clipped at the top.** Compare against step 0's screenshot for the no-keyboard case — this state must be **unchanged from `main`**. |
-| **5** | From step 4, tap the search field to raise the keyboard again. **Raise and lower twice more.** | Sheet shrinks and grows smoothly, header stays put and visible throughout. No drift, no accumulation, no flicker. |
-| **6** | From step 5 with the **keyboard down**, tap the exposed backdrop above the sheet. | Sheet dismisses. *(This already worked on `main`; it must not regress.)* |
-| **6b** | Reopen, **keyboard UP**, tap the exposed backdrop above the sheet. | **RULING 2's STEP.** Sheet dismisses. **Step 0 wrote this as an expected FAIL** — the overlay was inside the KeyboardAvoidingView, so the keyboard shrank it to exactly the region the sheet already covered and there was no backdrop to tap. Ruling 2 moved it out, so it now passes. **READ THE NOTE BELOW BEFORE JUDGING THIS STEP.** |
-| **7** | **Seeded account, ≥1 connection.** Open from the FAB. Type a matching query. | Results render. **Scroll the list to its last row with the keyboard up — every row reachable, nothing trapped behind the keyboard.** Tap a row → Chat opens for the right person. **This is the step that proves the fix's choice over deleting the KAV.** |
-| **8** | Same account, type a query matching nobody. | `No connections found` and `No one matching "…"`. Header and close control still visible. Clear the field → results return. |
-| **9** | **Zero-connection account** (Kyle's default): open and observe the empty block. | `No connections yet` and `Connect with people first to start messaging`. **Header and close control visible** — the state a real beta user lands in. |
-| **10** | **Repeat steps 1, 5, 7 and 9 at 1.3x Dynamic Type.** | Header and close control fully visible and the control still tappable in every state. **THE BINDING CASE.** If the header clips here, the shrink needs a floor and the fix is not finished. |
-| **11** | Reduce Motion on. Open and close from both entry points. | Opens and dismisses cleanly. **RECORD WHAT IT DOES; DO NOT FIX IT HERE.** This sheet's hand-rolled `Animated.timing` respects no Reduce Motion flag, where `HabitNoteSheet` swaps to `fade`. Booked to TECH_DEBT. |
-| **12** | Sheet open, keyboard up → background the app → foreground it. | Returns to a usable sheet, header visible. Nothing stuck. |
-| **13** | Sheet dismissed: confirm the Conversations FAB still clears the floating capsule and is tappable. | **R2's A5b, re-run.** This slice edits the same file; A5b's pass must survive it. |
+| **1** ✅ | Zero-conversation account: Conversations → tap the empty state's **"New Message"**. Default type. | Sheet opens. **Handle, "New Message", "Select a connection to message" and the close control all fully visible and clear of the status bar.** Search field fully visible and focused, keyboard up. |
+| **2** ✅ | Same, opened from **the FAB**. | **Identical to step 1.** Both controls call the same `openSheet`; this is that claim on hardware. |
+| **3** ✅ | From step 2's state, tap the close control. | Sheet dismisses. Returns to Conversations. No visual residue. |
+| **4** ✅ | Reopen. Dismiss the keyboard (Search key). | Sheet drops to its full 78% height, header still visible, **nothing clipped at the top.** Compare against step 0's screenshot for the no-keyboard case — this state must be **unchanged from `main`**. |
+| **5** ✅ | From step 4, tap the search field to raise the keyboard again. **Raise and lower twice more.** | Sheet shrinks and grows smoothly, header stays put and visible throughout. No drift, no accumulation, no flicker. |
+| **6** ✅ | From step 5 with the **keyboard down**, tap the exposed backdrop above the sheet. | Sheet dismisses. *(This already worked on `main`; it must not regress.)* |
+| **6b** ✅ | Reopen, **keyboard UP**, tap the exposed backdrop above the sheet. | **RULING 2's STEP.** Sheet dismisses. **Step 0 wrote this as an expected FAIL** — the overlay was inside the KeyboardAvoidingView, so the keyboard shrank it to exactly the region the sheet already covered and there was no backdrop to tap. Ruling 2 moved it out, so it now passes. **READ THE NOTE BELOW BEFORE JUDGING THIS STEP.** |
+| **7** ❌ **NOT RUN** | **Seeded account, ≥1 connection.** Open from the FAB. Type a matching query. | Results render. **Scroll the list to its last row with the keyboard up — every row reachable, nothing trapped behind the keyboard.** Tap a row → Chat opens for the right person. **This is the step that proves the fix's choice over deleting the KAV.** |
+| **8** ✅ | Same account, type a query matching nobody. | `No connections found` and `No one matching "…"`. Header and close control still visible. Clear the field → results return. |
+| **9** ✅ | **Zero-connection account** (Kyle's default): open and observe the empty block. | `No connections yet` and `Connect with people first to start messaging`. **Header and close control visible** — the state a real beta user lands in. |
+| **10** ✅ | **Repeat steps 1, 5, 7 and 9 at 1.3x Dynamic Type.** | Header and close control fully visible and the control still tappable in every state. **THE BINDING CASE.** If the header clips here, the shrink needs a floor and the fix is not finished. |
+| **11** ✅ | Reduce Motion on. Open and close from both entry points. | Opens and dismisses cleanly. **RECORD WHAT IT DOES; DO NOT FIX IT HERE.** This sheet's hand-rolled `Animated.timing` respects no Reduce Motion flag, where `HabitNoteSheet` swaps to `fade`. Booked to TECH_DEBT. |
+| **12** ✅ | Sheet open, keyboard up → background the app → foreground it. | Returns to a usable sheet, header visible. Nothing stuck. |
+| **13** ✅ | Sheet dismissed: confirm the Conversations FAB still clears the floating capsule and is tappable. | **R2's A5b, re-run.** This slice edits the same file; A5b's pass must survive it. |
+
+#### Results — branch steps, iPhone 14 Plus, `fix/new-message-sheet` (Kyle, 2026-09-17)
+
+**STEPS 1-6, 6b AND 8-13: PASS, AT DEFAULT DYNAMIC TYPE AND AGAIN AT 1.3x.** The geometry
+the fix was derived from holds on hardware. The handle, "New Message", "Select a connection
+to message" and the close control are visible and clear of the status bar in every state the
+walk could reach: from both entry points, with the keyboard raised and lowered repeatedly,
+in the empty state, in the no-results state, under Reduce Motion, and across a
+background/foreground cycle.
+
+**STEP 10 IS THE ONE THAT CARRIED RISK AND IT PASSED.** 1.3x was written up as the binding
+case because the header and search block grow while `SHEET_HEIGHT` does not, so the shrink
+has least room there, and the script said in as many words that a clip here meant the fix
+was incomplete and needed a floor. **It did not clip. The shrink needs no floor** — which is
+the question step 10 existed to answer, and it came back as a pass rather than as a tuning.
+
+**BOTH FALSIFIERS ARE NOW SPENT.** 0c settled the mechanism on `main`; 10 settled the shrink
+at the binding type size on the branch. **Nothing outstanding on this branch can send the
+slice back to Step 0.**
+
+**STEP 6b PASSED AND THE NOTE BELOW IT STANDS UNCHANGED.** Ruling 2's backdrop is real and
+tappable with the keyboard up, where before there was not one exposed pixel. Nothing in this
+result revises the reading recorded below: 47pt under the status bar is a technically-correct
+target rather than a comfortable one, and widening it is a **design change** on a surface
+§2.8 freezes until R6+, so it stays Kyle's call and not a walk improvisation. **It was not
+taken at this sitting**, so the geometry ships as built.
+
+**STEP 13 PASSED, WHICH IS WHAT IT WAS RE-RUN TO ESTABLISH.** R2's step A5b covered the same
+file this slice edits; the FAB still clears the floating capsule and is still tappable after
+the edit.
+
+#### Step 7 — NOT RUN, and what that costs stated rather than glossed
+
+**NO SEEDED CONNECTION EXISTED AT THE SITTING**, so the connections **list** inside the
+shrunken sheet is **UNEXERCISED**. Steps 8 and 9 passed, but they render the no-results and
+no-connections blocks; neither puts rows in the list, so **neither substitutes for 7**.
+
+**THE UNTESTED CLAIM IS A NAMED ONE, NOT A VAGUE GAP.** The roadmap §5 row and this script
+both justify fixing the `flexShrink`/KAV pair **over deleting the KeyboardAvoidingView** on
+the grounds that the list then scrolls inside the shrunken sheet with every row reachable,
+rather than leaving ~336pt of list behind the keyboard. **Step 7 is the only step that tests
+that claim, and it did not run.**
+
+**IT IS UNEXERCISED, NOT REFUTED**, and the distinction is the whole reason the pre-flight
+clause was written before the sitting: *"If the seeding does not happen, the attestation says
+step 7 was not run. It does not say the walk passed."* **The attestation says exactly that.**
+Nothing observed at the sitting bears against the claim; nothing observed at the sitting
+supports it either.
+
+**WHAT WOULD CLOSE IT:** a second account, a connection request sent and accepted, then step 7
+as written. It is the one piece of this walk that survives the merge — the list state does not
+stop existing the way the before-state does, so **this is the only outstanding step that can
+still be run later**, unlike 0/0b/0c.
+
+#### Observation from the sitting — NOT a defect in this fix, and it is app-wide
+
+**The keyboard on this surface can be put away only with the keyboard's own Search key.**
+There is no tap-outside-to-dismiss and no Done affordance — **and Kyle's observation is that
+this is true app-wide, not only here** (Kyle, 2026-09-17).
+
+**THIS IS NOT A STEP THAT FAILED AND NOT A FAULT IN THE FIX.** No step on this script asserts
+a dismissal affordance for the **keyboard**; the dismissal steps (3, 6, 6b) are about the
+**sheet**, and all three passed. The Search key's behaviour was already established at step 0c
+and is unchanged by the fix — what changed is that it is no longer the only way out of the
+*sheet*, which is what this slice was for.
+
+**IT IS ALSO NOT THE TRAP LOOP.** Before the fix, pressing Search restored the header and
+touching the search field took it away again, so recovery and the primary interaction were
+mutually exclusive. After the fix the header never leaves, so pressing Search is now an
+ordinary keyboard dismissal on a surface that stays usable either way. **The observation is
+about the absence of a dismissal affordance, not about the sheet being unusable.**
+
+**BOOKED AS ITS OWN ROW: `KEYBOARD-DISMISS-UNIFORM`**, roadmap §5, before beta. It is
+app-wide, it owns three design decisions, and it is emphatically not a widening of this
+slice's fence — this surface is one of dozens and fixing it here alone would produce exactly
+the unevenness the row exists to end.
 
 ---
 
@@ -178,14 +271,37 @@ So step 6b should pass: there is a real, tappable backdrop where before there wa
 
 ---
 
-## Gate
+## Gate — MET, with step 7 named unrun
 
-**Steps 0, 0b, 0c, 1-6, 6b, 8-13 must pass.**
+**Steps 0, 0b, 0c, 1-6, 6b, 8-13 must pass. ✅ ALL PASSED.** 0/0b/0c on `main` at `1cc0746`,
+2026-09-16; 1-6, 6b and 8-13 on `fix/new-message-sheet`, 2026-09-17, at default Dynamic Type
+and again at 1.3x. iPhone 14 Plus throughout.
 
-**Step 7 must pass, or the attestation names it unrun and says the seeding did not happen.** It does not pass by assumption.
+**Step 7 must pass, or the attestation names it unrun and says the seeding did not happen.**
+It does not pass by assumption. **❌ NOT RUN. The seeding did not happen, and the attestation
+names it unrun.** The connections list inside the shrunken sheet is unexercised; the roadmap
+§5 row's claim for fixing the pair over deleting the KAV is untested rather than refuted.
 
-**One step can still send the slice back to Step 0: step 10.** If 1.3x Dynamic Type clips the header, the fix is incomplete — the header and search block grow while `SHEET_HEIGHT` does not, so the shrink has least room there.
+**BOTH BACK-TO-STEP-0 STEPS ARE SPENT.** 0c passed on `main`, so the mechanism is confirmed on
+hardware and the diagnosis is not a hypothesis. **Step 10 passed on the branch**, so 1.3x
+Dynamic Type does not clip the header and the shrink needs no floor. **Anything that surfaces
+from here is a fault in the fix, not in the reading of the defect, and step 10 can no longer
+send it back.**
 
-**The other one is spent. 0c PASSED**, so the KeyboardAvoidingView mechanism is confirmed on hardware and the diagnosis is no longer a hypothesis. Anything that fails from here is a fault in the fix, not in the reading of the defect.
+**Not run and not owed:** every SE step (not walkable in this setup, see above), and Android
+(no build; mechanism does not apply).
 
-**Not run and not owed:** every SE step (not walkable in this setup, see above), and Android (no build; mechanism does not apply).
+**Not run and OWED:** step 7. It is the only step here that outlives the merge, because the
+list state does not stop existing the way the before-state does.
+
+---
+
+## Attestations
+
+**ATTESTATIONS (Kyle, 2026-09-17):**
+
+- Suites green at tsc 141 / jest 3711 of 234 / sentinel 149 / lint 994 errors, 1358 warnings.
+  ATTESTED.
+- Walk passed: before-state 0/0b/0c on main, branch steps 1-6, 6b, 8-13 on iPhone 14 Plus at
+  default and 1.3x type. Step 7 not run, no seeded connection. SE not walkable in this setup.
+  ATTESTED.
