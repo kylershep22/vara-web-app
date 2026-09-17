@@ -2290,10 +2290,32 @@ field is one that is off-screen. It also settles that the Search key was never a
 to weigh against the fix — recording it was about falsifying the diagnosis, not about
 softening the defect.
 
-**WHAT IS STILL OPEN:** the branch half of the walk. **Step 10 (1.3x Dynamic Type) is the one
-remaining step that could send the slice back to Step 0**; the other falsifier is spent, so
-anything failing from here is a fault in the fix rather than in the reading of the defect.
-**Step 7 is blocked on a seeded connection.**
+**WHAT IS STILL OPEN: ONE STEP, AND IT IS NOT THE ONE THIS PARAGRAPH USED TO NAME.**
+
+**THE BRANCH HALF OF THE WALK RAN 2026-09-16** — the same sitting as the before-state capture
+— on an iPhone 14 Plus, at default Dynamic Type and again at 1.3x. **Steps 1-6, 6b and 8-13
+ALL PASSED.**
+
+**STEP 10 PASSED, WHICH IS THE RESULT THAT CLOSES THIS ENTRY.** 1.3x was the binding case
+because the header and search block grow while `SHEET_HEIGHT` does not; it did not clip, so
+**the shrink needs no floor**. **Both back-to-Step-0 steps are now spent** — 0c settled the
+mechanism, 10 settled the shrink — and anything surfacing from here is a fault in the fix
+rather than in the reading of the defect.
+
+**STEP 7 IS STILL UNRUN, FOR WANT OF A SEEDED CONNECTION THAT NEVER GOT ARRANGED.** So the
+connections **list** inside the shrunken sheet is **UNEXERCISED**, and this entry's own
+justification for fixing the `flexShrink`/KAV pair **rather than deleting the KAV** — that the
+list then scrolls inside the shrunken sheet with every row reachable — is **untested rather
+than refuted**. Steps 8 and 9 passed but render the no-results and no-connections blocks;
+neither puts rows in the list, so **neither substitutes for 7**.
+
+**IT IS OWED RATHER THAN LOST, AND IT IS THE ONLY OUTSTANDING STEP THAT OUTLIVES THE MERGE.**
+The before-state stops existing the moment the branch lands; a list with rows in it does not.
+**Step 7 can still be run against `main` once a connection is seeded.**
+
+*(This paragraph previously read: "the branch half of the walk. Step 10 … is the one remaining
+step that could send the slice back to Step 0 … Step 7 is blocked on a seeded connection."
+Both halves are settled now — step 10 by a pass, step 7 as unrun.)*
 
 ### What shipped
 

@@ -5,7 +5,9 @@
 **Backlog entry:** `docs/TECH_DEBT_BACKLOG.md`, "The new-message sheet opens unusable: keyboard up, header off-screen, no way out".
 **Surface:** the new-message `Modal` inside `mobile/src/screens/ConversationsScreen.tsx`. There is no route and no screen file — grepping the navigator for a "new message" screen finds nothing.
 
-**STATUS: WALK COMPLETE AND ATTESTED.** Before-state 0/0b/0c on `main` at `1cc0746`, 2026-09-16. Branch steps 1-6, 6b and 8-13 on `fix/new-message-sheet`, 2026-09-17, at default Dynamic Type and again at 1.3x. **Step 7 NOT RUN — no seeded connection.** iPhone 14 Plus throughout; SE not walkable in this setup. Attestations at the foot of this file.
+**STATUS: WALK COMPLETE AND ATTESTED.** Before-state 0/0b/0c on `main` at `1cc0746`, **2026-09-16**. Branch steps 1-6, 6b and 8-13 on `fix/new-message-sheet`, **2026-09-16** — the same sitting. At default Dynamic Type and again at 1.3x. **Step 7 NOT RUN — no seeded connection.** iPhone 14 Plus throughout; SE not walkable in this setup. Attestations at the foot of this file.
+
+**THE BRANCH-HALF DATE FIRST RECORDED 2026-09-17 AND IT IS CORRECTED HERE RATHER THAN SWAPPED SILENTLY — see the provenance note above the attestations.** 2026-09-17 is the date Kyle **reported** the walk; the walk itself ran 2026-09-16.
 
 ---
 
@@ -38,7 +40,7 @@ Run 0, 0b, 0c. **Then** `git checkout fix/new-message-sheet` and run the rest.
 
 ### 2. Step 7 needs a seeded connection, and Kyle's accounts have none — ❌ NOT ARRANGED; STEP 7 WAS NOT RUN
 
-> **THE SEEDING DID NOT HAPPEN AND STEP 7 DID NOT RUN (Kyle, 2026-09-17).** The clause below
+> **THE SEEDING DID NOT HAPPEN AND STEP 7 DID NOT RUN (Kyle, at the sitting, 2026-09-16).** The clause below
 > was written before the sitting and it is the clause that now applies: *"If the seeding does
 > not happen, the attestation says step 7 was not run. It does not say the walk passed."*
 > The attestation says exactly that. **The connections list inside the shrunken sheet is
@@ -153,7 +155,7 @@ the diagnosis, not about softening the defect.
 
 ### On `fix/new-message-sheet`
 
-> **RUN AND PASSED 2026-09-17, iPhone 14 Plus, dev client. STEPS 1-6, 6b AND 8-13 ALL
+> **RUN AND PASSED 2026-09-16, iPhone 14 Plus, dev client. STEPS 1-6, 6b AND 8-13 ALL
 > PASSED, at default Dynamic Type and again at 1.3x.**
 >
 > **STEP 7 NOT RUN — no seeded connection existed at the sitting.**
@@ -179,7 +181,7 @@ the diagnosis, not about softening the defect.
 | **12** ✅ | Sheet open, keyboard up → background the app → foreground it. | Returns to a usable sheet, header visible. Nothing stuck. |
 | **13** ✅ | Sheet dismissed: confirm the Conversations FAB still clears the floating capsule and is tappable. | **R2's A5b, re-run.** This slice edits the same file; A5b's pass must survive it. |
 
-#### Results — branch steps, iPhone 14 Plus, `fix/new-message-sheet` (Kyle, 2026-09-17)
+#### Results — branch steps, iPhone 14 Plus, `fix/new-message-sheet` (Kyle, 2026-09-16)
 
 **STEPS 1-6, 6b AND 8-13: PASS, AT DEFAULT DYNAMIC TYPE AND AGAIN AT 1.3x.** The geometry
 the fix was derived from holds on hardware. The handle, "New Message", "Select a connection
@@ -236,7 +238,7 @@ still be run later**, unlike 0/0b/0c.
 
 **The keyboard on this surface can be put away only with the keyboard's own Search key.**
 There is no tap-outside-to-dismiss and no Done affordance — **and Kyle's observation is that
-this is true app-wide, not only here** (Kyle, 2026-09-17).
+this is true app-wide, not only here** (Kyle, at the sitting, 2026-09-16).
 
 **THIS IS NOT A STEP THAT FAILED AND NOT A FAULT IN THE FIX.** No step on this script asserts
 a dismissal affordance for the **keyboard**; the dismissal steps (3, 6, 6b) are about the
@@ -274,8 +276,8 @@ So step 6b should pass: there is a real, tappable backdrop where before there wa
 ## Gate — MET, with step 7 named unrun
 
 **Steps 0, 0b, 0c, 1-6, 6b, 8-13 must pass. ✅ ALL PASSED.** 0/0b/0c on `main` at `1cc0746`,
-2026-09-16; 1-6, 6b and 8-13 on `fix/new-message-sheet`, 2026-09-17, at default Dynamic Type
-and again at 1.3x. iPhone 14 Plus throughout.
+2026-09-16; 1-6, 6b and 8-13 on `fix/new-message-sheet`, 2026-09-16 — the same sitting — at
+default Dynamic Type and again at 1.3x. iPhone 14 Plus throughout.
 
 **Step 7 must pass, or the attestation names it unrun and says the seeding did not happen.**
 It does not pass by assumption. **❌ NOT RUN. The seeding did not happen, and the attestation
@@ -298,7 +300,25 @@ list state does not stop existing the way the before-state does.
 
 ## Attestations
 
-**ATTESTATIONS (Kyle, 2026-09-17):**
+**THE DATE WENT WRONG TWICE IN THIS ROW, IN THE SAME DIRECTION, AND THE SECOND TIME IS
+RECORDED FOR THE SAME REASON THE FIRST WAS.** The attestation first read **2026-09-17**. The
+sitting was **2026-09-16** — the same day as the before-state capture, the same day the
+branch was built and this script was committed. **2026-09-17 is the date Kyle REPORTED the
+walk, not the date he walked it.**
+
+**WHERE THE WRONG DATE CAME FROM IS DIFFERENT THIS TIME, AND THAT IS THE USEFUL PART.** The
+first error inherited the date from the row's own prose. This one inherited it from **the
+report's arrival**: the report carried its date as a literal placeholder, and the placeholder
+was filled with the day the report was read. **A different source, the same class of error —
+a date that was available substituted for a date that was observed.**
+
+**SO THE RULE THIS ROW ALREADY CARRIES NEEDS ITS SECOND HALF.** It said: *a new attestation's
+date is observed, never inherited from the row it attests against.* It now also says: **a
+report's date is not the sitting's date either. The only date that attests a walk is the one
+the walker gives for the sitting** — and when a report leaves it blank, that is a question to
+ask, not a blank to fill from context.
+
+**ATTESTATIONS (Kyle, 2026-09-16):**
 
 - Suites green at tsc 141 / jest 3711 of 234 / sentinel 149 / lint 994 errors, 1358 warnings.
   ATTESTED.
