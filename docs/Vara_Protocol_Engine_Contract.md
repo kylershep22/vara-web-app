@@ -207,6 +207,13 @@ Listed explicitly so the next slice does not assume otherwise:
 the close of the slice 7i / 7k content batch, and both exist because a plausible
 tidy-up would have broken something.*
 
+> **EXTENDED 2026-09-17 (journey slice 7c). THERE ARE NOW THREE RULES, AND THE
+> HEADING ABOVE IS LEFT UNEDITED IN THE §3.4 STYLE.** 11.3 is Jen's downward
+> capacity search, ruled the same day. It is here rather than in §6 Selection
+> because it is a rule ABOUT DURATION and because the first thing a reader does
+> on meeting it is ask whether it contradicts 11.2. It does not, and 11.3 says
+> why in its own words rather than leaving the reader to work it out.
+
 ### 11.1 `estMinutes` IS A ROUTING INPUT, NOT DESCRIPTIVE METADATA
 
 `timeClass` is DERIVED from `estMinutes` and never typed
@@ -253,3 +260,83 @@ short practice is exactly the edit 11.1 forbids if it crosses a boundary. R7 was
 safe because 5 and 2 are both `short`. Check the class before applying this rule,
 not after.
 
+### 11.3 ON THE ADJUSTMENT PATH, CAPACITY IS A CEILING: SEARCH DOWNWARD, NEVER UPWARD, NEVER ACROSS MECHANISMS
+
+*Locked with Jen on 2026-09-17, ruling 3, and built in journey slice 7c.*
+
+**THE RULE.** When a user has recorded an in-phase adjustment and the mechanism
+they asked for has **no protocol fitting the time they have at the capacity they
+stated**, the engine searches **downward** through lower-demand capacity variants
+of **the same mechanism** before it will serve anything else. It never searches
+upward, and it never crosses to another mechanism to find a shorter protocol.
+
+**Jen's worked example, which the build reproduces exactly and a test pins.** A
+user at **Normal** capacity who has asked for *"Help me get something back"*:
+
+| Time they have | Served | Tier it came from |
+|---|---|---|
+| 20+ minutes | **R3** *Set the morning signal* | normal |
+| 10-15 minutes | **R6** *Start with light* | limited |
+| 5 minutes or less | **R9** *Get some morning light* | slammed |
+
+**WHY DOWNWARD AND NOT "THE NEXT SHORTEST VARIANT IN THIS CELL".** The cell's
+shorter variant belongs to a **different mechanism**. Serving it would answer a
+question the user did not ask: they said *"help me come down"* and would be
+handed the re-anchor protocol because it happened to be shorter. Crossing
+mechanisms is the thing this rule exists to avoid, so it walks the axis on which
+the same mechanism reappears - capacity - and gives up rather than crossing.
+
+**CAPACITY IS A CEILING, NOT A MINIMUM.** A Normal-capacity user being served a
+`slammed`-tier variant is the rule working, not a defect. What the tier bounds is
+how much the day may ASK of them; nothing says a day must ask that much.
+
+**SCOPED TO THE ADJUSTMENT PATH (Kyle, 2026-09-17).** The general version - walk
+downward whenever any preferred mechanism has no time-fitting variant, including
+the destination path - is a candidate for a later row and is **not** built. The
+consequence is stated rather than hidden: the same user, at the same capacity and
+the same time answer, is served a **20-minute** protocol with no preference
+recorded and a **5-minute** one with a preference recorded.
+
+---
+
+**IT DOES NOT CONTRADICT 11.1, AND IS THE ALTERNATIVE TO THE EDIT 11.1 FORBIDS.**
+11.1 bars changing `estMinutes` for tidiness because crossing 5 or 15 re-slots a
+variant. This rule **changes no number at all**. The case 11.1 records as a
+near-miss - Jen proposing R5 from 6 to 5 - and the case row 7l recorded as
+unfixable - R3's 20 minutes being the only thing standing between an Energy user
+and a five-minute answer - are both reached here **without moving a duration**,
+by finding a shorter variant of the same mechanism one tier down.
+
+**IT DOES NOT CONTRADICT 11.2 EITHER, AND THIS PARAGRAPH EXISTS BECAUSE IT READS
+AS THOUGH IT MIGHT.** 11.2's headline is *"...NEVER SHORTER"*, and a rule two
+inches below it that says *search DOWNWARD* will be read by somebody as licence
+to serve something shorter than the protocol requires. It is not. **The two
+govern different pairs:**
+
+- **11.2 governs a supporting or completion practice against the protocol it is
+  attached to.** A practice shorter than its protocol's `estMinutes` cannot
+  satisfy that protocol. Unchanged, and it still binds the variant the search
+  lands on, measured against **that** variant's own minutes.
+- **11.3 governs a protocol against the time the USER said they have.** Serving
+  a protocol shorter than the available time is not a shortfall; it is the time
+  ladder's existing and documented behaviour, stated at `pickVariant`: *"serving
+  something longer spends time they said they did not have, while serving
+  something shorter simply leaves some back."*
+
+Nothing in 11.3 lets a practice fall below its protocol's minimum. Nothing in
+11.2 requires a protocol to consume the user's whole window.
+
+**ONE SECOND-ORDER ITEM, RECORDED BECAUSE IT IS REAL AND IS NOT THE ENGINE'S TO
+ANSWER.** R9 is typed at 5 minutes with supporting practices of 10 and 20
+(`bright-light-10`, `bright-light-20`), held there deliberately by Jen in slice
+7k and expressly permitted by 11.2. A Normal-capacity user with five minutes and
+a refill preference now reaches R9 - the protocol fits - and its supporting
+practices do not. That is 7l's step-9 overrun observation reappearing one hop
+down, it is a content question rather than a routing one, and it goes to Jen with
+the rest of slice 7c's findings.
+
+**TERMINATION IS A PROPERTY OF THE CONTENT AND IS GUARDED AS ONE.** The walk ends
+because every mechanism holds a `short` variant at `slammed`. Nothing in the rule
+guarantees that; `protocolEngine/__tests__/protocolMatrix.mechanisms.test.ts`
+does. If a Recover cell ever loses a variant, that suite fails before a user
+meets a mechanism the engine cannot resolve.
