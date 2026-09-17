@@ -631,6 +631,13 @@ describe('DashboardScreen - the journey-action slot', () => {
     expect(mockNavigate).toHaveBeenCalledWith('JourneyPhase', {
       phase: 'recover',
       destination: 'calm',
+      // Slice 7c, from 7b's walk. The card's primary and the page's door carry
+      // the same label; a user who has answered the offer should not have to tap
+      // it twice. ASSERTED AT THE NAVIGATION rather than on the page, because
+      // this is the only place the two arrivals are distinguishable - the map's
+      // route to the same screen passes no such flag, which is what keeps it
+      // shut there.
+      openAdjust: true,
     });
   });
 

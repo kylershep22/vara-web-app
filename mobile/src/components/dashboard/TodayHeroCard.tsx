@@ -26,7 +26,7 @@ import Text from '../shared/Text';
 import { Check } from 'lucide-react-native';
 
 import { Colors, Layout, SizeTokens, Spacing, Typography } from '../../constants';
-import type { ResolvedProtocolVariant } from '../../protocolEngine';
+import type { CapacityTier, ResolvedProtocolVariant } from '../../protocolEngine';
 import { OUTCOME_LABELS } from '../../screens/weekly/copy';
 import { DESTINATION_SUMMARY_LABELS } from '../../constants/journeyCopy';
 import { CAPACITY_LABELS } from '../../constants/capacityCopy';
@@ -116,6 +116,17 @@ export interface TodayHeroCardProps {
    */
   destination?: DestinationKey | null;
   protocol: ResolvedProtocolVariant;
+  /**
+   * The tier the DAY was resolved at, for the summary line (slice 7c).
+   *
+   * NOT `protocol.capacity`, AND THE DIFFERENCE IS THE WHOLE REASON THIS PROP
+   * EXISTS. See the note on the summary line below.
+   *
+   * Optional so the legacy and empty paths need not supply it; the line falls
+   * back to the variant's own tier, which is what it read before this slice and
+   * is correct on every path that cannot produce a mismatch.
+   */
+  dayCapacity?: CapacityTier | null;
   /** Rendered only when present; the hook reads it only on slammed weeks. */
   floorCommitment: string | null;
   completed: boolean;
@@ -137,6 +148,7 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
   cycle,
   destination,
   protocol,
+  dayCapacity,
   floorCommitment,
   completed,
   consistentDays = 0,
@@ -211,12 +223,30 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
         its own element: the card is a doorway, and a date deserves no more
         weight than the outcome/capacity pair it qualifies.
 
-        THE TIER COMES OFF THE PROTOCOL, not off the cycle (roadmap 3b-i).
-        Capacity is a daily read now, so the cycle's own tier is no longer what
-        the day was derived at and rendering it would state a tier the action
-        below does not match. `selectProtocol` stamps the capacity it resolved
-        onto the protocol, so reading it back from there makes the label and the
-        action the same fact by construction rather than by agreement. */}
+        THE TIER COMES OFF THE DAY'S OWN ANSWER, not off the cycle and, since
+        slice 7c, not off the protocol either.
+
+        WHAT THIS COMMENT USED TO SAY, AND WHY IT STOPPED BEING TRUE. It read:
+        "`selectProtocol` stamps the capacity it resolved onto the protocol, so
+        reading it back from there makes the label and the action the same fact
+        by construction rather than by agreement." That held while the served
+        variant always came out of the cell the user's own answer selected.
+        Slice 7c's downward capacity search does not: when a user's recorded
+        adjustment names a mechanism with no variant fitting their time at their
+        stated tier, the engine serves a LOWER-tier variant of the same mechanism
+        rather than crossing to a different one. Seven of the twenty-seven
+        adjustment triples do exactly that, and on every one of them this line
+        would have told a user who answered Normal that they had said Slammed.
+
+        SO THE TWO FACTS ARE SEPARATED RATHER THAN RECONCILED. This line is a
+        summary of the user's day and names what the USER said. The variant keeps
+        naming the cell it was authored in, which is what routing needs. Neither
+        gives way to the other, and `protocol.capacity` now has no reader in the
+        app at all - it is a routing field, and this was its last render.
+
+        The cycle's own tier stays wrong for the original 3b-i reason and is
+        still not read: capacity is a daily answer, and the week's copy of it is
+        not what the day was derived at. */}
     {/* THE FRAME LABEL, from whichever axis this account actually has.
         Slice 4b, and the branch order is the rule:
 
@@ -238,7 +268,7 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
           : destination
             ? `${DESTINATION_SUMMARY_LABELS[destination]} / `
             : ''}
-        {CAPACITY_LABELS[protocol.capacity]}
+        {CAPACITY_LABELS[dayCapacity ?? protocol.capacity]}
         {!!cycle.weekEnd &&
           ` · ${TODAY_COPY.runsThrough.replace('{day}', weekdayNameForIso(resolveWeekEnd(cycle.weekStart, cycle.weekEnd)))}`}
       </Text>

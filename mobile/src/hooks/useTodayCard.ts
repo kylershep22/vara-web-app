@@ -6,7 +6,8 @@
  * surface over, and this is now the sole place the day's protocol is resolved:
  *
  *   capacity     <- today's dailyLog, falling back to the source's capacitySeed
- *   protocol     <- selectProtocol(phase, capacity, time, destination)
+ *   protocol     <- selectProtocol(phase, capacity, time, destination, family,
+ *                                   adjustChoice)
  *   floor        <- read ONLY when THAT capacity is 'slammed' (spec 9, 10.1)
  *
  * THE WEEK NUMBER IS GONE (journey slice 3a). It existed for one caller, the
@@ -62,7 +63,12 @@ import { deriveConsistentDays } from '../journey/derive';
 import { getFloorCommitment } from '../services/firebase/userPrivate.service';
 import type { WeeklyCycle } from '../types/models';
 import type { PhaseContext } from '../journey/resolveJourney';
-import type { DestinationKey, PhaseKey, RemoveFamily } from '../types/models';
+import type {
+  AdjustChoiceId,
+  DestinationKey,
+  PhaseKey,
+  RemoveFamily,
+} from '../types/models';
 import { addDaysIso, toIsoDate } from '../utils/weekStart';
 import { logger } from '../utils/logger';
 
@@ -70,6 +76,28 @@ export interface TodayCard {
   protocol: ResolvedProtocolVariant | null;
   /** Only read, and only shown, when the DAY's capacity is 'slammed'. */
   floorCommitment: string | null;
+  /**
+   * The tier THIS DAY was resolved at: the day's own answer, or the seed it
+   * falls back to before one has been given (slice 7c).
+   *
+   * IT EXISTS BECAUSE `protocol.capacity` STOPPED BEING THE SAME FACT. The hero
+   * card's summary line read the tier off the served variant, under a comment
+   * saying that made the label and the action "the same fact by construction
+   * rather than by agreement". That was true while the variant always came out
+   * of the cell the user's own answer selected. Slice 7c's downward search can
+   * serve a LOWER-tier variant to a user who answered Normal - seven of the
+   * twenty-seven adjustment triples do - and the line would then have told them
+   * they had said "Slammed" when they had not.
+   *
+   * SO THE TWO FACTS ARE SEPARATED RATHER THAN RECONCILED. The card names what
+   * the USER said, which is what a summary of their day means; the variant keeps
+   * naming the cell it was authored in, which is what routing needs. Neither has
+   * to give way to the other.
+   *
+   * NULL ONLY WHILE THE CARD HAS NO PROTOCOL EITHER, so a caller never has to
+   * choose between a tier and a blank.
+   */
+  dayCapacity: CapacityTier | null;
   /** True once today's log records the action as done. */
   completed: boolean;
   loading: boolean;
@@ -124,6 +152,7 @@ export interface TodayCard {
 const EMPTY: Omit<TodayCard, 'markDone' | 'confirmPick'> = {
   protocol: null,
   floorCommitment: null,
+  dayCapacity: null,
   completed: false,
   loading: false,
   failed: false,
@@ -174,6 +203,9 @@ export function useTodayCard(
 ): TodayCard {
   const [protocol, setProtocol] = useState<ResolvedProtocolVariant | null>(null);
   const [floorCommitment, setFloorCommitment] = useState<string | null>(null);
+  // The tier the DAY was resolved at, held beside the protocol rather than read
+  // back off it (slice 7c). See the field's note on TodayCard.
+  const [dayCapacity, setDayCapacity] = useState<CapacityTier | null>(null);
   const [completed, setCompleted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -296,6 +328,10 @@ export function useTodayCard(
 
   const destination: DestinationKey =
     source !== null && source.kind === 'phase' ? source.phase.destination : 'focus';
+  // Slice 7c. Null on the legacy path, which has no journey and therefore no
+  // recorded adjustment; the engine treats null and absent identically.
+  const adjustChoice: AdjustChoiceId | null =
+    source !== null && source.kind === 'phase' ? source.phase.adjustChoice : null;
 
   // The captured Remove family, when there is one. Undefined on the legacy
   // cycle path and on any journey that has not captured, and undefined orders
@@ -345,6 +381,7 @@ export function useTodayCard(
     if (!uid || !sourceKey || !phaseKey || !capacitySeed) {
       setProtocol(null);
       setFloorCommitment(null);
+      setDayCapacity(null);
       setCompleted(false);
       setPicked(false);
       setLoading(false);
@@ -390,7 +427,14 @@ export function useTodayCard(
             todaysCapacity,
             todaysTime,
             destination,
-            removeFamily
+            removeFamily,
+            // SLICE 7c. The recorded adjustment, passed whole. The engine owns
+            // which of the twelve it can honour and refuses the other nine, so
+            // this line is correct whatever is on the document - including an id
+            // from a phase the user has since left, which cannot be honoured
+            // because `adjustmentPreferenceFor` only maps Recover's three and
+            // `CLEARED_OFFERS` nulls the field on every phase change anyway.
+            adjustChoice
           ),
           quickWinActive: false,
         };
@@ -429,6 +473,7 @@ export function useTodayCard(
         if (!activeRef.current) return;
         setProtocol(resolved);
         setFloorCommitment(floor);
+        setDayCapacity(todaysCapacity);
         setCompleted(log?.protocolCompleted === true);
         setPicked(answered);
         setPrefillCapacity(prior?.dailyCapacity ?? capacitySeed);
@@ -438,6 +483,10 @@ export function useTodayCard(
         logger.error('[useTodayCard] load failed:', error);
         if (!activeRef.current) return;
         setProtocol(null);
+        // Cleared WITH the protocol, never left behind it: the tier describes a
+        // day that failed to resolve, and a stale one beside a null protocol is
+        // a label for an action nobody can see.
+        setDayCapacity(null);
         setFailed(true);
         setLoading(false);
       }
@@ -452,6 +501,12 @@ export function useTodayCard(
     phaseKey,
     destination,
     removeFamily,
+    // Slice 7c. Listed EVEN THOUGH `sourceKey` already carries `revisionToken`
+    // and every write to the journey document bumps it, so a recorded choice
+    // re-runs this effect today by that route. Named anyway: the day the
+    // sourceKey's contents are narrowed, this dependency would go with it
+    // silently, and the cost of a redundant scalar in the array is nothing.
+    adjustChoice,
     enteredAtIso,
     capacitySeed,
     todayIso,
@@ -549,6 +604,7 @@ export function useTodayCard(
   return {
     protocol,
     floorCommitment,
+    dayCapacity,
     completed,
     loading,
     failed,

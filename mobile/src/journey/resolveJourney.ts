@@ -48,6 +48,7 @@ import { getLatestWeeklyCycle } from '../services/firebase/weeklyCycle.service';
 import { getUserPrivate } from '../services/firebase/userPrivate.service';
 import { logEvent } from '../services/firebase/analyticsEvents.service';
 import type {
+  AdjustChoiceId,
   DestinationKey,
   JourneyState,
   PhaseKey,
@@ -182,6 +183,32 @@ export interface PhaseContext {
    * every read.
    */
   adjustArmedFromIso: string | null;
+  /**
+   * The in-phase alternative the user recorded, or null (slice 7c).
+   *
+   * IT IS A SERVING INPUT AND NOTHING ELSE. `selectProtocol` maps it to a
+   * Recover mechanism and serves that mechanism's variant; nothing renders it,
+   * nothing counts it, and no copy interpolates it. It reaches Today through
+   * `useTodayCard`, which is the only consumer.
+   *
+   * CARRIED HERE RATHER THAN RE-READ, on exactly the precedent `removeFamily`,
+   * `enteredAtIso`, `advanceDeclined` and the three exposure fields set in
+   * slices 3c-i, 4a and 7a: it comes off the document the resolver has already
+   * read, and the alternative was a second `getJourneyState` call on a surface
+   * that has just resolved the journey.
+   *
+   * THE ID, NOT A MECHANISM, and the narrowing that the two fields above do is
+   * deliberately NOT done here. `advanceDeclined` is a boolean because its two
+   * readers need the fact and not the instant; this is passed whole because the
+   * engine owns the mapping from twelve ids to three mechanisms and is the only
+   * thing that may decide which ids it can honour. Mapping here would put that
+   * decision in the resolver and give a second place for it to drift.
+   *
+   * NULL FOR "NO CHOICE", INCLUDING FOR THE NINE THAT ARE NOT ACTIVATED. A
+   * stored id the engine cannot honour arrives here unchanged and is refused by
+   * `adjustmentPreferenceFor`, which is the outward half of the activation gate.
+   */
+  adjustChoice: AdjustChoiceId | null;
   /**
    * How many proactive adjustment offers the user has declined in this phase.
    *
@@ -412,6 +439,11 @@ export async function resolveJourney(uid: string): Promise<JourneyResolution> {
           advanceFirstOfferedOn: existing.advanceFirstOfferedOn ?? null,
           advanceLastExposedOn: existing.advanceLastExposedOn ?? null,
           adjustArmedFromIso: adjustArmedFromIsoOf(existing),
+          // Slice 7c. `?? null` because the field is absent on every document
+          // written before slice 7b, and undefined is not the same shape the
+          // engine's `switch` falls through on by accident - it is made the
+          // same shape here, once.
+          adjustChoice: existing.adjustChoice ?? null,
           adjustDeclines: existing.adjustDeclines ?? 0,
           adjustOffered: !!existing.adjustOfferedAt,
         },
@@ -496,6 +528,9 @@ export async function resolveJourney(uid: string): Promise<JourneyResolution> {
         // is the one value here the server decided and this one does depend on
         // the round trip the comment above describes.
         adjustArmedFromIso: adjustArmedFromIsoOf(created),
+        // A journey created this instant has made no choice. Spelled out rather
+        // than spread, for the reason every cleared value on this branch is.
+        adjustChoice: null,
         adjustDeclines: 0,
         adjustOffered: false,
       },

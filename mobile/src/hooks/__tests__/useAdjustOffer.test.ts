@@ -81,6 +81,9 @@ const phase = (over: Partial<PhaseContext> = {}): PhaseContext => ({
   advanceFirstOfferedOn: null,
   advanceLastExposedOn: null,
   adjustArmedFromIso: '2026-08-01',
+  // Slice 7c. No recorded adjustment is the default state of every fixture
+  // here; the cases that need one set it.
+  adjustChoice: null,
   adjustDeclines: 0,
   adjustOffered: false,
   ...over,

@@ -11,7 +11,7 @@
 // string does not appear even when the document carries it.
 
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 const mockGetJourneyState = jest.fn();
 const mockAdvancePhase = jest.fn(async () => {});
@@ -35,7 +35,7 @@ jest.mock('../../../context/AuthContext', () => ({
   useAuth: () => ({ user: { uid: 'u1' } }),
 }));
 
-const mockParams: { phase: string; destination: string } = {
+const mockParams: { phase: string; destination: string; openAdjust?: boolean } = {
   phase: 'remove',
   destination: 'calm',
 };
@@ -78,9 +78,14 @@ function journeyFixture(over: Partial<JourneyState> = {}): JourneyState {
   } as unknown as JourneyState;
 }
 
-function setParams(phase: string, destination: string) {
+function setParams(phase: string, destination: string, openAdjust?: boolean) {
   mockParams.phase = phase;
   mockParams.destination = destination;
+  // Slice 7c. Deleted rather than set to false when absent, so a test that does
+  // not mention the flag gets the same params object a map arrival produces
+  // rather than one carrying an explicit `false` no caller writes.
+  if (openAdjust === undefined) delete mockParams.openAdjust;
+  else mockParams.openAdjust = openAdjust;
 }
 
 beforeEach(() => {
@@ -734,6 +739,153 @@ describe('the adjustment door', () => {
       expect(screen.getByTestId('journey-phase-commit')).toBeTruthy()
     );
     expect(screen.queryByTestId('journey-phase-adjust')).toBeNull();
+  });
+
+  // -------------------------------------------------------------------------
+  // SLICE 7c: THE TWO ARRIVALS, AND THE IN-FLIGHT GUARD.
+  //
+  // Both were logged to row 7c at 7b's walk and both are about the same thing -
+  // a control that does not tell the user what state it is in. The first makes
+  // the page say which question it is answering; the second makes it say that
+  // it heard the tap.
+  // -------------------------------------------------------------------------
+  test('arrives EXPANDED from the Today card', async () => {
+    mockGetJourneyState.mockResolvedValue(qualified());
+    setParams('recover', 'calm', true);
+    render(<JourneyPhaseScreen />);
+    // The three options are on the page with no tap at all, and the control
+    // that would have asked for one is gone.
+    await waitFor(() =>
+      expect(screen.getByText(ADJUST_COPY.alternativesIntro)).toBeTruthy()
+    );
+    expect(screen.queryByTestId('journey-phase-adjust-open')).toBeNull();
+    for (const option of ADJUST_ALTERNATIVES.recover) {
+      expect(screen.getByTestId(`journey-phase-adjust-${option.id}`)).toBeTruthy();
+    }
+  });
+
+  test('arrives SHUT from the map, which passes no flag', async () => {
+    // THE CONTROL FOR THE TEST ABOVE, and the reason it is a separate case: an
+    // expanded-always door would satisfy the first test perfectly. The map's
+    // route sets no `openAdjust`, so this is the real second arrival rather than
+    // a constructed one.
+    mockGetJourneyState.mockResolvedValue(qualified());
+    setParams('recover', 'calm');
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-open')).toBeTruthy()
+    );
+    expect(screen.queryByText(ADJUST_COPY.alternativesIntro)).toBeNull();
+  });
+
+  test('an expanded arrival can still be answered, and confirms in place', async () => {
+    // The expanded path is a different render branch from the tap-to-open path,
+    // and skipping a tap must not skip the write. Without this, `openAdjust`
+    // could render three decorative rows.
+    mockGetJourneyState.mockResolvedValue(qualified());
+    setParams('recover', 'calm', true);
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-help_me_come_down')).toBeTruthy()
+    );
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-help_me_come_down'));
+    await waitFor(() =>
+      expect(mockRecordAdjustChoice).toHaveBeenCalledWith('u1', 'help_me_come_down')
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-confirmation')).toBeTruthy()
+    );
+  });
+
+  test('the tapped option reports busy and the other two report disabled', async () => {
+    // THE IN-FLIGHT GUARD, asserted through accessibilityState rather than
+    // through a style: the style is the visible half and the state is the half a
+    // screen reader gets, and UI Standards require both. Held mid-flight by a
+    // promise this test controls.
+    let settle: () => void = () => {};
+    mockRecordAdjustChoice.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        settle = resolve;
+      }) as never
+    );
+    mockGetJourneyState.mockResolvedValue(qualified());
+    setParams('recover', 'calm', true);
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-help_me_come_down')).toBeTruthy()
+    );
+
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-help_me_come_down'));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('journey-phase-adjust-help_me_come_down').props
+          .accessibilityState
+      ).toEqual({ disabled: true, busy: true })
+    );
+    for (const id of ['help_me_get_something_back', 'help_me_get_re_oriented']) {
+      expect(
+        screen.getByTestId(`journey-phase-adjust-${id}`).props.accessibilityState
+      ).toEqual({ disabled: true, busy: false });
+    }
+
+    // AND IT CLEARS. A guard that never lifted would be a worse bug than the one
+    // it fixes, and on the failure path the options have to come back.
+    await act(async () => {
+      settle();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-confirmation')).toBeTruthy()
+    );
+  });
+
+  test('a second tap while the first is settling writes ONCE', async () => {
+    // THE REASON THE GUARD IS ON THE WRITE AND NOT ONLY ON THE PIXELS. Two
+    // writes would let whichever network call finished last decide what the
+    // engine serves tomorrow, which is a wrong DAY and not merely a wrong frame.
+    let settle: () => void = () => {};
+    mockRecordAdjustChoice.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        settle = resolve;
+      }) as never
+    );
+    mockGetJourneyState.mockResolvedValue(qualified());
+    setParams('recover', 'calm', true);
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-help_me_come_down')).toBeTruthy()
+    );
+
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-help_me_come_down'));
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-help_me_get_re_oriented'));
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-help_me_come_down'));
+
+    await act(async () => {
+      settle();
+    });
+    expect(mockRecordAdjustChoice).toHaveBeenCalledTimes(1);
+    expect(mockRecordAdjustChoice).toHaveBeenCalledWith('u1', 'help_me_come_down');
+  });
+
+  test('a failed write lifts the guard, so the options are tappable again', async () => {
+    mockRecordAdjustChoice.mockRejectedValueOnce(new Error('offline'));
+    mockGetJourneyState.mockResolvedValue(qualified());
+    setParams('recover', 'calm', true);
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-help_me_come_down')).toBeTruthy()
+    );
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-help_me_come_down'));
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-error')).toBeTruthy()
+    );
+    // Not merely present: ACTIVATABLE. A disabled row that still rendered would
+    // satisfy an existence check and leave the user with nothing to do.
+    for (const option of ADJUST_ALTERNATIVES.recover) {
+      expect(
+        screen.getByTestId(`journey-phase-adjust-${option.id}`).props.accessibilityState
+      ).toEqual({ disabled: false, busy: false });
+    }
   });
 
   test('the state eyebrow still reads correctly beside the door', async () => {
