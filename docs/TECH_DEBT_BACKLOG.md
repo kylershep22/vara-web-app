@@ -2145,7 +2145,14 @@ fails, it is the fix.
 
 ---
 
-## The new-message sheet opens unusable: keyboard up, header off-screen, no way out
+## ~~The new-message sheet opens unusable: keyboard up, header off-screen, no way out~~
+
+**CLOSED 2026-09-16 by slice `NEW-MESSAGE-SHEET`, branch `fix/new-message-sheet`.** The
+diagnosis below is AMENDED rather than left standing: Step 0 established the mechanism and
+**two of the three candidate causes were wrong about their own role**. The amendment block
+sits immediately under the candidate list and supersedes it wherever the two differ. The
+entry is kept in full rather than deleted, because the wrong readings are the instructive
+part and a future reader of the fix needs to see what it was fixing.
 
 **Source:** found while running R2's walk step A5b, 2026-09-14, iPhone 14 Plus (Kyle).
 **NOT R2's defect and not fixed there.** See the scope note at the bottom.
@@ -2185,6 +2192,154 @@ proves the fix, not the cause.
 **(2) and (3) compound**: the first moves the header up, the second means there is no
 inset stopping it at the status bar.
 
+### AMENDED 2026-09-16 AT STEP 0. THE LINE ABOVE IS WRONG, AND SO IS THE KNOB IN (2).
+
+The candidates were honest guesses read off the source after a walk, and the entry said so.
+Step 0 tested them. Three corrections, and the third is the one that would have cost a pass.
+
+**"(2) AND (3) COMPOUND" DOES NOT HOLD.** The mechanism is **(2) plus the sheet's fixed
+`height`**, and **(3) contributes nothing to what was seen**. Read from RN 0.81.5's
+`KeyboardAvoidingView._relativeKeyboardHeight`: with `behavior: 'padding'` the computed
+padding is `frame.y + frame.height - keyboardScreenY`, and this KAV is full-screen, so it
+resolves to **exactly the keyboard's height**. The KAV's content box shrinks by that much;
+the sheet inside it has a definite `height` of `SCREEN_HEIGHT * 0.78` and **Yoga's default
+`flexShrink: 0`**, so it cannot yield; `justifyContent: 'flex-end'` sends the overflow off
+the **top**. On a 14 Plus that is `kbH - 204`, about **132pt**, which places the handle at
+-132, the whole header at -112 to -36, and the search field straddling y=0 under the status
+bar. That reproduces Kyle's observation block by block. **A 47pt top inset does not stop a
+132pt displacement**, and in the healthy state the sheet's top sits at y=204, 157pt clear of
+the status bar, so (3) was never exercised either way.
+
+**(3) IS NOT A CAUSE. IT IS LATENT, AND THE FIX IS WHAT ACTIVATES IT.** Once the sheet
+shrinks instead of overflowing, it stops at the top of the KAV's content box — which is y=0
+without an inset. That is why the fix carries `paddingTop: insets.top` on the wrapper: not
+because (3) caused this, but because repairing (2) makes (3) live for the first time.
+
+**(1) IS A TRIGGER, NOT A CAUSE.** `autoFocus` decides only *when* the state arrives.
+Removing it alone would move the defect from "broken on arrival" to "broken on the first tap
+of the search field", which is the sheet's primary interaction — a worse defect, because it
+is now intermittent. `autoFocus` was KEPT.
+
+**THE `keyboardVerticalOffset` FRAMING IN (2) IS BACKWARDS, AND THIS IS THE CORRECTION THAT
+MATTERS MOST.** RN **ADDS** the offset: `paddingBottom = kbH + keyboardVerticalOffset`. A
+positive value displaces the sheet **further** up. `utils/keyboard.ts` hands out **64** and
+`EnhancedModal.tsx:164` uses **100**; either would look like the obvious fix and would deepen
+the defect. There is no constant that helps — the value that would zero the padding is
+`-kbH`, which is not knowable at render. **The KAV is not misconfigured; 0 is arithmetically
+correct for a full-screen KAV. It is MISAPPLIED**, to a child that cannot shrink. A comment
+at the call site now says so, and the geometry suite pins the absence of an offset.
+
+**`statusBarTranslucent` IS ANDROID-ONLY AND INERT ON iOS.** It is declared in
+`ModalPropsAndroid` (`Modal.js:157-167`), not `ModalPropsIOS` (`:113-155`). (3)'s conclusion
+— nothing reserves the status bar — was true; its stated reason was not the operative one on
+the device where the defect was seen. The modal is full-screen-under-the-status-bar because
+it is `transparent` (which defaults `presentationStyle` to `overFullScreen`). The prop was
+KEPT: removing it would change an Android surface nobody here can walk.
+
+**THE DEFECT IS iOS-ONLY BY MECHANISM.** `behavior` is `undefined` on Android, which takes
+the KAV's `default` branch and applies **no padding at all**. Android's own behaviour under
+`statusBarTranslucent` is unverified and not walkable in this setup.
+
+**THE SURFACE HAD NO WORKING DISMISSAL AT ALL, AND "TAP OUTSIDE" FAILED FOR A NON-OBVIOUS
+REASON.** The overlay was `absoluteFillObject` **inside** the KAV, and Yoga resolves absolute
+insets against the parent's **padding** box — so the keyboard's padding shrank the overlay to
+exactly the region the sheet already covered. Not one exposed pixel. The close control was
+off-screen and the `PanResponder` was spread on the handle strip only, which was also
+off-screen. **Kyle's "cannot be dismissed without backgrounding the app" is confirmed
+affordance by affordance.** One undesigned escape existed: the shared `TextInput` does not
+set `blurOnSubmit`, so RN's single-line default of `true` applies and the keyboard's Search
+key blurs the field, collapsing the padding and dropping the sheet back into view. An
+unlabelled keypress is not a dismiss control, and it changed nothing about the fix — but it
+is also the falsifier for the whole diagnosis, which is why it was walked first.
+
+### CONFIRMED ON HARDWARE 2026-09-16 — the mechanism is no longer a reading
+
+**Walk steps 0, 0b and 0c RUN AND PASSED on `main` at `1cc0746`, iPhone 14 Plus (Kyle,
+2026-09-16).** The amendment above was derived from RN source and arithmetic; this is the
+device confirming it. **The three steps are CLOSED and not re-runnable** — `main` is the only
+place the defect exists and it stops existing there at the merge. Full results in
+`docs/walks/new-message-sheet/WALK.md`; the row and §13 carry the same record.
+
+**STEP 0 — the predicted geometry, item for item.** Keyboard up; no handle, no title, no
+subtitle, no close control; search field clipped at the top under the status bar.
+Screenshotted. **Every one of those elements was in the component tree the whole time**,
+which is why no jest test could have caught it.
+
+**STEP 0b — all four exits dead, checked one at a time rather than inferred.** Close control
+off-screen and untappable. **No exposed backdrop anywhere on screen to tap**, which is the
+non-obvious one above confirmed on hardware. Swipe from the top edge dead, because the handle
+carrying the `PanResponder` is off-screen. Swipe from the body dead. Escaped by backgrounding
+the app.
+
+**STEP 0c — PASSED, AND BOTH HALVES OF IT.** The Search key drops the sheet to its correct
+position with the handle, title, subtitle, close X and search field all fully visible and
+clear of the status bar. **And tapping the search field raises the keyboard and returns the
+sheet to the broken state**, so the displacement **TRACKS THE KEYBOARD** rather than being a
+one-time layout error — reversible, repeatable, driven by the keyboard's presence. That is
+what `behavior: 'padding'` recomputing on every keyboard event predicts and what a static
+mis-layout cannot produce, so it rules out the rival explanation rather than merely
+supporting the favoured one.
+
+**THE UNDESIGNED ESCAPE IS NOT A USABLE EXIT, AND 0c IS WHAT PROVES IT.** The Search key
+restores the header — **and touching the search field, which is the sheet's entire purpose,
+returns it to the broken state immediately.** The escape holds only for as long as the user
+does not do the one thing the surface exists for. **That makes the before-state a TRAP LOOP
+rather than a surface that is merely hard to dismiss:** the recovery and the primary
+interaction are mutually exclusive, and the only affordance that survives touching the search
+field is one that is off-screen. It also settles that the Search key was never a mitigation
+to weigh against the fix — recording it was about falsifying the diagnosis, not about
+softening the defect.
+
+**WHAT IS STILL OPEN: ONE STEP, AND IT IS NOT THE ONE THIS PARAGRAPH USED TO NAME.**
+
+**THE BRANCH HALF OF THE WALK RAN 2026-09-16** — the same sitting as the before-state capture
+— on an iPhone 14 Plus, at default Dynamic Type and again at 1.3x. **Steps 1-6, 6b and 8-13
+ALL PASSED.**
+
+**STEP 10 PASSED, WHICH IS THE RESULT THAT CLOSES THIS ENTRY.** 1.3x was the binding case
+because the header and search block grow while `SHEET_HEIGHT` does not; it did not clip, so
+**the shrink needs no floor**. **Both back-to-Step-0 steps are now spent** — 0c settled the
+mechanism, 10 settled the shrink — and anything surfacing from here is a fault in the fix
+rather than in the reading of the defect.
+
+**STEP 7 IS STILL UNRUN, FOR WANT OF A SEEDED CONNECTION THAT NEVER GOT ARRANGED.** So the
+connections **list** inside the shrunken sheet is **UNEXERCISED**, and this entry's own
+justification for fixing the `flexShrink`/KAV pair **rather than deleting the KAV** — that the
+list then scrolls inside the shrunken sheet with every row reachable — is **untested rather
+than refuted**. Steps 8 and 9 passed but render the no-results and no-connections blocks;
+neither puts rows in the list, so **neither substitutes for 7**.
+
+**IT IS OWED RATHER THAN LOST, AND IT IS THE ONLY OUTSTANDING STEP THAT OUTLIVES THE MERGE.**
+The before-state stops existing the moment the branch lands; a list with rows in it does not.
+**Step 7 can still be run against `main` once a connection is seeded.**
+
+*(This paragraph previously read: "the branch half of the walk. Step 10 … is the one remaining
+step that could send the slice back to Step 0 … Step 7 is blocked on a seeded connection."
+Both halves are settled now — step 10 by a pass, step 7 as unrun.)*
+
+### What shipped
+
+**Three changes, `fix/new-message-sheet`, commits `7f415f7` (fix) and `6deb614` (tests).**
+
+1. **`flexShrink: 1` on `styles.sheet`.** The cause. Zero difference in any state that
+   renders correctly today.
+2. **`paddingTop: insets.top` on the KeyboardAvoidingView.** Candidate (3), activated by (1).
+3. **RULING 2 (Kyle, 2026-09-14): the overlay and its `TouchableWithoutFeedback` move OUTSIDE
+   the KAV**, as `HabitNoteSheet.tsx:131-139` already does. Classified as **repair**: the
+   markup has always said tapping the backdrop closes the sheet, and this makes it behave
+   that way. It carries **`pointerEvents="box-none"` on the KAV**, without which it would be
+   a regression rather than a fix — the KAV is `flex: 1` and now paints over the overlay, and
+   a plain View is its own hit-test target, so it would swallow every backdrop tap.
+
+**KNOWN AND DELIBERATELY NOT ADDRESSED — READ BEFORE REOPENING.** With the keyboard **up**,
+the sheet shrinks to exactly fill the space between `insets.top` and the keyboard, so the
+exposed backdrop is the **47pt strip under the status bar and nothing else**. Ruling 2's step
+(walk 6b) should pass, but that is a technically-correct target rather than a comfortable
+one. Widening it means more top padding than the inset alone, which is a **design change** on
+a surface §2.8 freezes until R6+, so it is Kyle's call at the walk and not a drive-by.
+
+**NO STRINGS CHANGED.** Sentinel 149 in both directions, `EXPECTED_SENTINELS` untouched.
+
 ### Scope
 
 - **A COMMUNITY SURFACE**, which UI Standards 2.8 marks **FOCUS, retained as-is, out of
@@ -2206,6 +2361,102 @@ against the three candidates above, not a patch against the symptom.
 **It is on the roadmap board too**, in §5 beside the R-series, so it is visible to whoever
 is choosing what to build next rather than only to whoever opens this file. The detail
 lives here; the board carries the pointer.
+
+---
+
+## The Conversations FAB is an unlabelled button
+
+**Found at `NEW-MESSAGE-SHEET`'s Step 0, 2026-09-16. Inside the fence, deliberately not
+fixed.**
+
+`ConversationsScreen.tsx`'s FAB is a 56pt `TouchableOpacity` whose only child is an
+`MCIcon`. It carries **no `accessibilityRole` and no `accessibilityLabel`**. To a screen
+reader it is an unlabelled button, and it is one of only two ways into the new-message sheet.
+
+**The two entry points are not equivalent to assistive tech**, which is the part worth
+noticing: the empty state's action IS labelled correctly (`MessagingEmptyState`,
+`EmptyState.tsx:38-39`), so a VoiceOver user with zero conversations can open the sheet and
+one with a conversation cannot find the control.
+
+**WHY IT WAS NOT FOLDED IN, since it is one line in a file the slice already touched.** An
+`accessibilityLabel` is a **user-facing string**. It carries a sentinel decision and an
+owner (Kyle, per `copyDraftSentinel.test.ts`'s contract — this is a UI string, not
+efficacy-adjacent copy), and `NEW-MESSAGE-SHEET` shipped with `EXPECTED_SENTINELS` untouched
+in both directions by design. Adding a string to a defect-fix slice on a surface §2.8 freezes
+is exactly the drive-by that row said no to.
+
+**Note for whoever picks it up:** the slice's test suites mock `@expo/vector-icons` to give
+each glyph a `testID`, purely because the FAB has no other handle. That mock works around
+this defect; it does not excuse it, and the comment in the test says so. When this is fixed,
+the FAB test should query by label instead.
+
+---
+
+## The new-message sheet can tell a user with connections that they have none
+
+**Found at `NEW-MESSAGE-SHEET`'s Step 0, 2026-09-16. DERIVED FROM SOURCE, NOT REPRODUCED.**
+
+`ConversationsScreen.tsx`'s connection-profile `useEffect` depends on **`[showNewMessage]`
+alone**. Inside it, `getConnectionIds()` reads `useConnections`'s `connections` state
+(`useConnections.ts:100-112`), which is populated asynchronously.
+
+If the sheet is opened **before that hook resolves** — plausible on a cold start, a slow
+network, or a fast tap — the effect reads `[]`, loads no profiles, and **never re-runs**,
+because `connections` is not in its dependency array. The sheet then shows **"No connections
+yet" permanently**, until it is closed and reopened.
+
+**IT IS UNVERIFIED AND, ON THE CURRENT ACCOUNTS, UNVERIFIABLE.** Kyle's accounts have zero
+connections, so the true empty state and this false one are indistinguishable there. It needs
+the same seeded account walk step 7 needs.
+
+**Fix shape, when someone takes it:** the effect should depend on the connection ids as well
+as on `showNewMessage`, or the sheet should read the hook's own `loading` flag rather than
+inferring emptiness from a snapshot taken at open time.
+
+---
+
+## The new-message sheet ignores Reduce Motion, where HabitNoteSheet honours it
+
+**Found at `NEW-MESSAGE-SHEET`'s Step 0, 2026-09-16. Walk step 11 records the behaviour;
+fixing it was out of that slice's fence.**
+
+`ConversationsScreen.tsx`'s sheet sets `animationType="none"` on the `Modal` and hand-rolls
+its own 300ms/250ms `Animated.timing` slide. **Nothing in that path reads
+`useReducedMotion`.** `HabitNoteSheet.tsx:126` does the equivalent correctly:
+`animationType={reduceMotion ? 'fade' : 'slide'}`.
+
+This is a **non-negotiable in `mobile/CLAUDE.md`** ("Animations respect `useReducedMotion`"),
+so it is a standards breach rather than a preference. It was left alone because changing a
+frozen Community surface's motion is a behaviour change, not repair, and because the slice
+that found it was fixing something else.
+
+`HabitNoteSheet` also carries `accessibilityViewIsModal` on its sheet, which this one does
+not. Same file, same fix, worth doing together.
+
+---
+
+## A comment on the live Conversations route points at a dead screen
+
+**Found at `NEW-MESSAGE-SHEET`'s Step 0, 2026-09-16. One line, and it actively misdirects.**
+
+`AppNavigator.tsx:378`, on the `Conversations` screen's options:
+
+```
+headerShown: false, // MessagesScreen has custom header
+```
+
+The screen registered there is **`ConversationsScreen`**, not `MessagesScreen`. The comment
+is a leftover from a near-duplicate that is still imported at `AppNavigator.tsx:99` and
+**mounted nowhere** — already booked by R2 as dead code worth -1 lint error.
+
+**WHY IT IS WORTH ITS OWN LINE RATHER THAN BEING SWEPT UP.** It is how a reader investigating
+the live Conversations screen gets sent to the wrong file. `MessagesScreen.tsx` contains its
+own "New Message" modal, with its own `autoFocus`, which looks exactly like the surface
+someone would be hunting — and it is a different, safe shape (a centred card with
+`maxHeight: 350` and no `KeyboardAvoidingView`) that cannot exhibit the defect at all. A
+pass spent there is a pass spent proving the wrong file is fine.
+
+Retire the comment with the dead screen, in the same commit.
 
 ---
 
