@@ -194,7 +194,91 @@ sitting.** Every other step is outstanding.
 produced correction 5 and row `JOURNEY-REVISION-TOKEN`, and a results section that
 showed only the passes would leave both of them looking like housekeeping.
 
+### Sitting of **[DATE NOT SUPPLIED — Kyle to fill before the merge]** — the serving behaviour, walked in full
+
+iPhone 14 Plus, dev client, branch at **`abde469`**. Kyle's result, recorded step
+by step.
+
+**BEFORE-STATE, on `main`.** Steps 0 / 0b / 0c / 0d captured on **two fresh
+accounts (Routines and Energy), both in Remove at the time**, plus a Remove
+account showing no adjust surface. Recorded, screenshots taken.
+
+**BRANCH, on a Routines account seeded to Recover via Firestore.**
+
+| Step | Result |
+|---|---|
+| **7** | **PASS.** Normal + 5 min or less, preference `help_me_get_something_back` → **"Get some morning light"** (R9). The downward search fires and the preference outranks destination. |
+| **8** | **PASS, non-vacuously.** The summary line reads **"Normal"** against a slammed-tier variant; before `95a1df4` it would have read "Slammed". |
+| **9** | **PASS.** Normal + 10-15 → **"Start with light"** (R6). |
+| **10** | **PASS.** Normal + 15+ → **"Set the morning signal"** (R3), no search. |
+| **11** | **PASS.** Preference `help_me_come_down`, Normal + 15+ → **"Downshift, then unplug"**, where the destination path serves R3. |
+| **12** | **PASS**, Energy account, `help_me_get_re_oriented` → the re-anchor mechanism. The choice decides, not the destination. |
+| **13** | **PASS.** Preference cleared: every title byte-identical to the recorded no-preference answer at the same capacity and time. See the note below on what that record was. |
+| **1.3x Dynamic Type**, steps 7, 8 and 13 | **[RESULT NOT SUPPLIED — Kyle to fill before the merge]** |
+
+**NOT RUN, WITH REASONS.**
+
+- **Steps 1-6** (offer card, door, expanded arrival, in-flight state, failure
+  line, and the first post-choice serve): need two seeded weekly cycles with
+  `not_moving` reads. **Deferred to the beta cohort, where the sequence occurs
+  naturally.** The offer and door flow itself was built and walked at 7b and 7d;
+  7c changes only its phase gating.
+- **Steps 14-15** (the phase gate: no offer and no door outside Recover): same
+  seeding requirement, same deferral.
+- **Step 16** (cold-start persistence): **covered incidentally** — every step
+  above was run after a relaunch.
+- **Step 17** (phase-change clear): **NOT RUN by decision.** The only in-app route
+  out of Recover lands the account on Rewire placeholder content and would spend
+  one of two Recover walk accounts. `CLEARED_OFFERS` is asserted in four places in
+  the suite.
+- **SE:** not walkable in this setup.
+
+---
+
+**THE BEFORE-STATE COULD NOT SERVE STEP 13's COMPARISON AS THIS SCRIPT WROTE IT,
+AND THAT IS A SECOND DEFECT IN THE SCRIPT RATHER THAN IN THE RUN.**
+
+Step 13's pass condition above reads *"byte-identical to its step-0 record"*, and
+the script assumed the before-state would be captured on **7l's two journeyed
+accounts, which were already in Recover**. It was captured on **two fresh accounts
+in Remove** instead, and the walk account was then seeded to Recover on the
+branch. **A Remove-phase record cannot be a Recover-phase baseline** — measured
+against the shipped matrix, a Routines account in Remove serves *"Make it harder
+to reach"* at every time answer, where the same account in Recover serves *"Build
+a recovery anchor"* at short and medium and *"Set the morning signal"* at long.
+The two sets share no title.
+
+**What step 13 was therefore measured against is the no-preference Recover
+answer, and that is the comparison that carries the meaning anyway:** the guard
+exists to show that adding an optional parameter moved nothing for a user who has
+recorded no choice. Those three titles are exactly the `routines` column of the
+36-row HEAD table in the §13 entry and of
+`protocolEngine/__tests__/noPreferenceServeTable.test.ts`, so the device result
+and the suite agree on the same three strings.
+
+**The step is a genuine pass. The script's stated target was unrunnable as
+written**, and it is recorded here rather than quietly reinterpreted, on the same
+footing as seeding correction 5 above. **If this script is reused, step 0 must
+either be captured on an account already in the phase the branch steps run in, or
+step 13 must name the no-preference table as its target.**
+
+---
+
+**WHAT THIS SITTING DOES AND DOES NOT ESTABLISH.**
+
+**Established on a device:** the downward search, the preference outranking
+destination, the choice deciding over the destination across two accounts, the
+capacity label against a cross-tier serve, and the no-preference regression guard.
+**That is the whole of the row's engine question**, which is what the row existed
+to answer.
+
+**Not established on a device:** that the offer card and the phase-page door
+behave correctly under the new phase gate, and that the in-flight state and the
+expanded arrival render as built. Those are steps 1-6 and 14-15, they are
+deferred to the beta cohort, and **the deferral is a decision with a cost**: the
+gate, the pending state and the expanded arrival ship on test evidence alone.
+
 ### Sitting of —
 
-*(Kyle fills this in. Verbatim, step by step, with the date the walk was actually
-run — never the date the row was written.)*
+*(For the deferred steps, if they are run before beta. Verbatim, step by step,
+with the date the walk was actually run — never the date the row was written.)*
