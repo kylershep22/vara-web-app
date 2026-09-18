@@ -34,6 +34,28 @@ corrections from 7b's close still apply:
    phase the user has left are excluded by `deriveAdjustDue`, so a `remove` read
    on a recover account silently produces no offer and the walk stalls at step 1
    for a reason that has nothing to do with this slice.
+5. **AFTER EVERY CONSOLE EDIT TO `journeyStates`, BACKGROUND THE APP AND BRING IT
+   BACK BEFORE THE NEXT STEP.** Added 2026-09-17, from the walk stop below, and
+   it is the one correction that cost a real observation.
+
+   `journeyStates` is read **once per Home FOCUS TRANSITION** and not on render,
+   not on a write, and not on a daily pick. `useJourneyLanding`'s resolve effect
+   depends on `[uid, weeklyTarget, attempt]`; `attempt` moves only through
+   `refresh()`, whose only caller is Home's `useFocusEffect`. So `PhaseContext` -
+   including `adjustChoice` - is a **snapshot taken at the last focus**.
+
+   **A MODAL IS NOT A NAVIGATION.** The daily picker opens inside Home, so Home
+   never loses focus while you use it. Confirming the pick re-derives the day
+   from the **cached** context, and a document you edited in the console two
+   minutes earlier is invisible to it.
+
+   **It compounds with a second thing worth knowing for any seeded walk:** a
+   console write does not set `updatedAt`, and `revisionToken` - which is what
+   `useTodayCard`'s `sourceKey` keys on - IS `updatedAt`. So seeding leaves
+   `sourceKey` byte-identical. In-app writes are fine; `recordAdjustChoice`
+   stamps `updatedAt` and returning from the phase page is a focus transition.
+   This is a **seeding hazard, not a defect on the in-app path** - see row
+   `JOURNEY-REVISION-TOKEN` in section 5 for the part of it that is a question.
 
 **The capture correction from 7b no longer applies to the producing account.**
 Capture outranks adjust, but capture exists only in `remove` and the offer is now
@@ -109,5 +131,70 @@ footing as the SE steps.
 
 ## Result
 
-*(Kyle fills this in. Verbatim, step by step, with the date the walk was
-actually run — never the date the row was written.)*
+### Sitting of 2026-09-17 — partial, and it produced a walk stop
+
+**Steps 7 and 8: PASSED, and step 8 passed NON-VACUOUSLY.** iPhone 14 Plus,
+branch confirmed at `abde469`. Destination routines, `phaseKey` recover,
+`adjustChoice` `help_me_get_something_back`, `adjustChosenAt` set, `enteredAt`
+backdated to 2026-09-03. Normal capacity + 5 minutes or less served **"Get some
+morning light"** (R9). The preference reached the serve, outranked destination,
+and the downward search fired. The summary line read **"Normal"** against a
+**slammed-tier** variant, which is the mismatch the `dayCapacity` prop exists for
+and the only condition under which step 8 can distinguish the fix from its
+absence.
+
+---
+
+**THE WALK STOP, AND ITS DIAGNOSIS. Recorded here rather than only in section 13,
+because the correction it produced is a line in this file and a reader who finds
+correction 5 should be able to see what it cost.**
+
+**Observed (run A), before the steps above.** Same account, same document, Normal
+capacity + 10 to 15 minutes served **"Build a recovery anchor"** (R2), where the
+shipped 27-triple table says **"Start with light"** (R6, medium class, no search).
+Not a stale bundle: the branch was live for both runs, and step 7 passed on it.
+
+**First trace: no break in the four obvious candidates.** `resolveJourney` sets
+`adjustChoice` at both of its two construction sites; `useJourneyLanding` passes
+the context through by reference; `phaseSource` does not narrow; `useTodayCard`
+reads it and passes it as the sixth argument; `adjustmentPreferenceFor` maps it.
+Executed against the branch, `selectProtocol('recover','normal','medium',
+'routines', undefined, 'help_me_get_something_back')` returns **"Start with
+light"**. R2 is what the engine returns when the choice does **not** arrive.
+
+**Second trace: the time axis was exonerated and the real difference found.** The
+picker maps over `TIME_CLASSES` itself and writes the class token, so the 10-15
+chip writes `'medium'`, typed `TimeClass` end to end. `pickByMechanism`'s medium
+path is structurally identical to its short path. What actually separated the two
+runs is this:
+
+| time answer | stale context (choice null) | live context (choice set) |
+|---|---|---|
+| routines / normal / **short** | Build a recovery anchor | **Get some morning light** |
+| routines / normal / **medium** | Build a recovery anchor | **Start with light** |
+
+Run A sits in the left column and run B in the right. **The discriminator is that
+R2 is the stale answer at BOTH time answers** - so if run B had also been stale it
+would have shown R2, not R9. The preference was live in B and absent in A, proven
+by the data rather than inferred.
+
+**Cause: a pre-seed `PhaseContext` snapshot.** The document was edited in the
+console while Home was already focused; the picker is a modal inside Home, so no
+focus transition occurred; `confirmPick` re-derived the day from the cached
+context. Correction 5 above is what stops this happening again.
+
+**CONFIRMED ON DEVICE (Kyle, 2026-09-17).** Relaunched, cleared today's
+`dailyLog`, answered Normal + 10-15: served **"Start with light"** (R6). The
+diagnosis holds and the engine is not at fault.
+
+**Steps 9, 10 and 11 are runnable after a forced refocus and were NOT run in this
+sitting.** Every other step is outstanding.
+
+**Run A is left in the record rather than deleted.** It is the observation that
+produced correction 5 and row `JOURNEY-REVISION-TOKEN`, and a results section that
+showed only the passes would leave both of them looking like housekeeping.
+
+### Sitting of —
+
+*(Kyle fills this in. Verbatim, step by step, with the date the walk was actually
+run — never the date the row was written.)*
