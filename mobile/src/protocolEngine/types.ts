@@ -27,6 +27,28 @@
 import type { DestinationKey, PhaseKey, RemoveFamily } from '../types/models';
 
 /**
+ * One of the three internal mechanisms the Recover phase draws from (slice 7c).
+ *
+ * JEN'S, Content Pack v1 `section 1` ("Recover draws from three internal
+ * lanes"), and `section 11` names the same three as families when it delivers
+ * the destination weighting: downshift/break, anchor/routine, light/day-rhythm.
+ * The intended felt results she wrote against them are, in order: "I came down
+ * a notch", "I have a little more to work with", "I know where I am again".
+ *
+ * THE USER NEVER SEES THESE IDS AND NEVER SEES HER LABELS EITHER. Pack section 1
+ * is explicit - "Users never see these labels" - and nothing renders this field.
+ * It is a routing key.
+ *
+ * THREE, NOT FOUR, AND THAT IS DELIBERATE CONTENT DESIGN RATHER THAN AN
+ * OVERSIGHT. There are four destinations and three mechanisms; Calm and Focus
+ * share Downshift. Pack section 11 says so at length: inventing a fourth
+ * mechanism so every destination could have its own "would be worse product
+ * design than letting two destinations that both want the nervous system to
+ * come down share the one that does it."
+ */
+export type RecoverMechanism = 'downshift' | 'refill' | 'reanchor';
+
+/**
  * LEGACY. The four weekly outcomes.
  *
  * NO LONGER A MATRIX AXIS (journey roadmap 3.2). PhaseKey is the outer key of
@@ -161,13 +183,57 @@ export interface ProtocolVariant {
    *
    * Every variant in a cell is servable to every destination. This only decides
    * which one leads. Absent means "no preference", which sorts as authored
-   * order, and that is the state of every variant today: Jen has not defined
-   * weights, so `orderForDestination` is currently the identity.
+   * order.
+   *
+   * CORRECTED 2026-09-17 (slice 7c). This comment used to end: "and that is the
+   * state of every variant today: Jen has not defined weights, so
+   * `orderForDestination` is currently the identity." **That has been wrong
+   * since slice 7l**, which landed Jen's nine weights on the Recover variants
+   * (Content Pack v1 `section 11`, delivered 2026-09-12). The function is the
+   * identity on `remove`, `rewire` and `refocus`, which carry no weights, and it
+   * decides which of three variants leads on every Recover cell. A comment that
+   * says a sort never runs, beside a sort that runs nine times, is how the next
+   * reader concludes the axis is dead and reuses it.
    *
    * WHY NOT MEMBERSHIP. Filtering a cell by destination could empty it, and an
    * empty cell has no protocol to serve. Ordering cannot fail.
    */
   destinationWeight?: Partial<Record<DestinationKey, number>>;
+  /**
+   * Which Recover mechanism this variant serves (slice 7c).
+   *
+   * RECOVER-PHASE ONLY, on exactly the terms `family` is Remove-phase only. The
+   * other three phases have no mechanism axis, so the field is absent there
+   * rather than defaulted.
+   *
+   * IT EXISTS BECAUSE THE MECHANISM WAS ONLY EXPRESSIBLE THROUGH `destinationWeight`,
+   * AND THAT COUPLING IS THE DEFECT IT REMOVES. Jen names three internal lanes in
+   * Content Pack v1 `section 1` - Downshift, Refill, Re-anchor - and `section 11`
+   * routes each destination to one of them. Until this field, the ONLY way to ask
+   * "which variant is the downshift one" was to ask "which variant does Calm
+   * weight", so any re-weighting would silently re-target the adjustment offer at
+   * the same time. Two different questions had one answer; this is the second
+   * answer.
+   *
+   * NEVER CALLED A LANE, IN CODE OR IN DOCS (Jen, ruling 2, 2026-09-17). "Lane"
+   * is her internal authoring vocabulary for the content system and is not the
+   * product's word for what the user steers. `adjustmentPreference` is the user-
+   * facing concept; `mechanism` is what a variant carries.
+   *
+   * ORDERING AND SELECTION, AND THAT IS A DIFFERENCE FROM THE TWO FIELDS ABOVE.
+   * `destinationWeight` and `family` only ORDER a cell. This field is also used
+   * to SELECT across cells, by the downward capacity search on the adjustment
+   * path (`selectProtocol`, Jen ruling 3). It still cannot empty anything: the
+   * search walks to lower-demand tiers of the same mechanism and every mechanism
+   * holds a `short` variant at `slammed`, which is pinned by a non-emptiness
+   * guard in `__tests__/protocolMatrix.mechanisms.test.ts` rather than assumed.
+   *
+   * THE THREE VALUES ARE JEN'S THREE MECHANISMS, spelled as ids and never as her
+   * prose labels: the labels are authoring copy and will be revised, and a stored
+   * label would orphan the mapping the day one changed. Same contract
+   * `AdjustChoiceId` and `removeTargetChip` carry.
+   */
+  mechanism?: RecoverMechanism;
   /**
    * Which Remove family this variant serves (slice 3c-i).
    *

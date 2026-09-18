@@ -208,6 +208,9 @@ const phase = (over: Partial<PhaseContext> = {}): PhaseContext => ({
   advanceFirstOfferedOn: null,
   advanceLastExposedOn: null,
   adjustArmedFromIso: null,
+  // Slice 7c. No recorded adjustment is the default state of every fixture
+  // here; the cases that need one set it.
+  adjustChoice: null,
   adjustDeclines: 0,
   adjustOffered: false,
   ...over,
@@ -280,6 +283,94 @@ describe('useTodayCard sourced from a PhaseContext (journey slice 2)', () => {
       await waitFor(() => expect(view.result.current.protocol).not.toBeNull());
       expect(view.result.current.protocol?.id).toBe('refocus-normal');
     }
+  });
+
+  // -------------------------------------------------------------------------
+  // SLICE 7c: THE RECORDED ADJUSTMENT REACHES THE ENGINE.
+  //
+  // The engine suites prove selectProtocol honours a choice. These prove the
+  // choice GETS THERE: a serving path that never passed the field would leave
+  // every one of those suites green and every user's day unchanged, which is
+  // the shape of vacuity this board has been bitten by three times.
+  // -------------------------------------------------------------------------
+  test('an honoured choice changes the day, and the same day without it does not', async () => {
+    mockGetDailyLog.mockResolvedValue(null);
+
+    // Routines leads the re-anchor mechanism, so its unadjusted normal-capacity
+    // day is "Build a recovery anchor". Recorded first, as the control.
+    const control = renderHook(() =>
+      useTodayCard(
+        'u1',
+        phaseSource(phase({ phaseKey: 'recover', destination: 'routines' }))
+      )
+    );
+    await waitFor(() => expect(control.result.current.protocol).not.toBeNull());
+    expect(control.result.current.protocol?.name).toBe('Build a recovery anchor');
+
+    // The same user, having asked to come down. The downshift mechanism's
+    // normal-capacity variant is "Downshift, then unplug".
+    const adjusted = renderHook(() =>
+      useTodayCard(
+        'u1',
+        phaseSource(
+          phase({
+            phaseKey: 'recover',
+            destination: 'routines',
+            adjustChoice: 'help_me_come_down',
+          })
+        )
+      )
+    );
+    await waitFor(() => expect(adjusted.result.current.protocol).not.toBeNull());
+    expect(adjusted.result.current.protocol?.name).toBe('Downshift, then unplug');
+  });
+
+  test('an UNHONOURED choice leaves the day exactly as it was', async () => {
+    // The nine are approved and not activated (Jen ruling 1). One that reached a
+    // document anyway must not steer the day, and the engine is where that is
+    // refused - so this is the plumbing's half of the same claim.
+    mockGetDailyLog.mockResolvedValue(null);
+    const view = renderHook(() =>
+      useTodayCard(
+        'u1',
+        phaseSource(
+          phase({
+            phaseKey: 'recover',
+            destination: 'routines',
+            adjustChoice: 'make_it_smaller',
+          })
+        )
+      )
+    );
+    await waitFor(() => expect(view.result.current.protocol).not.toBeNull());
+    expect(view.result.current.protocol?.name).toBe('Build a recovery anchor');
+  });
+
+  test('dayCapacity reports the ANSWER, not the tier of the variant served', async () => {
+    // The downward search in the serving path, observed at the hook: a Normal
+    // answer with five minutes and a downshift preference is served the SLAMMED
+    // tier's variant, and `dayCapacity` still says normal. This is what the hero
+    // card's summary line reads, and it is why the prop exists.
+    mockGetDailyLog.mockResolvedValue({
+      dailyCapacity: 'normal',
+      dailyTimeBudget: 'short',
+    } as never);
+    const view = renderHook(() =>
+      useTodayCard(
+        'u1',
+        phaseSource(
+          phase({
+            phaseKey: 'recover',
+            destination: 'calm',
+            adjustChoice: 'help_me_come_down',
+          })
+        )
+      )
+    );
+    await waitFor(() => expect(view.result.current.protocol).not.toBeNull());
+    expect(view.result.current.protocol?.name).toBe('Lengthen the exhale');
+    expect(view.result.current.protocol?.capacity).toBe('slammed');
+    expect(view.result.current.dayCapacity).toBe('normal');
   });
 
   test('the week-1 quick win is gone: nothing is ever flagged active', async () => {

@@ -20,6 +20,7 @@ export type {
   OutcomeKey,
   CapacityTier,
   TimeClass,
+  RecoverMechanism,
   ProtocolVariant,
   ResolvedProtocolVariant,
 } from './types';
@@ -45,6 +46,11 @@ export {
   representativeProtocol,
   orderForDestination,
   orderForFamily,
+  // Slice 7c. Exported for the two engine suites and for nothing in the app:
+  // every runtime caller goes through selectProtocol, which is what keeps the
+  // priority order in one place.
+  adjustmentPreferenceFor,
+  pickByMechanism,
   legacyPhaseFor,
 } from './selectProtocol';
 // RETIRED in journey slice 3a: `applyQuickWin` / `QUICK_WIN_WEEK`. The week-1

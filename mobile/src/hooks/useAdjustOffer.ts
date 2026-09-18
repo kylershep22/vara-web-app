@@ -44,6 +44,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { adjustAlternativesActive } from '../constants/journeyCopy';
 import { deriveAdjustDue } from '../journey/derive';
 import { placeAdjustOffer, type OfferPlacement } from '../journey/offerPlacement';
 import type { PhaseContext } from '../journey/resolveJourney';
@@ -202,6 +203,34 @@ export function useAdjustOffer(input: UseAdjustOfferInput): AdjustOffer {
 
   const placement = useMemo<OfferPlacement>(() => {
     if (!phase) return 'hidden';
+    // THE ACTIVATION GATE (slice 7c; Jen ruling 1). A phase whose alternatives
+    // Vara cannot yet materially honour never surfaces the offer, on Today or
+    // anywhere else. Recover is the only activated phase today.
+    //
+    // HERE AND NOT IN `deriveAdjustDue`, AND THE DISTINCTION IS LOAD BEARING.
+    // The derivation answers "has the user given two consecutive not_moving
+    // reads about this stretch", which stays TRUE for a remove user whether or
+    // not we have anything to offer them - it is a fact about them, not about
+    // our content. Activation answers "do we have something to offer", which is
+    // a fact about us and retires phase by phase as the nine get wired. Folding
+    // the second into the first would make a user's own answer disappear from
+    // the derivation because of a gap in our matrix, and would take the whole
+    // adjust block of `derive.test.ts` red for a reason that has nothing to do
+    // with what those tests are about.
+    //
+    // NOT IN `placeAdjustOffer` AND NOT IN `journeyActionFor` EITHER, and that
+    // is a freeze constraint rather than a preference: the roadmap's frozen list
+    // names "offer placement and exposure rules" and "journeyActionFor's
+    // one-slot precedence" by name. Step 0 reported both as STOP conditions
+    // rather than proposing either. This hook is the composition point and is on
+    // neither list.
+    //
+    // IT ALSO STOPS THE DOOR-OPENING WRITE, for free and by construction.
+    // `useAdjustDoorStamp` writes only when `journeyActionFor` answers 'adjust',
+    // and it cannot answer 'adjust' on a 'hidden' placement. So no NEW
+    // `adjustOfferedAt` is stamped in an unactivated phase; only stamps already
+    // on documents are affected, and those are handled at the door.
+    if (!adjustAlternativesActive(phase.phaseKey)) return 'hidden';
     if (dismissed) return 'journey';
     return placeAdjustOffer({ due, declines: phase.adjustDeclines });
   }, [phase, due, dismissed]);

@@ -281,6 +281,12 @@ const DashboardScreen: React.FC = () => {
     }).navigate(ROUTES.JourneyPhase, {
       phase: phase.phaseKey,
       destination: phase.destination,
+      // Slice 7c, from 7b's walk. The user has just answered an offer, so the
+      // page arrives with the alternatives already showing: the card's primary
+      // and the page's door carry the SAME LABEL, and making them tap it twice
+      // for one intention is the defect this closes. The map's route to the same
+      // page says nothing here and still arrives shut.
+      openAdjust: true,
     });
   }, [weeklyLanding.phase, navigation]);
 
@@ -563,6 +569,12 @@ const DashboardScreen: React.FC = () => {
                          itself. */
                       destination={weeklyLanding.phase?.destination}
                       protocol={todayCard.protocol}
+                      /* Slice 7c. The tier the DAY was resolved at, which is no
+                         longer always the tier the served variant was authored
+                         at: the adjustment path can serve a lower-tier variant
+                         of the mechanism the user asked for. The summary line
+                         names what the USER said. */
+                      dayCapacity={todayCard.dayCapacity}
                       floorCommitment={todayCard.floorCommitment}
                       completed={todayCard.completed}
                       saving={todayCard.saving}

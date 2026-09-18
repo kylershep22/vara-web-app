@@ -71,12 +71,15 @@ describe('TodayHeroCard', () => {
       expect(summary).toContain(CAPACITY_LABELS.normal);
     });
 
-    test('takes the tier from the PROTOCOL, not from the cycle', () => {
+    test('takes the tier from the PROTOCOL, not from the cycle, with no day answer', () => {
       // Capacity is a daily read now (roadmap 3b-i), so the cycle's own tier is
       // no longer what the day was derived at. Rendering it would label the
-      // card with a tier the action underneath does not match. The protocol
-      // carries the capacity it resolved, which makes the two the same fact
-      // rather than two values that have to agree.
+      // card with a tier the action underneath does not match.
+      //
+      // NARROWED IN SLICE 7c: this is now the FALLBACK path, taken when no
+      // `dayCapacity` is supplied - the legacy and empty paths, where the
+      // variant's tier and the day's answer cannot disagree. The case where
+      // they CAN is the next test.
       const screen = renderCard(
         { capacityInitial: 'normal', capacityCurrent: 'normal' },
         {
@@ -87,6 +90,50 @@ describe('TodayHeroCard', () => {
 
       expect(summary).toContain(CAPACITY_LABELS.slammed);
       expect(summary).not.toContain(CAPACITY_LABELS.normal);
+    });
+
+    test('names the DAY tier, not the served variant tier, when the two differ', () => {
+      // SLICE 7c, AND THIS IS THE CASE THE PROP EXISTS FOR. The adjustment path
+      // searches DOWNWARD through capacity: a user who answers Normal and five
+      // minutes, having asked to be helped to come down, is served the SLAMMED
+      // tier's downshift variant, because the normal and limited ones are longer
+      // than the time they have. Seven of the twenty-seven adjustment triples do
+      // this.
+      //
+      // Before this slice the line read the served variant and would have told
+      // that user they had said "Slammed". They said Normal. The line is a
+      // summary of THEIR day and names what they said; the variant keeps naming
+      // the cell it was authored in, which is what routing needs.
+      const screen = renderCard(
+        { capacityInitial: 'normal', capacityCurrent: 'normal' },
+        {
+          protocol: { ...PROTOCOL_MATRIX.recover.slammed[0], quickWinActive: false },
+          dayCapacity: 'normal',
+        }
+      );
+      const summary = textOf(screen.getByTestId('home-today-summary'));
+
+      expect(summary).toContain(CAPACITY_LABELS.normal);
+      expect(summary).not.toContain(CAPACITY_LABELS.slammed);
+    });
+
+    test('the day tier is read even when it AGREES with the variant', () => {
+      // THE ANTI-VACUITY DIRECTION. The two tests above are both satisfied by a
+      // card that reads `dayCapacity` and by one that reads it only sometimes.
+      // This is the ordinary case - no adjustment, no downward search - and it
+      // must go through the same expression, so that the prop is the source
+      // rather than a special case bolted beside one.
+      const screen = renderCard(
+        { capacityInitial: 'normal', capacityCurrent: 'normal' },
+        {
+          protocol: { ...PROTOCOL_MATRIX.recover.limited[0], quickWinActive: false },
+          dayCapacity: 'limited',
+        }
+      );
+      const summary = textOf(screen.getByTestId('home-today-summary'));
+
+      expect(summary).toContain(CAPACITY_LABELS.limited);
+      expect(summary).not.toContain(CAPACITY_LABELS.slammed);
     });
 
     test('appends the day the week runs through', () => {

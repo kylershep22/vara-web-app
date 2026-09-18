@@ -51,6 +51,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { Colors, Layout, SizeTokens, Spacing, TextStyles, Typography } from '../../constants';
 import { PHASE_DISPLAY, PHASE_ORDER } from '../../constants/journey';
 import {
+  adjustAlternativesActive,
   ADJUST_ALTERNATIVES,
   ADJUST_COPY,
   ADVANCE_PREVIEW_COPY,
@@ -74,6 +75,34 @@ import { labelForReplacement } from './removeCapture/routing';
 export interface JourneyPhaseParams {
   phase: import('../../types/models').PhaseKey;
   destination: import('../../types/models').DestinationKey;
+  /**
+   * Open the door already expanded (slice 7c; logged to this row at 7b's walk).
+   *
+   * THE DEFECT IT CLOSES: the Today card's primary reads "Try a different
+   * approach", the user taps it, and this page presents a control with THE SAME
+   * LABEL that they have to tap again. Two taps, one label, one intention.
+   * Shut-by-default is right when the page is reached from the map, where the
+   * door is an aside on an explanation; it is wrong when the user has just
+   * answered an offer. The page could not tell the two arrivals apart, and this
+   * is what tells it.
+   *
+   * AN INSTRUCTION TO THE PAGE, NOT A PROVENANCE FIELD, and the name says which.
+   * A `from: 'card' | 'map'` would have to be populated by every future caller
+   * and would then be asked to mean things it does not decide; this one does one
+   * thing. It is also NOT the analytics `from` dimension on
+   * `journey_adjust_chosen`, which separates answering a proactive offer from
+   * going looking and records 'phase_page' for every arrival at this screen.
+   *
+   * IT DOES NOT AFFECT REACHABILITY, which is the property 7b's door comment
+   * argues at length: qualification is `adjustOfferedAt` on the page's own read,
+   * so the door is reachable from the map for a user whose card has been capped
+   * away, and nothing here changes that. This decides the door's INITIAL STATE
+   * and only on the frame the page mounts.
+   *
+   * Optional, and absent means shut. Every existing caller keeps its behaviour
+   * by saying nothing.
+   */
+  openAdjust?: boolean;
 }
 
 type PhaseRoute = RouteProp<{ JourneyPhase: JourneyPhaseParams }, 'JourneyPhase'>;
@@ -81,7 +110,7 @@ type PhaseRoute = RouteProp<{ JourneyPhase: JourneyPhaseParams }, 'JourneyPhase'
 export function JourneyPhaseScreen() {
   const { params } = useRoute<PhaseRoute>();
   const navigation = useNavigation();
-  const { phase, destination } = params;
+  const { phase, destination, openAdjust } = params;
   const { user } = useAuth();
   // Keyed on the UID, not the user OBJECT, for the reason the map's own read
   // records: useFocusEffect re-runs on callback identity.
@@ -95,8 +124,25 @@ export function JourneyPhaseScreen() {
   // The door's three states: shut, open, answered. Separate from the commit
   // pair above because they belong to a different control on a page that never
   // shows both (see the door block below).
-  const [doorOpen, setDoorOpen] = useState(false);
+  //
+  // SEEDED FROM THE ROUTE PARAM, NOT SYNCED TO IT (slice 7c). `useState`'s
+  // initial value is read once, on mount, which is exactly the semantics
+  // wanted: the arrival decides how the door STARTS, and the user decides
+  // everything after that. An effect that pushed the param into state would
+  // re-open the door under a user who had collapsed it, every time the screen
+  // re-rendered.
+  const [doorOpen, setDoorOpen] = useState(openAdjust === true);
   const [chosen, setChosen] = useState<AdjustChoiceId | null>(null);
+  // THE IN-FLIGHT GUARD, carried from 7b's walk and logged to this row there:
+  // `onChoose` guarded on `chosen` so a completed choice could not be re-made,
+  // but nothing marked the tap while the promise was settling. Harmless when the
+  // write lands; when it does not, the page showed three tappable options and no
+  // acknowledgment.
+  //
+  // THE ID RATHER THAN A BOOLEAN, so the tapped option can be styled busy and
+  // the other two merely disabled. A boolean could disable all three and could
+  // not say which one the user chose.
+  const [choosing, setChoosing] = useState<AdjustChoiceId | null>(null);
   const [chooseFailed, setChooseFailed] = useState(false);
 
   const read = useCallback(async (): Promise<JourneyState | null> => {
@@ -201,8 +247,30 @@ export function JourneyPhaseScreen() {
   //
   // A USER WHO HAS NEVER BEEN OFFERED SEES NOTHING, on the same terms browsing
   // ahead shows no commit control: browsing is not an invitation.
+  //
+  // THE ACTIVATION GATE IS THE THIRD CONJUNCT (slice 7c; Jen ruling 1). A phase
+  // whose alternatives Vara cannot yet materially honour does not open its door,
+  // and it is checked HERE as well as at the card because this door is reachable
+  // from the journey map without the card ever having been answered.
+  //
+  // IT RETRACTS SOMETHING, AND THE RETRACTION IS DELIBERATE. A non-null
+  // `adjustOfferedAt` on a remove, rewire or refocus document stops opening the
+  // door, where section 9 R5 promised "the door is open, Vara just stops
+  // knocking". Jen's "are not exposed yet" is read as intending that. The
+  // population most likely to hold such a stamp is the one slice 7d was named
+  // for - before 7d the stamp fired on ELIGIBILITY, so a user could have the door
+  // waiting having never been asked anything - and for them this is a correction.
+  //
+  // `phase` IS THE ROUTE PARAM, NOT `journey.phaseKey`, and the two are already
+  // required to be equal on the line above. Reading the param is what makes the
+  // guard hold for a param outside the union: `adjustAlternativesActive` compares
+  // `=== true`, so an unrecognised phase is unactivated rather than
+  // undefined-and-falsy by luck.
   const isAdjustDoor =
-    !!journey && phase === journey.phaseKey && !!journey.adjustOfferedAt;
+    !!journey &&
+    phase === journey.phaseKey &&
+    !!journey.adjustOfferedAt &&
+    adjustAlternativesActive(phase);
 
   // THE STATE EYEBROW IS SUPPRESSED IN PREVIEW (Kyle, slice 7a). The state word
   // answers "where am I"; the preview answers "shall I go here". Rendering
@@ -284,8 +352,13 @@ export function JourneyPhaseScreen() {
   // they are ready.
   const onChoose = useCallback(
     async (choice: AdjustChoiceId) => {
-      if (!uid || chosen) return;
+      // `choosing` JOINS `chosen` IN THE GUARD (slice 7c). Without it a double
+      // tap, or a tap on a second option while the first is settling, fires two
+      // writes and the later one wins - so the day would be steered by whichever
+      // network call happened to finish last rather than by what the user meant.
+      if (!uid || chosen || choosing) return;
       setChooseFailed(false);
+      setChoosing(choice);
       try {
         await recordAdjustChoice(uid, choice);
         logEvent(uid, 'journey_adjust_chosen', {
@@ -302,9 +375,17 @@ export function JourneyPhaseScreen() {
       } catch (e) {
         logger.error('[JourneyPhase] adjust choice failed:', e);
         setChooseFailed(true);
+      } finally {
+        // CLEARED ON BOTH PATHS, and `finally` rather than a line in each so a
+        // future branch cannot leave the page stuck showing three dead options.
+        // On success `chosen` has already replaced the whole block with the
+        // confirmation, so clearing here is invisible; on failure it is what
+        // makes the options tappable again, which is the recovery
+        // `ADJUST_COPY.failed` names.
+        setChoosing(null);
       }
     },
-    [uid, chosen]
+    [uid, chosen, choosing]
   );
 
   const onNotYet = useCallback(() => {
@@ -363,9 +444,15 @@ export function JourneyPhaseScreen() {
             asked anything about it. A control above the body would make the
             page an offer with an explanation attached.
 
-            SHUT BY DEFAULT. The page is an explanation first and the door is
-            one line on it; opening three options unprompted would make every
-            visit to this page a question. */}
+            SHUT BY DEFAULT FROM THE MAP. The page is an explanation first and
+            the door is one line on it; opening three options unprompted would
+            make every visit to this page a question.
+
+            EXPANDED FROM THE TODAY CARD (slice 7c), via `openAdjust`. A user who
+            has just tapped "Try a different approach" on an offer has already
+            asked the question, and making them tap a control with the same label
+            again is two taps for one intention. The two arrivals are different
+            situations and the page now knows which it is in. */}
         {isAdjustDoor ? (
           <View style={styles.door} testID="journey-phase-adjust">
             {chosen ? (
@@ -393,12 +480,26 @@ export function JourneyPhaseScreen() {
                 {(ADJUST_ALTERNATIVES[phase] ?? []).map((option) => (
                   <TouchableOpacity
                     key={option.id}
-                    style={styles.option}
+                    /* IN FLIGHT: the tapped row dims, the other two stay put.
+                       `ctaBusy` is the same 0.6 opacity the advance commit uses
+                       twenty lines below, reused rather than re-invented - one
+                       busy treatment on this page, not two. NO STRING: the
+                       commit's precedent is visual and accessibility state only,
+                       and its label does not change either. */
+                    style={[styles.option, choosing === option.id && styles.ctaBusy]}
                     onPress={() => void onChoose(option.id)}
                     activeOpacity={0.8}
+                    disabled={choosing !== null}
                     accessibilityRole="button"
                     accessibilityLabel={option.label}
                     accessibilityHint={option.body}
+                    /* ALL THREE REPORT DISABLED, ONLY THE TAPPED ONE REPORTS
+                       BUSY. A screen reader on the other two should hear that
+                       they cannot be activated, not that they are working. */
+                    accessibilityState={{
+                      disabled: choosing !== null,
+                      busy: choosing === option.id,
+                    }}
                     testID={`journey-phase-adjust-${option.id}`}
                   >
                     <Text

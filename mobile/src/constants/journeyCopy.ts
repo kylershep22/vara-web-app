@@ -733,3 +733,76 @@ export const ADJUST_ALTERNATIVES: Record<PhaseKey, readonly AdjustAlternative[]>
     },
   ],
 };
+
+/**
+ * Which phases may SURFACE their three alternatives (slice 7c; Jen ruling 1,
+ * 2026-09-17).
+ *
+ * "DO NOT SHIP RECORDED-BUT-INERT CHOICES." Her ruling, and it is the whole of
+ * this constant: all twelve alternatives stay approved in the content contract,
+ * and a phase's options are surfaced only once Vara can materially honour them.
+ * Recover's three are active. The other nine are APPROVED-BUT-UNWIRED and are not
+ * exposed yet.
+ *
+ * NOTHING IS DELETED, AND THAT IS THE POINT. `ADJUST_ALTERNATIVES` above still
+ * holds all twelve, the Content Pack still holds all twelve, the sentinel does
+ * not move, and `__tests__/journeyCopy.adjust.test.ts` still asserts that every
+ * phase has exactly three. Unwiring a surface is not the same as retiring
+ * content, and a slice that deleted nine approved strings to express "not yet"
+ * would have to get them back from Jen to express "now".
+ *
+ * WHY RECOVER AND ONLY RECOVER, measured rather than asserted (slice 7c Step 0).
+ * The Recover cells hold three variants each, distinguished by `mechanism`, and
+ * her three second-phase options name those three mechanisms one-to-one. Remove's
+ * three want a shrink, an approach swap and a re-target, none of which the engine
+ * can express without overriding a user's own input or re-running the capture.
+ * `rewire` and `refocus` hold ONE variant per cell, so there is nothing to serve
+ * whatever the engine did - six of the nine have no second protocol to offer even
+ * in principle.
+ *
+ * A KEYED RECORD, NEVER AN INDEX OR A SLICE OF `PHASE_ORDER`, on exactly the
+ * contract `ADJUST_ALTERNATIVES` carries and for the same reason: reordering
+ * PHASE_ORDER is a product decision the roadmap explicitly allows, and an ordinal
+ * activation would silently activate whichever phase landed second. The mapping
+ * is asserted once by test and never relied on at runtime.
+ *
+ * READ AT TWO PLACES AND BOTH ARE SURFACING GATES: the Today card's eligibility
+ * (`useAdjustOffer`) and the phase page's door (`JourneyPhaseScreen`). Both,
+ * because the door is reachable from the journey map independently of the card -
+ * section 9 R5 keeps it open after the two-offer cap stops the knocking, so a
+ * gate on the card alone would leave a door onto nine options that do nothing.
+ *
+ * IT IS NOT ON THE ENGINE'S PATH. `selectProtocol` refuses to honour the nine on
+ * its own terms (`adjustmentPreferenceFor` maps three ids and returns undefined
+ * for the rest), so a choice that reached a document by some route this constant
+ * does not guard still steers nothing. A gate on the way in and a gate on the way
+ * out, because only the second is total.
+ *
+ * WHAT IT COSTS A USER WHO ALREADY QUALIFIED IN AN UNEXPOSED PHASE, stated
+ * because it is a retraction rather than an addition: a non-null `adjustOfferedAt`
+ * on a remove, rewire or refocus document no longer opens the door. Section 9 R5
+ * promised the opposite - "the door is open, Vara just stops knocking" - and this
+ * closes it. Jen's "are not exposed yet" is read as intending exactly that. Note
+ * that the population most likely to hold such a stamp is the one slice 7d was
+ * named for: before 7d the stamp fired on ELIGIBILITY, so users had the door
+ * waiting having never been asked anything. For them this is a correction.
+ */
+const ADJUST_ACTIVATED: Record<PhaseKey, boolean> = {
+  remove: false,
+  recover: true,
+  rewire: false,
+  refocus: false,
+};
+
+/**
+ * May this phase surface its three alternatives?
+ *
+ * A FUNCTION RATHER THAN THE RECORD, so callers cannot index it with something
+ * outside the union and get `undefined` where they expected a boolean. The phase
+ * page receives its phase as a ROUTE PARAM, which the types declare closed and
+ * which slice 7f's tests prove can arrive as anything; `=== true` makes an
+ * unrecognised phase unactivated rather than falsy-by-accident.
+ */
+export function adjustAlternativesActive(phase: PhaseKey): boolean {
+  return ADJUST_ACTIVATED[phase] === true;
+}

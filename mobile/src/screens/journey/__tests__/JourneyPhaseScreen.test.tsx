@@ -11,7 +11,7 @@
 // string does not appear even when the document carries it.
 
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 const mockGetJourneyState = jest.fn();
 const mockAdvancePhase = jest.fn(async () => {});
@@ -35,7 +35,7 @@ jest.mock('../../../context/AuthContext', () => ({
   useAuth: () => ({ user: { uid: 'u1' } }),
 }));
 
-const mockParams: { phase: string; destination: string } = {
+const mockParams: { phase: string; destination: string; openAdjust?: boolean } = {
   phase: 'remove',
   destination: 'calm',
 };
@@ -78,9 +78,14 @@ function journeyFixture(over: Partial<JourneyState> = {}): JourneyState {
   } as unknown as JourneyState;
 }
 
-function setParams(phase: string, destination: string) {
+function setParams(phase: string, destination: string, openAdjust?: boolean) {
   mockParams.phase = phase;
   mockParams.destination = destination;
+  // Slice 7c. Deleted rather than set to false when absent, so a test that does
+  // not mention the flag gets the same params object a map arrival produces
+  // rather than one carrying an explicit `false` no caller writes.
+  if (openAdjust === undefined) delete mockParams.openAdjust;
+  else mockParams.openAdjust = openAdjust;
 }
 
 beforeEach(() => {
@@ -429,9 +434,27 @@ describe('JourneyPhaseScreen - preview mutates nothing until Start this', () => 
 // including the current one.
 // ---------------------------------------------------------------------------
 describe('the adjustment door', () => {
+  /**
+   * RE-FIXTURED TO `recover` IN SLICE 7c, AS A DELIBERATE UPDATE.
+   *
+   * Every case in this block was written against `remove` because `remove` is
+   * the first phase and `journeyFixture`'s default, not because the door has
+   * anything to do with it. Jen's ruling 1 of 2026-09-17 activates the
+   * alternatives for Recover only, so a `remove` fixture now exercises the
+   * UNACTIVATED path: the door tests would have gone red, and the three
+   * ABSENCE tests would have gone green for a second, independent reason and
+   * stopped proving their own conjunct. Both are failures of the fixture, not
+   * of the cases, so the phase moves and nothing else does.
+   *
+   * THE ROUTE PARAM MOVES WITH IT. The door requires `phase === journey.phaseKey`,
+   * so a fixture on `recover` with a param on `remove` would be testing the
+   * wrong-phase branch by accident.
+   */
+  beforeEach(() => setParams('recover', 'calm'));
+
   const qualified = () =>
     journeyFixture({
-      phaseKey: 'remove',
+      phaseKey: 'recover',
       adjustOfferedAt: { seconds: 1 } as any,
     });
 
@@ -457,11 +480,30 @@ describe('the adjustment door', () => {
     // The alternatives change how the user works on the stretch they are
     // standing in. Offering them on a page about a phase the user has finished
     // or not reached would be offering to adjust something they are not doing.
+    //
+    // RE-FIXTURED IN SLICE 7c AND THE CONTROL BELOW IS NEW. The journey is on
+    // `recover` and the PAGE is `remove`, so the only thing that differs from
+    // the passing case is which phase the page is about. Before this change the
+    // journey was `remove` and the page `rewire`, which after ruling 1 would
+    // have been absent for two reasons - wrong phase AND unactivated - and would
+    // have proved neither. `remove` is used rather than `rewire` deliberately:
+    // it is a phase the user has BEEN in, which is the case the comment above is
+    // actually about.
     mockGetJourneyState.mockResolvedValue(qualified());
-    setParams('rewire', 'calm');
+    setParams('remove', 'calm');
     render(<JourneyPhaseScreen />);
     await waitFor(() => expect(mockGetJourneyState).toHaveBeenCalled());
     expect(screen.queryByTestId('journey-phase-adjust')).toBeNull();
+
+    // THE POSITIVE CONTROL, in the same test: the same document on its own
+    // phase page DOES show the door. Without it this passes just as well when
+    // the door is broken outright.
+    screen.unmount();
+    setParams('recover', 'calm');
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-open')).toBeTruthy()
+    );
   });
 
   test('SURVIVES THE CAP: the door does not read the decline count', async () => {
@@ -470,7 +512,7 @@ describe('the adjustment door', () => {
     // `adjustDeclines`, so the count cannot close it.
     mockGetJourneyState.mockResolvedValue(
       journeyFixture({
-        phaseKey: 'remove',
+        phaseKey: 'recover',
         adjustOfferedAt: { seconds: 1 } as any,
         adjustDeclinedAt: { seconds: 2 } as any,
         adjustDeclines: 2,
@@ -481,6 +523,44 @@ describe('the adjustment door', () => {
       expect(screen.getByTestId('journey-phase-adjust-open')).toBeTruthy()
     );
   });
+
+  /**
+   * THE ACTIVATION GATE AT THE DOOR (slice 7c; Jen ruling 1, 2026-09-17).
+   *
+   * IT IS CHECKED HERE AS WELL AS AT THE CARD BECAUSE THIS DOOR IS REACHABLE
+   * WITHOUT THE CARD. Section 9 R5 keeps it open after the two-offer cap stops
+   * the knocking, and every journey map row opens this page, so a gate on the
+   * card alone would leave a door onto nine options that do nothing.
+   *
+   * IT RETRACTS SOMETHING AND THE TEST SAYS SO. Each fixture below has a
+   * non-null `adjustOfferedAt` - these are users who HAD the door yesterday and
+   * do not have it today. That is a real behaviour change against R5's "the door
+   * is open, Vara just stops knocking", made on Jen's ruling, and a test that
+   * quietly asserted absence without naming the retraction would hide it.
+   */
+  test.each(['remove', 'rewire', 'refocus'] as const)(
+    'a qualified %s user gets no door, where the same recover user does',
+    async (phaseKey) => {
+      mockGetJourneyState.mockResolvedValue(
+        journeyFixture({ phaseKey, adjustOfferedAt: { seconds: 1 } as any })
+      );
+      setParams(phaseKey, 'calm');
+      render(<JourneyPhaseScreen />);
+      await waitFor(() => expect(mockGetJourneyState).toHaveBeenCalled());
+      expect(screen.queryByTestId('journey-phase-adjust')).toBeNull();
+
+      // THE POSITIVE CONTROL, in the same test. The only difference between the
+      // two halves is the phase: same stamp, same page shape, same everything
+      // else. Without it this passes when the door is broken outright.
+      screen.unmount();
+      mockGetJourneyState.mockResolvedValue(qualified());
+      setParams('recover', 'calm');
+      render(<JourneyPhaseScreen />);
+      await waitFor(() =>
+        expect(screen.getByTestId('journey-phase-adjust-open')).toBeTruthy()
+      );
+    }
+  );
 
   test('is shut by default and opens the three alternatives on tap', async () => {
     mockGetJourneyState.mockResolvedValue(qualified());
@@ -494,26 +574,59 @@ describe('the adjustment door', () => {
     fireEvent.press(screen.getByTestId('journey-phase-adjust-open'));
 
     expect(screen.getByText(ADJUST_COPY.alternativesIntro)).toBeTruthy();
-    for (const option of ADJUST_ALTERNATIVES.remove) {
+    for (const option of ADJUST_ALTERNATIVES.recover) {
       expect(screen.getByText(option.label)).toBeTruthy();
       expect(screen.getByText(option.body)).toBeTruthy();
     }
   });
 
-  test('serves THIS phase alternatives, not another phase set', async () => {
-    // The keyed-not-ordinal contract, at the render. A refocus user must never
-    // be shown the remove set.
-    mockGetJourneyState.mockResolvedValue(
-      journeyFixture({ phaseKey: 'refocus', adjustOfferedAt: { seconds: 1 } as any })
-    );
-    setParams('refocus', 'calm');
+  /**
+   * A COVERAGE REDUCTION CAUSED BY RULING 1, RECORDED RATHER THAN ABSORBED.
+   *
+   * THIS TEST USED TO BE: "serves THIS phase alternatives, not another phase
+   * set". A refocus user opened the door and saw "Narrow what matters" and not
+   * "Make it smaller". It was the keyed-not-ordinal contract asserted AT THE
+   * RENDER - proof that the screen reads `ADJUST_ALTERNATIVES` by PhaseKey and
+   * not by an index into PHASE_ORDER.
+   *
+   * IT NEEDS TWO EXPOSED PHASES TO EXPRESS AND RULING 1 LEAVES ONE. With only
+   * `recover` activated there is no second set the screen could wrongly show, so
+   * the property has no failing case left. It is not re-fixturable: a
+   * recover-only version asserts that the recover set renders, which the "shut
+   * by default and opens the three alternatives" test above already does.
+   *
+   * WHAT STILL COVERS THE CONTRACT, AND AT WHICH LEVEL:
+   * `constants/__tests__/journeyCopy.adjust.test.ts` asserts the pack-ordinal to
+   * phase-key mapping directly and fails on a PHASE_ORDER reorder. That is
+   * strictly weaker than what was here - it proves the MAP is right, not that
+   * the SCREEN reads the map - and the gap is real until a second phase is
+   * activated. The substitute below keeps the half that can still fail: the
+   * screen renders the set for the phase it is on, read by key.
+   *
+   * WHEN A SECOND PHASE IS ACTIVATED, restore the original from git history
+   * rather than rewriting it.
+   */
+  test('reads the alternatives BY PHASE KEY, not by an ordinal', async () => {
+    mockGetJourneyState.mockResolvedValue(qualified());
     render(<JourneyPhaseScreen />);
     await waitFor(() =>
       expect(screen.getByTestId('journey-phase-adjust-open')).toBeTruthy()
     );
     fireEvent.press(screen.getByTestId('journey-phase-adjust-open'));
-    expect(screen.getByText('Narrow what matters')).toBeTruthy();
-    expect(screen.queryByText('Make it smaller')).toBeNull();
+
+    // The recover set renders in full...
+    for (const option of ADJUST_ALTERNATIVES.recover) {
+      expect(screen.getByText(option.label)).toBeTruthy();
+    }
+    // ...and NO label from any other phase's set appears. Enumerated over the
+    // real table rather than against one invented string, so a testID or label
+    // that exists nowhere cannot make this pass by being absent either way.
+    for (const phaseKey of PHASE_ORDER) {
+      if (phaseKey === 'recover') continue;
+      for (const option of ADJUST_ALTERNATIVES[phaseKey]) {
+        expect(screen.queryByText(option.label)).toBeNull();
+      }
+    }
   });
 
   test('choosing records the curated id and confirms in place', async () => {
@@ -523,20 +636,23 @@ describe('the adjustment door', () => {
       expect(screen.getByTestId('journey-phase-adjust-open')).toBeTruthy()
     );
     fireEvent.press(screen.getByTestId('journey-phase-adjust-open'));
-    fireEvent.press(screen.getByTestId('journey-phase-adjust-make_it_smaller'));
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-help_me_come_down'));
 
     await waitFor(() =>
-      expect(mockRecordAdjustChoice).toHaveBeenCalledWith('u1', 'make_it_smaller')
+      expect(mockRecordAdjustChoice).toHaveBeenCalledWith('u1', 'help_me_come_down')
     );
     expect(mockLogEvent).toHaveBeenCalledWith('u1', 'journey_adjust_chosen', {
-      optionId: 'make_it_smaller',
+      optionId: 'help_me_come_down',
       from: 'phase_page',
     });
     await waitFor(() =>
       expect(screen.getByTestId('journey-phase-adjust-confirmation')).toBeTruthy()
     );
-    // NO NAVIGATION ON SUCCESS. There is nowhere to go that would show a
-    // result, because as of 7b the choice is recorded and not yet honoured.
+    // NO NAVIGATION ON SUCCESS. There is nowhere to go that would show a result
+    // ON THIS PAGE: as of slice 7c the choice IS honoured, but what it changes
+    // is tomorrow's protocol on Today, which this screen does not render. The
+    // confirmation in place is still the honest response and the user leaves
+    // when they are ready.
     expect(mockGoBack).not.toHaveBeenCalled();
   });
 
@@ -550,7 +666,7 @@ describe('the adjustment door', () => {
       expect(screen.getByTestId('journey-phase-adjust-open')).toBeTruthy()
     );
     fireEvent.press(screen.getByTestId('journey-phase-adjust-open'));
-    fireEvent.press(screen.getByTestId('journey-phase-adjust-try_another_way'));
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-help_me_get_re_oriented'));
     await waitFor(() => expect(mockRecordAdjustChoice).toHaveBeenCalled());
     expect(mockAdvancePhase).not.toHaveBeenCalled();
   });
@@ -565,14 +681,14 @@ describe('the adjustment door', () => {
       expect(screen.getByTestId('journey-phase-adjust-open')).toBeTruthy()
     );
     fireEvent.press(screen.getByTestId('journey-phase-adjust-open'));
-    fireEvent.press(screen.getByTestId('journey-phase-adjust-make_it_smaller'));
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-help_me_get_something_back'));
 
     await waitFor(() =>
       expect(screen.getByTestId('journey-phase-adjust-error')).toBeTruthy()
     );
     expect(screen.getByText(ADJUST_COPY.failed)).toBeTruthy();
     expect(screen.queryByTestId('journey-phase-adjust-confirmation')).toBeNull();
-    expect(screen.getByTestId('journey-phase-adjust-make_it_smaller')).toBeTruthy();
+    expect(screen.getByTestId('journey-phase-adjust-help_me_get_something_back')).toBeTruthy();
   });
 
   // -------------------------------------------------------------------------
@@ -590,12 +706,12 @@ describe('the adjustment door', () => {
     // advancement. On the current phase's page only the door shows.
     mockGetJourneyState.mockResolvedValue(
       journeyFixture({
-        phaseKey: 'remove',
+        phaseKey: 'recover',
         adjustOfferedAt: { seconds: 1 } as any,
         advanceOfferedAt: { seconds: 1 } as any,
       })
     );
-    setParams('remove', 'calm');
+    setParams('recover', 'calm');
     render(<JourneyPhaseScreen />);
     await waitFor(() =>
       expect(screen.getByTestId('journey-phase-adjust')).toBeTruthy()
@@ -604,19 +720,172 @@ describe('the adjustment door', () => {
   });
 
   test('on the NEXT phase page the same user gets the preview and no door', async () => {
+    // RE-FIXTURED IN SLICE 7c: the journey is on `recover` and the page is
+    // `rewire`, the phase after it. Before this the journey was `remove` and the
+    // page `recover`, which after ruling 1 would have shown no door because
+    // `recover` IS the activated phase but is not the CURRENT one - two reasons
+    // for one absence. The pair now differs only by which page is open, which is
+    // what this test is about.
     mockGetJourneyState.mockResolvedValue(
       journeyFixture({
-        phaseKey: 'remove',
+        phaseKey: 'recover',
         adjustOfferedAt: { seconds: 1 } as any,
         advanceOfferedAt: { seconds: 1 } as any,
       })
     );
-    setParams('recover', 'calm');
+    setParams('rewire', 'calm');
     render(<JourneyPhaseScreen />);
     await waitFor(() =>
       expect(screen.getByTestId('journey-phase-commit')).toBeTruthy()
     );
     expect(screen.queryByTestId('journey-phase-adjust')).toBeNull();
+  });
+
+  // -------------------------------------------------------------------------
+  // SLICE 7c: THE TWO ARRIVALS, AND THE IN-FLIGHT GUARD.
+  //
+  // Both were logged to row 7c at 7b's walk and both are about the same thing -
+  // a control that does not tell the user what state it is in. The first makes
+  // the page say which question it is answering; the second makes it say that
+  // it heard the tap.
+  // -------------------------------------------------------------------------
+  test('arrives EXPANDED from the Today card', async () => {
+    mockGetJourneyState.mockResolvedValue(qualified());
+    setParams('recover', 'calm', true);
+    render(<JourneyPhaseScreen />);
+    // The three options are on the page with no tap at all, and the control
+    // that would have asked for one is gone.
+    await waitFor(() =>
+      expect(screen.getByText(ADJUST_COPY.alternativesIntro)).toBeTruthy()
+    );
+    expect(screen.queryByTestId('journey-phase-adjust-open')).toBeNull();
+    for (const option of ADJUST_ALTERNATIVES.recover) {
+      expect(screen.getByTestId(`journey-phase-adjust-${option.id}`)).toBeTruthy();
+    }
+  });
+
+  test('arrives SHUT from the map, which passes no flag', async () => {
+    // THE CONTROL FOR THE TEST ABOVE, and the reason it is a separate case: an
+    // expanded-always door would satisfy the first test perfectly. The map's
+    // route sets no `openAdjust`, so this is the real second arrival rather than
+    // a constructed one.
+    mockGetJourneyState.mockResolvedValue(qualified());
+    setParams('recover', 'calm');
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-open')).toBeTruthy()
+    );
+    expect(screen.queryByText(ADJUST_COPY.alternativesIntro)).toBeNull();
+  });
+
+  test('an expanded arrival can still be answered, and confirms in place', async () => {
+    // The expanded path is a different render branch from the tap-to-open path,
+    // and skipping a tap must not skip the write. Without this, `openAdjust`
+    // could render three decorative rows.
+    mockGetJourneyState.mockResolvedValue(qualified());
+    setParams('recover', 'calm', true);
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-help_me_come_down')).toBeTruthy()
+    );
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-help_me_come_down'));
+    await waitFor(() =>
+      expect(mockRecordAdjustChoice).toHaveBeenCalledWith('u1', 'help_me_come_down')
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-confirmation')).toBeTruthy()
+    );
+  });
+
+  test('the tapped option reports busy and the other two report disabled', async () => {
+    // THE IN-FLIGHT GUARD, asserted through accessibilityState rather than
+    // through a style: the style is the visible half and the state is the half a
+    // screen reader gets, and UI Standards require both. Held mid-flight by a
+    // promise this test controls.
+    let settle: () => void = () => {};
+    mockRecordAdjustChoice.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        settle = resolve;
+      }) as never
+    );
+    mockGetJourneyState.mockResolvedValue(qualified());
+    setParams('recover', 'calm', true);
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-help_me_come_down')).toBeTruthy()
+    );
+
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-help_me_come_down'));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('journey-phase-adjust-help_me_come_down').props
+          .accessibilityState
+      ).toEqual({ disabled: true, busy: true })
+    );
+    for (const id of ['help_me_get_something_back', 'help_me_get_re_oriented']) {
+      expect(
+        screen.getByTestId(`journey-phase-adjust-${id}`).props.accessibilityState
+      ).toEqual({ disabled: true, busy: false });
+    }
+
+    // AND IT CLEARS. A guard that never lifted would be a worse bug than the one
+    // it fixes, and on the failure path the options have to come back.
+    await act(async () => {
+      settle();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-confirmation')).toBeTruthy()
+    );
+  });
+
+  test('a second tap while the first is settling writes ONCE', async () => {
+    // THE REASON THE GUARD IS ON THE WRITE AND NOT ONLY ON THE PIXELS. Two
+    // writes would let whichever network call finished last decide what the
+    // engine serves tomorrow, which is a wrong DAY and not merely a wrong frame.
+    let settle: () => void = () => {};
+    mockRecordAdjustChoice.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        settle = resolve;
+      }) as never
+    );
+    mockGetJourneyState.mockResolvedValue(qualified());
+    setParams('recover', 'calm', true);
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-help_me_come_down')).toBeTruthy()
+    );
+
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-help_me_come_down'));
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-help_me_get_re_oriented'));
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-help_me_come_down'));
+
+    await act(async () => {
+      settle();
+    });
+    expect(mockRecordAdjustChoice).toHaveBeenCalledTimes(1);
+    expect(mockRecordAdjustChoice).toHaveBeenCalledWith('u1', 'help_me_come_down');
+  });
+
+  test('a failed write lifts the guard, so the options are tappable again', async () => {
+    mockRecordAdjustChoice.mockRejectedValueOnce(new Error('offline'));
+    mockGetJourneyState.mockResolvedValue(qualified());
+    setParams('recover', 'calm', true);
+    render(<JourneyPhaseScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-help_me_come_down')).toBeTruthy()
+    );
+    fireEvent.press(screen.getByTestId('journey-phase-adjust-help_me_come_down'));
+    await waitFor(() =>
+      expect(screen.getByTestId('journey-phase-adjust-error')).toBeTruthy()
+    );
+    // Not merely present: ACTIVATABLE. A disabled row that still rendered would
+    // satisfy an existence check and leave the user with nothing to do.
+    for (const option of ADJUST_ALTERNATIVES.recover) {
+      expect(
+        screen.getByTestId(`journey-phase-adjust-${option.id}`).props.accessibilityState
+      ).toEqual({ disabled: false, busy: false });
+    }
   });
 
   test('the state eyebrow still reads correctly beside the door', async () => {
@@ -662,7 +931,21 @@ describe('JourneyPhaseScreen - params it cannot render', () => {
   // a crash: `.map` on an undefined cell throws instantly. It is reached only
   // when the door is open, which needs the document's phaseKey to equal the
   // route param.
-  it('a phase outside the union does not throw with the adjust door open', async () => {
+  it('a phase outside the union does not throw, and no longer opens a door', async () => {
+    // THE MEANING OF THIS TEST CHANGED IN SLICE 7c, AND THE CHANGE IS RECORDED
+    // RATHER THAN SWALLOWED. It used to assert that an unrecognised phase opened
+    // the door and OFFERED NOTHING - a guarded lookup returning an empty list
+    // rather than throwing. After ruling 1 the door does not open at all: an
+    // unrecognised phase is not in `ADJUST_ACTIVATED`, and
+    // `adjustAlternativesActive` compares `=== true`, so it is unactivated
+    // rather than undefined-and-falsy by luck.
+    //
+    // THAT IS A BETTER OUTCOME AND A DIFFERENT ASSERTION. The old property - the
+    // empty-list render is safe - stops being exercised here. It is not lost
+    // entirely: the same guarded lookup still runs for any phase that IS
+    // activated, and the substitute test above enumerates the real table. What
+    // is gone is the specific "opens and offers nothing" state, because that
+    // state no longer exists.
     setParams('reboot', 'calm');
     mockGetJourneyState.mockResolvedValue(
       journeyFixture({
@@ -673,16 +956,12 @@ describe('JourneyPhaseScreen - params it cannot render', () => {
 
     expect(() => render(<JourneyPhaseScreen />)).not.toThrow();
 
-    await waitFor(() => {
-      expect(screen.getByTestId('journey-phase-adjust')).toBeTruthy();
-    });
+    await waitFor(() => expect(mockGetJourneyState).toHaveBeenCalled());
+    expect(screen.queryByTestId('journey-phase-adjust')).toBeNull();
 
-    // The door opens and offers nothing, rather than taking the app down.
-    //
     // ASSERTED AGAINST EVERY REAL OPTION ID IN THE TABLE, not against one
     // invented name: a testID that does not exist in any phase would be absent
     // whether the guard worked or not, which is a test that cannot fail.
-    fireEvent.press(screen.getByTestId('journey-phase-adjust-open'));
     for (const phaseKey of PHASE_ORDER) {
       for (const option of ADJUST_ALTERNATIVES[phaseKey]) {
         expect(screen.queryByTestId(`journey-phase-adjust-${option.id}`)).toBeNull();
@@ -692,10 +971,17 @@ describe('JourneyPhaseScreen - params it cannot render', () => {
 
   // THE ANTI-VACUITY DIRECTION. A guard that rendered nothing for every phase
   // would satisfy both tests above.
-  it('a valid phase still offers all of its alternatives', async () => {
-    setParams('remove', 'calm');
+  it('an ACTIVATED phase still offers all of its alternatives', async () => {
+    // THE ANTI-VACUITY GUARD, MOVED TO `recover` IN SLICE 7c AND STILL THE
+    // COUNTERWEIGHT TO THE TWO TESTS ABOVE. Its own original comment is the
+    // reason it cannot simply be deleted with the `remove` fixture: "a guard
+    // that rendered nothing for every phase would satisfy both tests above".
+    // After ruling 1 a guard that rendered nothing for every phase would ALSO
+    // satisfy the new "does not open a door" assertion, so the counterweight
+    // matters more than it did, not less.
+    setParams('recover', 'calm');
     mockGetJourneyState.mockResolvedValue(
-      journeyFixture({ adjustOfferedAt: { seconds: 1 } as never })
+      journeyFixture({ phaseKey: 'recover', adjustOfferedAt: { seconds: 1 } as never })
     );
 
     render(<JourneyPhaseScreen />);
@@ -704,7 +990,7 @@ describe('JourneyPhaseScreen - params it cannot render', () => {
     });
     fireEvent.press(screen.getByTestId('journey-phase-adjust-open'));
 
-    for (const option of ADJUST_ALTERNATIVES.remove) {
+    for (const option of ADJUST_ALTERNATIVES.recover) {
       expect(screen.getByTestId(`journey-phase-adjust-${option.id}`)).toBeTruthy();
     }
   });
