@@ -706,6 +706,37 @@ import * as path from 'path';
 // not in it. JourneyMapScreen.tsx's own header comment claimed those strings
 // came across "markers and all"; that claim was wrong and 7n corrected it at
 // the file. Had it been true, this entry would have been a -1.
+//
+// 149 THROUGH JOURNEY SLICE 8, 2026-09-18: +0, AND THE ZERO IS THE ENTRY.
+// Good moments landed six user-facing strings and the number did not move, so
+// this block exists to say that was checked rather than overlooked. A count
+// that holds still with no explanation is indistinguishable from a count
+// nobody looked at, which is the failure the contract above is written
+// against.
+//
+// The six, all in components/dashboard/goodMoments.copy.ts: the row label
+// "Add a good moment"; the sheet prompt "What was one good moment from
+// today?"; the primary "Save"; the secondary "Cancel"; the acknowledgment
+// "Saved."; and the failure line "Couldn't save that. Try again."
+//
+// ALL SIX ARE JEN'S AND ALL SIX WERE APPROVED ON DELIVERY - the prompt, the
+// acknowledgment and the failure line on 2026-09-12, the row label and the two
+// button labels on 2026-09-18. Approved copy is not drafted copy, so none of
+// them takes a sentinel and the count is flat by the same route 7n's two
+// strings were.
+//
+// THEY ARE RECORDED ON THE ROADMAP, NOT IN THE CONTENT PACK, WHICH IS EXACTLY
+// 7n's CASE. The pack rule is scoped to strings IN the pack and these are not
+// in it; the substance rule reaches them because they are Jen's, approved on
+// delivery, and written down in a rank-1 source-of-truth document. The entry
+// above says a future slice landing approved copy from the roadmap rather than
+// the pack has it as precedent. This is that slice, and it is the first to use
+// it. Slice 8 also copies the six into the pack, so the next reader grepping
+// for them finds them where the rule expects them to be.
+//
+// NOTHING THIS SLICE REPLACED CARRIED A SENTINEL EITHER, so -0 is correct
+// rather than convenient: the surface is new, and there was no prior string on
+// it to retire.
 const EXPECTED_SENTINELS = 149;
 
 const mobileRoot = path.resolve(__dirname, '../..');

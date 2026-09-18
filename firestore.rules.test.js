@@ -2447,6 +2447,156 @@ describe('Captured Tasks (Task Batching)', () => {
 });
 
 
+describe('Good Moments (journey slice 8)', () => {
+  // Ownership is the userId FIELD, not the document ID, so every case here is
+  // about whether the field holds. Same shape as capturedTasks above.
+  //
+  // VACUITY GUARD: the first test writes a valid document and asserts it
+  // SUCCEEDS. Without it a rule that denied everything would make every
+  // assertFails below pass, and the block would be green for the wrong reason.
+
+  async function seedMoment(userId, text = 'The dog met me at the door.') {
+    return withAdminDb((adminDb) =>
+      addDoc(collection(adminDb, 'moments'), {
+        userId,
+        text,
+        createdAt: new Date(),
+      })
+    );
+  }
+
+  test('a user can record their own good moment', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(
+      addDoc(collection(db, 'moments'), {
+        userId: ALICE_UID,
+        text: 'Coffee on the step before anyone was up.',
+        createdAt: new Date(),
+      })
+    );
+  });
+
+  test('the write path mirrors createMoment exactly', async () => {
+    // Mirrors mobile/src/services/firebase/moments.service.ts: three fields,
+    // auto-ID, nothing else. If the service grows a field, this should grow
+    // with it, because a rule that happens to allow today's payload is not a
+    // rule that allows tomorrow's.
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(
+      addDoc(collection(db, 'moments'), {
+        userId: ALICE_UID,
+        text: 'A long walk with no destination.',
+        createdAt: new Date(),
+      })
+    );
+  });
+
+  test('a user CANNOT record a moment owned by someone else', async () => {
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertFails(
+      addDoc(collection(db, 'moments'), {
+        userId: BOB_UID,
+        text: 'Forged.',
+        createdAt: new Date(),
+      })
+    );
+  });
+
+  test('an unauthenticated caller can do nothing', async () => {
+    const anon = getUnauthContext().firestore();
+
+    await assertFails(
+      addDoc(collection(anon, 'moments'), {
+        userId: ALICE_UID,
+        text: 'Nope.',
+        createdAt: new Date(),
+      })
+    );
+  });
+
+  test('a user can get, update and delete their own moment', async () => {
+    // Nothing in the app calls any of these today: the feature is write-only
+    // until Insights ships. They are asserted because the rules block grants
+    // them, and an ungranted-but-untested permission is how a block quietly
+    // stops matching its siblings.
+    const ref = await seedMoment(ALICE_UID);
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(getDoc(doc(db, 'moments', ref.id)));
+    await assertSucceeds(
+      updateDoc(doc(db, 'moments', ref.id), { text: 'Edited.' })
+    );
+    await assertSucceeds(deleteDoc(doc(db, 'moments', ref.id)));
+  });
+
+  test('another user can neither read nor delete it', async () => {
+    const ref = await seedMoment(ALICE_UID);
+    const bob = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(bob, 'moments', ref.id)));
+    await assertFails(deleteDoc(doc(bob, 'moments', ref.id)));
+    await assertFails(
+      updateDoc(doc(bob, 'moments', ref.id), { text: 'Not yours.' })
+    );
+  });
+
+  test('a user CAN get their own non-existent moment', async () => {
+    // The get/list split exists for this: `resource` is null on a get of a
+    // document that does not exist, and `resource.data.userId` against null
+    // ERRORS rather than returning false. Collapsing get and list into one
+    // `allow read` breaks this case.
+    const db = getAuthContext(ALICE_UID).firestore();
+
+    await assertSucceeds(getDoc(doc(db, 'moments', 'no-such-moment')));
+  });
+
+  test('the absent-document guard does NOT expose another users moment', async () => {
+    const ref = await seedMoment(ALICE_UID, 'Private.');
+    const bob = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(bob, 'moments', ref.id)));
+  });
+
+  test('a list is owner-scoped through the userId field', async () => {
+    await seedMoment(ALICE_UID);
+
+    const alice = getAuthContext(ALICE_UID).firestore();
+    const bob = getAuthContext(BOB_UID).firestore();
+
+    await assertSucceeds(
+      getDocs(query(collection(alice, 'moments'), where('userId', '==', ALICE_UID)))
+    );
+    // An unscoped list is refused even for the owner.
+    await assertFails(getDocs(collection(alice, 'moments')));
+    // The same scoped query, aimed at someone else's rows: refused.
+    await assertFails(
+      getDocs(query(collection(bob, 'moments'), where('userId', '==', ALICE_UID)))
+    );
+  });
+
+  test('moments access grants NOTHING on the dormant joyMoments collection', async () => {
+    // Two collections, two blocks, no shared path. joyMoments is web-app-era
+    // and untouched by this slice; this pins that nobody can tidy them into
+    // one wildcard match later.
+    const legacy = await withAdminDb((adminDb) =>
+      addDoc(collection(adminDb, 'joyMoments'), {
+        userId: ALICE_UID,
+        content: 'Legacy web joy moment',
+        createdAt: new Date(),
+      })
+    );
+    await seedMoment(BOB_UID);
+
+    const bob = getAuthContext(BOB_UID).firestore();
+
+    await assertFails(getDoc(doc(bob, 'joyMoments', legacy.id)));
+  });
+});
+
+
 describe('Journey State (journeyStates)', () => {
   // The document ID IS the uid, so there is no seeding-by-query here and no
   // list rule to test. Ownership is the path, and every case below is about

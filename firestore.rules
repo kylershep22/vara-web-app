@@ -957,6 +957,43 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
+    // ========== GOOD MOMENTS ==========
+
+    // Good moments - one line a user chose to keep (journey slice 8).
+    //
+    // NOT `joyMoments` ABOVE. That block is web-app-era and nothing in either
+    // app has ever read or written it; it is left exactly as it stands, and
+    // retiring it is its own row. Two blocks, two collections, no shared path.
+    //
+    // Identical owner-on-userId-FIELD form to dayBlocks and capturedTasks,
+    // including the SAME get/list split and for the same reason spelled out
+    // there: `resource` is null on a get of a document that does not exist and
+    // `resource.data.userId` against null ERRORS rather than returning false.
+    // Do not collapse these into a combined `allow read`.
+    //
+    // THE SHAPE DEVIATES FROM ROW 8's `moments/{uid}_{ts}`, DELIBERATELY.
+    // Ownership is in the field, never in the document ID, because the
+    // deleteAccount sweep is a `where userId ==` query and because a guessable
+    // composite ID carries the presence-observability exposure recorded in the
+    // dailyLogs comment above.
+    //
+    // NOTHING IN THE APP READS THIS TODAY, AND read IS STILL GRANTED. The
+    // feature is write-only until Insights ships: there is no list surface, no
+    // detail view, and `moments.service.ts` exports one function, a create.
+    // The read and mutate rules are here because this block matches its
+    // siblings rather than inventing a narrower form for one collection, and
+    // because the owner of a row should not need a deploy to be allowed to see
+    // their own words. A later slice that adds the read surface changes no
+    // rule; it only acquires a caller.
+    match /moments/{momentId} {
+      // Allow read if document doesn't exist (for checking before create) OR if user owns it
+      allow get: if isAuthenticated() && (resource == null || isOwner(resource.data.userId));
+      // List enforces ownership through the userId FIELD, never through resource.
+      allow list: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
     // ========== JOURNEY ==========
 
     // Journey state - one document per user, and the DOCUMENT ID IS THE UID.
