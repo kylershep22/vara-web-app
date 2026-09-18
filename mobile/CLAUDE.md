@@ -22,6 +22,18 @@ The contracts stay authoritative for their own scope beneath this ladder: `docs/
 
 `docs/archive/` is history, never a build source. **If a needed decision is not covered by these docs, STOP and ask Kyle. Do not guess on brand-level or product-level decisions.**
 
+**SEARCHING THE ROADMAP: NORMALISE WHITESPACE BEFORE MATCHING A PHRASE.** That document hard-wraps
+both prose and table cells, so a phrase can straddle a line break and be invisible to every
+line-oriented search - `findstr`, `grep`, an editor's find, all of them. **A line-oriented search of
+that file cannot establish absence.** Slice 8 found "moments of joy" split across a break in §1,
+with "moments" ending one line and "of joy" beginning the next. It had been missed by every
+previous sweep, including the ones behind the "three places" count recorded on 2026-09-12 and the
+"four other passages" clause in §6 item 10 - both of which were therefore undercounts that nobody
+could have caught by searching harder. To sweep for a multi-word name, collapse newlines and runs
+of whitespace to single spaces first, then match; or search for the rarest single word in the
+phrase and read the hits. The same applies to any hard-wrapped document here, which is most of
+`docs/`.
+
 ## MACHINE-ENFORCED GUARDS
 
 These fail or warn in CI. Know them before you write code.

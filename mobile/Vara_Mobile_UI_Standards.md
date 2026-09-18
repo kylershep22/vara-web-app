@@ -1,10 +1,12 @@
 # Vara Mobile UI Standards
 
-**Version 2.1 | September 2026 | The visual and interaction authority for the Vara mobile app**
+**Version 2.2 | September 2026 | The visual and interaction authority for the Vara mobile app**
 
-Supersedes v2.0 (August 2026). v2.0 superseded `Vara_Mobile_UI_Standards.md` v1.0 (February 2026) and absorbed `mobile/docs/DESIGN_SYSTEM.md`. Both retire on the commit that lands this file. There is now one design document.
+Supersedes v2.1 (September 2026), which superseded v2.0 (August 2026). v2.0 superseded `Vara_Mobile_UI_Standards.md` v1.0 (February 2026) and absorbed `mobile/docs/DESIGN_SYSTEM.md`. Both retire on the commit that lands this file. There is now one design document.
 
 **v2.1 is the design-authority reconciliation for the visual redesign** (journey roadmap row R0). It is a documentation pass: no code changed with it. Every count it cites is a measured reading of `mobile/src/` taken at `c30671c` and is labelled as baseline debt in 17, not as a target. The v2.0 to v2.1 changelog is in Appendix B.
+
+**v2.2 is one clause**, added under 14.3 at journey slice 8's close. Documentation only: no code changed with it, and no count in this document moved. The v2.1 to v2.2 changelog is in Appendix B.
 
 ---
 
@@ -968,6 +970,8 @@ An empty state is an invitation, not a report of failure. Spot illustration (80 
 ### 14.3 Success
 Inline and brief. "Saved." "Reflection captured." "Done. That's the reset." Teal, never bright green. Auto-dismiss in 2 to 3s. Success haptic. No confetti, no full-screen takeover for routine saves. A first meaningful completion (a first 30-minute session, a first week's routine) earns a real sentence in a QuietFinish; a three-minute reset earns "Done."
 
+**Ordinary toasts remain 2 to 3 seconds. An inline modal save acknowledgment that temporarily holds the sheet open before automatic dismissal may use 1.25 seconds. The shorter interval applies only where the acknowledgment is blocking dismissal rather than appearing non-blockingly over the underlying screen.** (New in v2.2.)
+
 ### 14.4 Error
 Coral border or icon, one line of supportive, specific copy, placed inline directly under the thing that failed. "Something didn't connect. Try again when ready." Never blame the user, never shake, never a modal unless the failure is system-wide. A recoverable error always offers the retry in place. **Any screen whose primary action depends on a network resource (offerings, a session save, the Guide) has a designed failure state with a retry**, and the failure is visible; a screen must never look healthy while its button is dead.
 
@@ -1206,6 +1210,13 @@ Removed by decision, not oversight. If one reappears in a design or a diff, that
 ## Appendix B. Version changelog
 
 Newest first. **Each block is the record of one version and is never rewritten by a later one.**
+
+### What changed from v2.1 to v2.2 (September 2026)
+
+One clause, added at journey slice 8's close. **Documentation only: no code changed with this version, and no count in 17 moved.**
+
+- **14.3** gains a second paragraph: **an inline modal save acknowledgment that holds a sheet open before dismissing itself may use 1.25 seconds**, where an ordinary toast stays at 2 to 3. **The distinction is blocking versus non-blocking, not preference.** A toast appears over a screen the user can carry on using, so the extra second costs them nothing; an acknowledgment inside a modal is holding the surface open after its work is finished, and every extra second is a second the user is kept there. **The clause is written narrowly on purpose** - it does not licence a shorter toast, and it does not apply to an acknowledgment the user dismisses themselves.
+- **Nothing else changed.** In particular **10.11, 14.4, 10.3 and 16 are untouched**, and two known contradictions between them remain open rather than being quietly resolved here: 10.11 describes a `NotificationToast` that does not match the shipped component and prescribes an offset mechanism R2 found to be wrong (journey roadmap row `TOAST-RELIABILITY`), and 14.4's mandated Soft Coral and 10.3's mandated Silver Sage border both fail 16's contrast requirement as written (row `STANDARDS-WCAG-RECONCILIATION`). **Both are rowed, and a row is not a fix.** They are named here so a reader of v2.2 does not take the version bump as evidence that the document is now internally consistent.
 
 ### What changed from v2.0 to v2.1 (September 2026)
 
