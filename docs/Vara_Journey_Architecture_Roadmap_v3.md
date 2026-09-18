@@ -3605,7 +3605,7 @@ option.
 
 ---
 
-### The walk, **[DATE NOT SUPPLIED — Kyle to fill before the merge]**: the serving behaviour is walked in full, and two of the seventeen steps are deferred to beta
+### The walk, 2026-09-17: the serving behaviour is walked in full, and two of the seventeen steps are deferred to beta
 
 **WALKED ON AN iPhone 14 PLUS, DEV CLIENT, AT `abde469`.** Full results step by
 step in `docs/walks/7c/WALK.md`.
@@ -3663,7 +3663,7 @@ attestation below records 3934 of 237**. Both numbers are correct for their
 commits and neither supersedes the other; the difference is four tests that did
 not exist when the phone was in Kyle's hand. tsc, sentinel and lint are unmoved.
 
-**ATTESTATIONS (Kyle, **[DATE NOT SUPPLIED — Kyle to fill before the merge]**), verbatim:**
+**ATTESTATIONS (Kyle, 2026-09-17), verbatim:**
 
 > - Suites green at tsc 141 / jest 3934 of 237 / sentinel 149 / lint 994 errors,
 >   1358 warnings. ATTESTED.
@@ -3673,12 +3673,27 @@ not exist when the phone was in Kyle's hand. tsc, sentinel and lint are unmoved.
 >   guard. The offer, door and phase gate steps are not run and are deferred to
 >   beta for the reasons recorded. ATTESTED.
 
-**TWO FIELDS IN THIS ENTRY AND TWO IN THE WALK FILE ARE MARKED NOT SUPPLIED AND
-MUST BE FILLED BEFORE THE MERGE:** the sitting's date, which appears in this
-heading and on the attestation, and the **1.3x Dynamic Type result for steps 7, 8
-and 13**, which the standing rule requires and which the walk file records as
-outstanding. **An attestation's date is observed, never inherited from the row**,
-and neither of these is the build's to observe.
+**THE DATES WERE SUPPLIED SEPARATELY AND FILLED IN A LATER COMMIT, AND THIS
+PARAGRAPH EXISTS SO THE ORDERING IS NOT MISREAD.** The attestation above landed in
+its own commit with the date left as an explicit to-fill marker, because **an
+attestation's date is observed and never inherited**, and the build had no way to
+observe it. Kyle
+supplied **2026-09-17** for both the sitting and the attestation afterwards, and a
+following commit replaced the two markers with it. **The attestation's own two
+bullets are byte-identical to the commit that recorded them** - what changed is
+the date on the heading that introduces them, which was blank rather than wrong.
+A reader meeting the commits in order is seeing a field filled, not an attestation
+edited.
+
+**THE 1.3x DYNAMIC TYPE STEPS ARE NOT RUN, AND THAT IS RECORDED RATHER THAN
+FILLED.** The standing walk rule is default **and** 1.3x on every step; the result
+for steps 7, 8 and 13 was left open in the walk report and no observation of it
+exists. **It is recorded as NOT RUN on exactly the footing SE is** - outstanding,
+never passed by inspection - because nobody has watched those three screens at
+1.3x and a build cannot supply a device observation it did not make. **This is the
+one gap in an otherwise fully-walked serving path**, it is cheap to close (three
+screens, one Dynamic Type setting, no seeding), and it should be closed before the
+merge rather than carried into beta with the deferred steps.
 
 ---
 

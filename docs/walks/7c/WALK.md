@@ -194,7 +194,7 @@ sitting.** Every other step is outstanding.
 produced correction 5 and row `JOURNEY-REVISION-TOKEN`, and a results section that
 showed only the passes would leave both of them looking like housekeeping.
 
-### Sitting of **[DATE NOT SUPPLIED — Kyle to fill before the merge]** — the serving behaviour, walked in full
+### Sitting of 2026-09-17 — the serving behaviour, walked in full
 
 iPhone 14 Plus, dev client, branch at **`abde469`**. Kyle's result, recorded step
 by step.
@@ -214,7 +214,7 @@ account showing no adjust surface. Recorded, screenshots taken.
 | **11** | **PASS.** Preference `help_me_come_down`, Normal + 15+ → **"Downshift, then unplug"**, where the destination path serves R3. |
 | **12** | **PASS**, Energy account, `help_me_get_re_oriented` → the re-anchor mechanism. The choice decides, not the destination. |
 | **13** | **PASS.** Preference cleared: every title byte-identical to the recorded no-preference answer at the same capacity and time. See the note below on what that record was. |
-| **1.3x Dynamic Type**, steps 7, 8 and 13 | **[RESULT NOT SUPPLIED — Kyle to fill before the merge]** |
+| **1.3x Dynamic Type**, steps 7, 8 and 13 | **NOT RUN.** Outstanding, on the same footing as SE below: not passed by inspection, and not filled by the build, which cannot supply a device observation it did not make. See the note under this table. |
 
 **NOT RUN, WITH REASONS.**
 
@@ -232,6 +232,21 @@ account showing no adjust surface. Recorded, screenshots taken.
   one of two Recover walk accounts. `CLEARED_OFFERS` is asserted in four places in
   the suite.
 - **SE:** not walkable in this setup.
+- **1.3x DYNAMIC TYPE ON STEPS 7, 8 AND 13: NOT RUN.** The standing walk rule is
+  default **and** 1.3x on every step. The result was left open in the walk report
+  and no observation of it exists, so it is recorded as outstanding rather than
+  filled. **It is the one gap in an otherwise fully-walked serving path**, and it
+  is the cheapest outstanding item on this file: three screens, one Dynamic Type
+  setting, no seeding, no second account. **Close it before the merge rather than
+  carrying it into beta with steps 1-6 and 14-15**, which cannot be closed without
+  the cohort.
+
+  **WHAT IT WOULD ACTUALLY TEST, so it is not run as a formality.** Step 8 is the
+  one that matters most: the summary line is a single row carrying up to three
+  segments - destination label, capacity word, and the runs-through clause - and
+  1.3x is where a three-segment line on one row starts wrapping or truncating.
+  Step 7's hero title and step 13's comparison are ordinary text and are lower
+  risk.
 
 ---
 
