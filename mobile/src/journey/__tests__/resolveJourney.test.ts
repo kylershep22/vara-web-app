@@ -583,6 +583,121 @@ describe('resolveJourney', () => {
     });
   });
 
+  // ---- the adjustment choice reaches PhaseContext (slice 7c) ----
+
+  /**
+   * THE HOP THAT HAD NO TEST, AND IT IS THE HOP THAT BROKE ON A DEVICE.
+   *
+   * WHAT HAPPENED. At 7c's walk the serve came back as the no-preference answer
+   * on an account whose document carried `adjustChoice`. Every link in the chain
+   * was traced and every one was correct - the resolver sets the field, the hook
+   * reads it, the screen passes it, the engine maps it, and a green suite
+   * covered all four. The value was still absent at the call.
+   *
+   * The cause turned out to be staleness rather than a wrong line (the journey
+   * document is read once per Home FOCUS TRANSITION, and the walk's console edit
+   * happened under a focused Home), so this test would not have caught it. **It
+   * goes in anyway, and the reason is the more useful half of the finding:**
+   * every test above this hop hands `useTodayCard` a HAND-BUILT `PhaseContext`
+   * with the field already on it. Delete `adjustChoice` from the two resolver
+   * construction sites and the entire suite - all three engine files, the hook
+   * suites, the screen suites - stays green, while every user's recorded
+   * adjustment silently stops working. That is the same
+   * assertions-are-real-but-not-of-the-thing-that-breaks shape as the rules
+   * harness note, 7b's query-contract gap and 7d's unmocked-writer gap.
+   *
+   * BOTH DIRECTIONS, because only the pair is a propagation test. A resolver
+   * hard-coding `null` passes the absent case; one hard-coding a constant passes
+   * the present case. Neither passes both.
+   */
+  describe('rung (a): the recorded adjustment reaches PhaseContext (slice 7c)', () => {
+    test('a document carrying adjustChoice produces a context carrying it', () => {
+      return (async () => {
+        mockGetJourneyState.mockResolvedValue(
+          state({ phaseKey: 'recover', adjustChoice: 'help_me_get_something_back' })
+        );
+
+        const result = await resolveJourney(UID);
+
+        expect(result.target).toBe('today');
+        expect(result.target === 'today' && result.phase.adjustChoice).toBe(
+          'help_me_get_something_back'
+        );
+      })();
+    });
+
+    test('a document with no adjustChoice produces null, not undefined', () => {
+      return (async () => {
+        // NULL AND UNDEFINED ARE NOT INTERCHANGEABLE HERE even though the engine
+        // treats them alike: `PhaseContext.adjustChoice` is declared
+        // non-optional precisely so a construction site cannot omit it, and a
+        // resolver returning undefined would satisfy a `toBeFalsy` while having
+        // dropped the field. The shape is normalised once, in the resolver.
+        mockGetJourneyState.mockResolvedValue(state({ phaseKey: 'recover' }));
+
+        const result = await resolveJourney(UID);
+
+        expect(result.target === 'today' && result.phase.adjustChoice).toBeNull();
+        expect(
+          result.target === 'today' && 'adjustChoice' in result.phase
+        ).toBe(true);
+      })();
+    });
+
+    test('every one of the twelve ids survives the hop unchanged', () => {
+      return (async () => {
+        // THE RESOLVER DOES NOT FILTER, AND THIS PINS THAT IT DOES NOT START.
+        // Which ids can be honoured is the ENGINE's decision
+        // (`adjustmentPreferenceFor` maps Recover's three and refuses the other
+        // nine) and the surfacing gate's (`adjustAlternativesActive`). A
+        // resolver that also had an opinion would be a third place for the list
+        // to drift, and the first symptom would be an id that works everywhere
+        // except through the resolver.
+        const ids = [
+          'make_it_smaller',
+          'try_another_way',
+          'work_on_something_else',
+          'help_me_come_down',
+          'help_me_get_something_back',
+          'help_me_get_re_oriented',
+          'make_it_easier',
+          'put_it_somewhere_better',
+          'give_it_a_stronger_cue',
+          'narrow_what_matters',
+          'give_it_some_room',
+          'come_back_to_why',
+        ] as const;
+        expect(ids).toHaveLength(12);
+
+        for (const id of ids) {
+          mockGetJourneyState.mockResolvedValue(state({ adjustChoice: id }));
+          const result = await resolveJourney(UID);
+          expect(result.target === 'today' && result.phase.adjustChoice).toBe(id);
+        }
+      })();
+    });
+
+    test('the created-journey branch starts with no choice', () => {
+      return (async () => {
+        // Rung (b): a migrating user has made no adjustment, and the branch
+        // spells `null` rather than spreading, on the same terms every other
+        // cleared value there is spelled out.
+        mockGetJourneyState
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce(state({ adjustChoice: 'help_me_come_down' }));
+        mockGetLatestCycle.mockResolvedValue(cycle());
+
+        const result = await resolveJourney(UID);
+
+        // The read-back document is deliberately given a choice the created
+        // branch must IGNORE: it proves the branch spells its own null rather
+        // than reading the field through, which is what "starts with no choice"
+        // means and is not otherwise observable.
+        expect(result.target === 'today' && result.phase.adjustChoice).toBeNull();
+      })();
+    });
+  });
+
   // ---- failure ----
 
   describe('failure is always legacy, never a thrown resolver', () => {
