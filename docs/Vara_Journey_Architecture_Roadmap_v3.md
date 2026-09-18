@@ -3605,6 +3605,83 @@ option.
 
 ---
 
+### The walk, **[DATE NOT SUPPLIED — Kyle to fill before the merge]**: the serving behaviour is walked in full, and two of the seventeen steps are deferred to beta
+
+**WALKED ON AN iPhone 14 PLUS, DEV CLIENT, AT `abde469`.** Full results step by
+step in `docs/walks/7c/WALK.md`.
+
+**STEPS 7 THROUGH 13 ALL PASSED**: the downward search at short and at medium, the
+stated capacity answering at long with no search, the preference outranking
+destination, the choice deciding over the destination across two accounts, the
+capacity label against a cross-tier serve, and the no-preference regression guard.
+**That is the whole of the row's engine question, and it is the one result the
+suite could never have supplied** - the suite proves the engine resolves to those
+titles and cannot prove a human saw one on a phone.
+
+**STEP 8 PASSED NON-VACUOUSLY, WHICH IS WORTH ITS OWN SENTENCE** because the first
+sitting's version of it did not. R9 is a **slammed-tier** variant and the summary
+line read **"Normal"**; the two facts only disagree when the downward search has
+crossed a tier, and that disagreement is the only condition under which the step
+can tell the `dayCapacity` fix from its absence.
+
+**STEPS 1-6 AND 14-15 ARE NOT RUN AND ARE DEFERRED TO THE BETA COHORT.** They need
+two seeded weekly cycles carrying `not_moving` reads, and the sequence occurs
+naturally in the cohort. The offer and door flow itself was built and walked at 7b
+and 7d; 7c changes only its phase gating. **THE DEFERRAL HAS A PRICE AND IT IS
+RECORDED AS ONE RATHER THAN AS A FORMALITY: the activation gate, the in-flight
+state and the expanded arrival ship on test evidence alone.** Step 16 is covered
+incidentally - every step above was run after a relaunch. Step 17 is not run by
+decision: the only in-app route out of Recover lands the account on Rewire's
+placeholders and would spend one of two Recover walk accounts, and `CLEARED_OFFERS`
+is asserted in four places in the suite. **SE: not walkable in this setup**,
+outstanding rather than passed by inspection, matching R1b-i, R2, 7l and 7n.
+
+**A SECOND SCRIPT DEFECT, FOUND AT STEP 13, AND IT IS THE WALK FILE'S FAULT RATHER
+THAN THE RUN'S.** That step's pass condition reads *"byte-identical to its step-0
+record"*, written assuming the before-state would be captured on 7l's two
+journeyed accounts, **which were already in Recover**. It was captured on two
+**fresh accounts in Remove**, and the walk account was then seeded to Recover on
+the branch. **A Remove-phase record cannot be a Recover-phase baseline:** measured
+against the shipped matrix, a Routines account in Remove serves *"Make it harder
+to reach"* at every time answer where the same account in Recover serves *"Build a
+recovery anchor"* and *"Set the morning signal"*. The two sets share no title.
+**What step 13 was measured against is the no-preference Recover answer, which is
+the comparison that carries the meaning anyway**, and those three titles are
+exactly the `routines` column of this entry's 36-row table. The step is a genuine
+pass; the stated target was unrunnable as written. Recorded rather than
+reinterpreted, with the fix for any reuse written into the walk file.
+
+**THE WALK PRODUCED TWO SCRIPT CORRECTIONS AND ONE NEW ROW ACROSS ITS TWO
+SITTINGS**, which is the argument for numbered walks restated: seeding correction
+5, the step-13 baseline, and `JOURNEY-REVISION-TOKEN`. **None of the three is a
+defect in this slice's code.**
+
+**FIGURES ATTESTED AT `abde469`, WHICH IS THE COMMIT THAT WAS WALKED.** The branch
+has since gained `fd85ef0` (the `resolveJourney` propagation tests) and `a69425e`
+(the walk-stop docs), so **jest on the branch head is 3938 of 237 where the
+attestation below records 3934 of 237**. Both numbers are correct for their
+commits and neither supersedes the other; the difference is four tests that did
+not exist when the phone was in Kyle's hand. tsc, sentinel and lint are unmoved.
+
+**ATTESTATIONS (Kyle, **[DATE NOT SUPPLIED — Kyle to fill before the merge]**), verbatim:**
+
+> - Suites green at tsc 141 / jest 3934 of 237 / sentinel 149 / lint 994 errors,
+>   1358 warnings. ATTESTED.
+> - Walk: the serving behaviour of this slice is walked in full on iPhone 14 Plus
+>   - steps 7 through 13 - including the downward search, the preference
+>   outranking destination, the capacity label and the no-preference regression
+>   guard. The offer, door and phase gate steps are not run and are deferred to
+>   beta for the reasons recorded. ATTESTED.
+
+**TWO FIELDS IN THIS ENTRY AND TWO IN THE WALK FILE ARE MARKED NOT SUPPLIED AND
+MUST BE FILLED BEFORE THE MERGE:** the sitting's date, which appears in this
+heading and on the attestation, and the **1.3x Dynamic Type result for steps 7, 8
+and 13**, which the standing rule requires and which the walk file records as
+outstanding. **An attestation's date is observed, never inherited from the row**,
+and neither of these is the build's to observe.
+
+---
+
 
 ### 2026-09-14 - slice 7l built: five approved protocols stop being unreachable, and the function that made it possible had never been tested (branch `journey/slice-7l-destination-weighting`, `5d6d6ec` the weights, `a0519dc` the serve table, `87eee1e` the ordering tests and the doc-comment correction, this entry the docs; **WALKED 2026-09-14 on an iPhone 14 Plus across two accounts, step 0 plus steps 1-9 plus the regression guard, all passed, and ATTESTED; UNMERGED**, plan and results at `docs/walks/7l/WALK.md`)
 
