@@ -35,6 +35,11 @@ A8 · A9 · A10 · A10b · A11 · A12 · **A5b** (walked 2026-09-14, after the m
 
 **SECTION B (R1a's fourteen) and SECTION C: NOT RUN.** Section B is required before R3.
 
+**Amended 2026-09-19:** Section B is owned by board row `R1A-SECTION-B-WALK` and is
+scoped large end only. The canonical script is `docs/walks/r1a/WALK.md`; the copy of the
+fourteen steps below in this file does not receive amendments and has diverged at steps 10
+and 14.
+
 ### The SE half of the matrix is NOT WALKABLE, which is not the same as not run
 
 **There is no SE device and no SE simulator in this setup** (Windows; an iOS simulator
@@ -91,11 +96,11 @@ assertion, so it is reconciled here and the results below are filed by SUBSTANCE
 
 | Section | What | Estimate |
 |---|---|---|
-| **Pre-work** | Six `0091ce5` screenshots; confirm the BlurView links. (**No SE simulator to stand up** - see below) | **30–45 min** |
+| **Pre-work** | Three `0091ce5` screenshots on a 14 Plus; confirm the BlurView links. (Three SE captures are a standing gap, not pre-work - see below) | **20-30 min** |
 | **A** | R2's own gate: §18 (a)–(h), 2 devices × 2 type sizes, 16 routes scrolled fully down, Reduce Transparency, Reduce Motion, the glance test, Chat with the keyboard up | **3.5–4.5 hrs** |
-| **B** | R1a's fourteen steps, still not run, 2 devices | **2.5–3.5 hrs** |
+| **B** | R1a's fourteen steps, still not run, 1 device (large end only, amended 2026-09-19) | **1.5-2 hrs** |
 | **C** | R1b-i's SE remainder and R1d's five screens | **45–75 min** |
-| | **Total** | **~8–10 hours, across at least three sittings** |
+| | **Total** | **~8–10 hours, across at least three sittings** (pre-dates the 2026-09-19 large-end-only rescope) |
 
 **Section A is this slice's gate.** It is what R2 merges on.
 
@@ -497,19 +502,26 @@ in both states), which is filed under A10. See the numbering reconciliation at t
 
 ### FIRST ACTION OF THIS SECTION, BEFORE ANY OTHER STEP
 
-**Capture the six `0091ce5` before-screenshots.** Per `docs/walks/r1a/README.md` the
-status is **NOT CAPTURED**; it is a human action CC cannot do. `git checkout 0091ce5`
-still reproduces the before state.
+**Capture the three `0091ce5` before-screenshots.** Per `docs/walks/r1a/README.md` the
+status is **THREE TO CAPTURE, THREE A STANDING GAP** (amended 2026-09-19, large end only).
+It is a human action CC cannot do. `git checkout 0091ce5` still reproduces the before state.
 
-Six files, default Dynamic Type, scrolled to top:
-`before-today-se.png`, `before-today-16promax.png`, `before-pillarfocus-se.png`,
-`before-pillarfocus-16promax.png`, `before-pillarenergy-se.png`,
-`before-pillarenergy-16promax.png`.
+Three files, on an iPhone 14 Plus, default Dynamic Type, scrolled to top:
+`before-today-14plus.png`, `before-pillarfocus-14plus.png`, `before-pillarenergy-14plus.png`.
+
+The three SE files named in the README - `before-today-se.png`, `before-pillarfocus-se.png`,
+`before-pillarenergy-se.png` - are **NOT** pre-work. There is no SE device or simulator in
+this setup (standards §18(d)) and they are a standing gap.
 
 **Without them, step 10 is unrunnable and is reported NOT RUN.** A before-and-after step
 run after the after has shipped compares nothing.
 
 ### The fourteen steps, verbatim from `docs/walks/r1a/WALK.md`
+
+**NOT THE CANONICAL COPY (noted 2026-09-19).** `docs/walks/r1a/WALK.md` is canonical and has
+diverged from this copy: step 10's captures are three, not six, and step 14's third clause has
+been resolved by desk check and taken off the device walk. Read the canonical file before
+running these.
 
 1. Settings → Developer → Dev: Typography. Pass: primitive rows and
    System rows visibly differ at 16 and 48pt; four weights distinct;

@@ -1,6 +1,6 @@
 # R1a walk assets — pre-change screenshots for step 10
 
-**Status: NOT CAPTURED. This is a human action and CC cannot do it.**
+**Status: THREE TO CAPTURE, THREE A STANDING GAP** (amended 2026-09-19, Kyle's large-end-only ruling). The three captures are a human action and CC cannot do them.
 
 Walk step 10 compares vertical rhythm before and after the text primitive lands,
 because Inter's metrics are not the system font's and every screen's rhythm
@@ -9,17 +9,29 @@ reconstructed from a description.
 
 ## What is needed
 
-**Six screenshots**, captured from a build at **`main` at `0091ce5`**, the commit
-before the `design/slice-r1a-text-primitive` branch starts.
+**Three screenshots**, captured from a build at **`main` at `0091ce5`**, the commit
+before the `design/slice-r1a-text-primitive` branch starts. **Three further screenshots
+named below are NOT CAPTURED and are a standing gap, not an outstanding action:** there is
+no iPhone SE device or simulator in this setup (standards §18(d)).
 
-| File | Screen | Device |
-|---|---|---|
-| `before-today-se.png` | Today (`Home`) | iPhone SE, 3rd generation |
-| `before-today-16promax.png` | Today (`Home`) | iPhone 16 Pro Max |
-| `before-pillarfocus-se.png` | `PillarFocus` (Focus hub) | iPhone SE, 3rd generation |
-| `before-pillarfocus-16promax.png` | `PillarFocus` | iPhone 16 Pro Max |
-| `before-pillarenergy-se.png` | `PillarEnergy` (Energy hub) | iPhone SE, 3rd generation |
-| `before-pillarenergy-16promax.png` | `PillarEnergy` | iPhone 16 Pro Max |
+| File | Screen | Device | Status |
+|---|---|---|---|
+| `before-today-14plus.png` | Today (`Home`) | iPhone 14 Plus | To capture |
+| `before-pillarfocus-14plus.png` | `PillarFocus` (Focus hub) | iPhone 14 Plus | To capture |
+| `before-pillarenergy-14plus.png` | `PillarEnergy` (Energy hub) | iPhone 14 Plus | To capture |
+| `before-today-se.png` | Today (`Home`) | iPhone SE, 3rd generation | Standing gap, not walkable in this setup |
+| `before-pillarfocus-se.png` | `PillarFocus` (Focus hub) | iPhone SE, 3rd generation | Standing gap, not walkable in this setup |
+| `before-pillarenergy-se.png` | `PillarEnergy` (Energy hub) | iPhone SE, 3rd generation | Standing gap, not walkable in this setup |
+
+**Why the large-end files are named `14plus` and not `16promax`.** They are taken on an
+iPhone 14 Plus. A file named for a device it was not taken on is a false record, and the
+filename is the only label that cannot be separated from the image. Step 10 compares
+vertical rhythm, which turns on viewport height, and the two devices differ by 6pt there;
+an after-shot taken on a 16 Pro Max compared against a before named `16promax` but taken
+on a 14 Plus would attribute 6pt of device difference to Inter. §18(d) names the 14 Plus as
+itself and then says what it covers; it never calls it a 16 Pro Max, and neither does this
+table. The SE three keep their names because a name describing a device nobody has is the
+correct name for a gap.
 
 Capture at **default Dynamic Type**, scrolled to the top.
 

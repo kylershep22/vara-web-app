@@ -249,3 +249,9 @@ outstanding. The script is **`docs/walks/r1a/WALK.md`**, verbatim from the R1a b
 
 Step 10 there cannot be run until the six pre-change screenshots exist; see
 `docs/walks/r1a/README.md`. Report it as not run until they do.
+
+**Amended 2026-09-19.** Two clauses above are spent. "REQUIRED before R2" became required
+before R3 when R2 merged at `2467f6b` on 2026-09-14. "The six pre-change screenshots" is
+three: the walk is scoped large end only, the 14 Plus stands in for the 16 Pro Max per
+standards §18(d), and the three SE captures are a standing gap. Section B is owned by board
+row `R1A-SECTION-B-WALK`.
