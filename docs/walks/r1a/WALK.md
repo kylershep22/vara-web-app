@@ -9,7 +9,22 @@ all four weights distinct. That covers part of step 1 and nothing else.
 **Fourteen steps, both matrix devices — iPhone SE (3rd gen) and iPhone 16 Pro Max — at
 default and 1.3× Dynamic Type.**
 
+**AMENDED 2026-09-19 (Kyle's ruling). SCOPE IS LARGE END ONLY.** The requirement above is
+unedited and is what this walk was written to; this block is what it now means. The walk runs
+on an iPhone 14 Plus at default and 1.3x Dynamic Type, standing in for the iPhone 16 Pro Max
+per standards §18(d). The SE half of all fourteen steps is a standing gap and is reported
+**NOT WALKABLE IN THIS SETUP**, never **NOT RUN**. The header's both-devices requirement was
+unsatisfiable on any device present, which is why this walk has been deferred four times
+rather than run. Step 10's substitution is conservative rather than equivalent: it turns on
+viewport height, 926pt against 932pt, so a pass on the 14 Plus implies a pass on the taller
+device. Tracked by board row `R1A-SECTION-B-WALK`. This file is the canonical copy of the
+fourteen; the duplicate at `docs/walks/r2/WALK.md:512` does not receive amendments.
+
 **Required before R2.** Optional for R1b-i's gate.
+
+**AMENDED 2026-09-19.** R2 merged at `2467f6b` on 2026-09-14, so "required before R2" is
+spent. This walk is now required before R3, per R3's gate (b), and is owned by row
+`R1A-SECTION-B-WALK`.
 
 ---
 
@@ -76,6 +91,48 @@ script to `docs/walks/<slice>/WALK.md` in its docs commit.
 14. 1.3x ceiling: no fixed-height container clips, no button
     truncates, 65-75 character line length holds at 375pt.
 
+**Step 14, amended 2026-09-19 (Kyle's ruling). CLAUSE 3 COMES OFF THE DEVICE WALK. CLAUSES 1
+AND 2 ARE UNCHANGED AND STILL OWED ON A 14 PLUS.**
+
+**CLAUSES 1 AND 2 STILL REQUIRE A DEVICE.** No fixed-height container clips and no button
+truncates at the 1.3x ceiling. What a container does when its text grows is a run-time fact
+and no arithmetic substitutes for it. Walked at 1.3x on the iPhone 14 Plus, standing in for
+the 16 Pro Max per §18(d); the SE half is a standing gap.
+
+**CLAUSE 3 IS RESOLVED BY DESK CHECK, 2026-09-19.** Not walked, and not reported NOT RUN.
+Measured, not estimated. Advance widths were read directly from the shipped
+`mobile/assets/fonts/Inter_18pt-*.ttf` (`head` unitsPerEm 2048, `hmtx` advances, format-4
+`cmap`), then a greedy word-wrap was run over 8,558 characters of shipped Vara body copy drawn
+from `journeyCopy.ts`, `brainInsightsCopy.ts`, `journey.ts`, `lapseEducation.ts` and
+`weekInsightTemplates.ts`. Mean advance over that corpus: Inter Regular **0.46485 em**, Inter
+Medium **0.47068 em**.
+
+**THE RESULT AT 375pt, 1.3x, FULL-BLEED**, with 343pt available after §6.2's 16pt padding on
+both sides. `body` **31.4** characters per line, max 38. `bodySmall` **36.7**, max 45.
+`caption` **42.7**, or **44.2** as a ceiling once its +0.5pt tracking is counted. Inside a
+standard card every figure drops by 4 to 6.
+
+**THE FINDING IS DEVICE-INDEPENDENT AND THAT IS THE PART WORTH KEEPING.** At the 14 Plus's
+396pt available the same measurement gives `body` 41.0 characters; at the 16 Pro Max's 398pt
+it gives 41.2. The clause resolves identically at 375, 428 and 430pt. It was never the
+small-end-binding check §18.1 describes it as, and it could not have been walked into a
+different answer on any device.
+
+**NO STYLE IN THE SCALE REACHES 65 CHARACTERS ON ANY SHIPPED DEVICE.** Reaching 65 in 343pt
+would need a rendered size of about 11.35pt, below every entry in §5.2.
+
+**THE RULE AMBIGUITY THIS EXPOSED IS RESOLVED IN THE STANDARDS, NOT HERE.** §5.4's line-length
+rule read as a target band was unachievable everywhere; read as a ceiling it holds with room.
+Kyle ruled it a CEILING on 2026-09-19 and §5.4:361 is corrected in the same commit as this
+block. Against the ceiling reading, clause 3 **PASSES**: every style clears the 75-character
+limit by at least 30 characters.
+
+**RESIDUALS, NAMED RATHER THAN IMPLIED.** Kerning (GPOS), CoreText sub-pixel positioning and
+hinting are not modelled, all in the direction of marginally more characters per line, on the
+order of a percent. `letterSpacing` is 0 for `body`, `bodySmall`, `button` and `h3`;
+`caption`'s +0.5pt is applied above. The nearest margin is 30 characters, so no residual moves
+the verdict.
+
 ---
 
 ## Notes carried from the R1a row and its build entry
@@ -87,6 +144,11 @@ script to `docs/walks/<slice>/WALK.md` in its docs commit.
   screenshots from `0091ce5` exist. See `README.md` in this directory for the exact list.
   `git checkout 0091ce5` still reproduces the before state, so nothing is lost by capturing
   them late.
+
+  **AMENDED 2026-09-19. Three, not six.** Under the large-end-only ruling the three 16 Pro Max
+  captures become three 14 Plus captures and the three SE captures are a standing gap. Step 10
+  remains BLOCKED until the three exist; the SE half of the comparison is not blocked, it is
+  absent. See `README.md` in this directory for the current list and filenames.
 - **Steps 4 and 11 are the highest-risk unwalked steps**, per the R1 AMENDED block: Paper
   text was a third text surface the R1a row did not name, and the paywall carries the
   `Typography.fontWeight.normal` fix.
