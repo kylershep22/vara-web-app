@@ -1,6 +1,6 @@
 # R1a walk assets — pre-change screenshots for step 10
 
-**Status: THREE TO CAPTURE, THREE A STANDING GAP** (amended 2026-09-19, Kyle's large-end-only ruling). The three captures are a human action and CC cannot do them.
+**Status: THREE CAPTURED 2026-09-19, THREE A STANDING GAP.** The three large-end captures are in this directory. The three SE captures are not walkable in this setup (standards §18(d)).
 
 Walk step 10 compares vertical rhythm before and after the text primitive lands,
 because Inter's metrics are not the system font's and every screen's rhythm
@@ -16,9 +16,9 @@ no iPhone SE device or simulator in this setup (standards §18(d)).
 
 | File | Screen | Device | Status |
 |---|---|---|---|
-| `before-today-14plus.png` | Today (`Home`) | iPhone 14 Plus | To capture |
-| `before-pillarfocus-14plus.png` | `PillarFocus` (Focus hub) | iPhone 14 Plus | To capture |
-| `before-pillarenergy-14plus.png` | `PillarEnergy` (Energy hub) | iPhone 14 Plus | To capture |
+| `before-today-14plus.png` | Today (`Home`) | iPhone 14 Plus | Captured 2026-09-19 |
+| `before-pillarfocus-14plus.png` | `PillarFocus` (Focus hub) | iPhone 14 Plus | Captured 2026-09-19 |
+| `before-pillarenergy-14plus.png` | `PillarEnergy` (Energy hub) | iPhone 14 Plus | Captured 2026-09-19 |
 | `before-today-se.png` | Today (`Home`) | iPhone SE, 3rd generation | Standing gap, not walkable in this setup |
 | `before-pillarfocus-se.png` | `PillarFocus` (Focus hub) | iPhone SE, 3rd generation | Standing gap, not walkable in this setup |
 | `before-pillarenergy-se.png` | `PillarEnergy` (Energy hub) | iPhone SE, 3rd generation | Standing gap, not walkable in this setup |
@@ -32,6 +32,20 @@ on a 14 Plus would attribute 6pt of device difference to Inter. §18(d) names th
 itself and then says what it covers; it never calls it a 16 Pro Max, and neither does this
 table. The SE three keep their names because a name describing a device nobody has is the
 correct name for a gap.
+
+**Captured 2026-09-19.** The three large-end files were taken by Kyle on an iPhone 14
+Plus at `0091ce5`, default Dynamic Type, scrolled to the top, on a dev client started with
+`--clear`. The capture was verified as a genuine before-state by absence rather than by
+inspecting letterforms: the floating navigation (R2, `2467f6b`), the Journey rename (7n,
+`8f76b99`) and the Good moments row (slice 8, `8621ec9`) are all absent, and all three merged
+after R1a, so a stale bundle from main would have shown them. The Focus hub was reachable at
+this commit.
+
+**Two supplementary captures, not part of the required set.** `before-today-scrolled-14plus.png`
+is Today scrolled past the fold; `before-practices-14plus.png` is the Practices hub, which at
+this commit still carries its pre-7n name. Neither is referenced by step 10. They were taken in
+the same sitting and are kept because a second checkout to `0091ce5` costs more than the disk
+space.
 
 Capture at **default Dynamic Type**, scrolled to the top.
 
