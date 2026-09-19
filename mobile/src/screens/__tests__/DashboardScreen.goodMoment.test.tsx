@@ -207,17 +207,60 @@ function primeJourneyed() {
   mockCreateMoment.mockResolvedValue('new-moment-id');
 }
 
-/** A fresh account: no week, no phase, so the journey block cannot render. */
-function primeFresh() {
+/**
+ * A SYNTHETIC state: `target === 'today'` with neither a cycle nor a phase, so
+ * the journey block's second gate clause is what excludes it.
+ *
+ * PRODUCTION CANNOT REACH THIS, AND THE NAME SAYS SO BECAUSE THE FIRST NAME DID
+ * NOT. It was called "primeFresh" and described as "a fresh account", which is
+ * wrong twice over. The landing target here is **`today`**, not `legacy` -
+ * `resolveJourney` returns legacy, and `useJourneyLanding:193` then passes the
+ * WEEKLY target through unchanged. And `weekly.cycle` is null only because
+ * `mockEnsureCycle` returns null, which the real function never does:
+ * `ensureCurrentWeeklyCycle` is `Promise<WeeklyCycle>` and THROWS rather than
+ * returning null on an absent read-back (`weeklyCycle.service.ts:315`). Every
+ * other path to `target === 'today'` requires a non-null `latest`. So in
+ * production, `weekly.target === 'today'` always carries a cycle.
+ *
+ * KEPT ANYWAY, because the clause it pins is real: the gate is
+ * `target === 'today' && (cycle || phase)`, and nothing else in the suite
+ * exercises the second half. A test asserting an impossible world is fine when
+ * it says so and dangerous when it does not.
+ *
+ * The production-reachable version of "journey block absent" is the fixture
+ * below. That is the one that justifies the placement.
+ */
+function primeSyntheticNoCycleNoPhase() {
   primeJourneyed();
   mockGetLatestCycle.mockResolvedValue(null);
   mockEnsureCycle.mockResolvedValue(null);
   mockResolveJourney.mockResolvedValue({ target: 'legacy' });
 }
 
+/**
+ * THE PRODUCTION-REACHABLE STATE THIS PLACEMENT EXISTS FOR: the weekly read
+ * fails.
+ *
+ * `useWeeklyLanding`'s catch sets `target: null, cycle: null, failed: true`;
+ * `useJourneyLanding` sees a null weekly target, clears its own resolution, and
+ * reports `target: null`. The journey block is gated on `target === 'today'`, so
+ * it is absent - and Home carries on rendering its ordinary content around it,
+ * which is the documented behaviour on a failed read rather than an error
+ * screen.
+ *
+ * Mounted inside the journey block, the Good moments row would vanish for
+ * exactly this user. Outside it, it survives. That is the whole argument for
+ * the placement, and unlike the synthetic fixture above it is a state a real
+ * device can be in.
+ */
+function primeFailedWeeklyRead() {
+  primeJourneyed();
+  mockGetFloor.mockRejectedValue(new Error('weekly read failed'));
+}
+
 describe('the Good moments row is below the fold, not inside the journey block', () => {
-  test('renders on a FRESH account with no cycle and no phase', async () => {
-    primeFresh();
+  test('renders in the SYNTHETIC no-cycle-no-phase state (pins the second gate clause)', async () => {
+    primeSyntheticNoCycleNoPhase();
     const { getByTestId, queryByTestId } = render(<DashboardScreen />);
 
     // The absence half. Without it this test would pass against the placement
@@ -231,6 +274,24 @@ describe('the Good moments row is below the fold, not inside the journey block',
     expect(getByTestId('good-moment-row')).toBeTruthy();
   });
 
+  test('renders when the weekly read FAILS, which is the reachable case', async () => {
+    primeFailedWeeklyRead();
+    const { getByTestId, queryByTestId } = render(<DashboardScreen />);
+
+    // The absence half, same shape as above: prove the journey block is
+    // genuinely gone before claiming the row survived it.
+    await waitFor(() => expect(queryByTestId('good-moment-row')).toBeTruthy());
+    expect(queryByTestId('home-today-hero')).toBeNull();
+    expect(queryByTestId('home-set-today')).toBeNull();
+    expect(queryByTestId('home-start-here')).toBeNull();
+    expect(queryByTestId('home-close-entry')).toBeNull();
+
+    // And the row is there anyway. Inside the journey block it would not be,
+    // and this user - offline, or with a failed read - is the one who would
+    // lose it.
+    expect(getByTestId('good-moment-row')).toBeTruthy();
+  });
+
   test('renders on a journeyed account too, alongside the Today block', async () => {
     primeJourneyed();
     const { getByTestId } = render(<DashboardScreen />);
@@ -240,7 +301,7 @@ describe('the Good moments row is below the fold, not inside the journey block',
   });
 
   test('is identical on both accounts', async () => {
-    primeFresh();
+    primeSyntheticNoCycleNoPhase();
     const fresh = render(<DashboardScreen />);
     await waitFor(() => expect(fresh.getByTestId('good-moment-row')).toBeTruthy());
     const freshLabel = fresh.getByTestId('good-moment-row-label').props.children;
@@ -260,7 +321,7 @@ describe('the Good moments row is below the fold, not inside the journey block',
 
 describe('the row opens the sheet, and opening writes nothing', () => {
   test('the sheet is not mounted until the row is tapped', async () => {
-    primeFresh();
+    primeSyntheticNoCycleNoPhase();
     const { getByTestId, queryByTestId } = render(<DashboardScreen />);
 
     await waitFor(() => expect(getByTestId('good-moment-row')).toBeTruthy());
@@ -274,7 +335,7 @@ describe('the row opens the sheet, and opening writes nothing', () => {
   });
 
   test('tapping the row opens it', async () => {
-    primeFresh();
+    primeSyntheticNoCycleNoPhase();
     const { getByTestId } = render(<DashboardScreen />);
 
     await waitFor(() => expect(getByTestId('good-moment-row')).toBeTruthy());
@@ -285,7 +346,7 @@ describe('the row opens the sheet, and opening writes nothing', () => {
   });
 
   test('opening the sheet writes NOTHING', async () => {
-    primeFresh();
+    primeSyntheticNoCycleNoPhase();
     const { getByTestId } = render(<DashboardScreen />);
 
     await waitFor(() => expect(getByTestId('good-moment-row')).toBeTruthy());
@@ -295,7 +356,7 @@ describe('the row opens the sheet, and opening writes nothing', () => {
   });
 
   test('dismissing unmounts the sheet and still writes nothing', async () => {
-    primeFresh();
+    primeSyntheticNoCycleNoPhase();
     const { getByTestId, queryByTestId } = render(<DashboardScreen />);
 
     await waitFor(() => expect(getByTestId('good-moment-row')).toBeTruthy());
@@ -308,7 +369,7 @@ describe('the row opens the sheet, and opening writes nothing', () => {
   });
 
   test('Save writes once, with the uid and the trimmed text', async () => {
-    primeFresh();
+    primeSyntheticNoCycleNoPhase();
     const { getByTestId } = render(<DashboardScreen />);
 
     await waitFor(() => expect(getByTestId('good-moment-row')).toBeTruthy());
@@ -323,7 +384,7 @@ describe('the row opens the sheet, and opening writes nothing', () => {
   });
 
   test('a failed save keeps the sheet open with the text intact', async () => {
-    primeFresh();
+    primeSyntheticNoCycleNoPhase();
     mockCreateMoment.mockRejectedValueOnce(new Error('offline'));
     const { getByTestId } = render(<DashboardScreen />);
 

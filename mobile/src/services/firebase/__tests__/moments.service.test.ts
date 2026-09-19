@@ -7,11 +7,42 @@
 
 type Args = unknown[];
 
+/**
+ * The document `createMoment` writes.
+ *
+ * TYPED HERE, AND THE REASON IS A REGRESSION THIS FILE CAUSED. The mocks were
+ * first written with `any[]` signatures, which lint rejected; the fix to
+ * `unknown[]` made `mock.calls[0]` destructure to `unknown` and put SIX
+ * `TS18046`/`TS2769` errors into the branch, none of which jest could see,
+ * because jest compiles through Babel and Babel strips types without checking
+ * them. Typing the payload where the mock is DECLARED is what lets every
+ * assertion below read `payload.userId` without a cast at the call site.
+ *
+ * `createdAt` is `unknown` on purpose: the service writes a `serverTimestamp()`
+ * sentinel and the whole point of the assertion on it is that it is NOT a
+ * `Date`. Typing it as anything concrete would make that test tautological.
+ */
+interface MomentPayload {
+  userId: string;
+  text: string;
+  createdAt: unknown;
+}
+
 const mockCollection = jest.fn((...a: Args) => ({ __collection: true, builtFrom: a }));
-const mockAddDoc = jest.fn((...a: Args) => {
-  void a;
-  return { id: 'new-moment-id' } as { id: string };
-});
+
+/**
+ * FIXED ARITY AND A PROMISE RETURN, both load-bearing. The arity is what makes
+ * `mock.calls[0]` a `[unknown, MomentPayload]` tuple rather than `unknown[]`.
+ * The Promise return is what lets `mockRejectedValueOnce` take an `Error` — with
+ * a plain object return the rejection type narrows to `never`.
+ */
+const mockAddDoc = jest.fn(
+  (ref: unknown, payload: MomentPayload): Promise<{ id: string }> => {
+    void ref;
+    void payload;
+    return Promise.resolve({ id: 'new-moment-id' });
+  }
+);
 const mockServerTimestamp = jest.fn(() => ({ __serverTimestamp: true }));
 const mockDoc = jest.fn((...a: Args) => ({ __ref: true, builtFrom: a }));
 const mockSetDoc = jest.fn((...a: Args) => {
@@ -23,7 +54,10 @@ const mockGetDocs = jest.fn((...a: Args) => {
 
 jest.mock('firebase/firestore', () => ({
   collection: (...a: Args) => mockCollection(...a),
-  addDoc: (...a: Args) => mockAddDoc(...a),
+  // Forwarded by position rather than spread: a spread of `unknown[]` into a
+  // fixed-arity function is not assignable, and the fixed arity is what the
+  // assertions depend on.
+  addDoc: (ref: unknown, payload: MomentPayload) => mockAddDoc(ref, payload),
   serverTimestamp: () => mockServerTimestamp(),
   // Exposed but never expected to fire. Their existence is what makes the
   // "writes by auto-ID, not by a constructed ID" and "never reads" assertions
