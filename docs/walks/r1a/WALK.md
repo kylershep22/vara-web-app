@@ -158,3 +158,44 @@ the verdict.
 - **Android is out of this matrix and is not covered by any step here.** R1a's synthetic-bold
   guard is asserted by unit tests with `Platform.OS` mocked and is walked on no device. It
   belongs to the `ANDROID` pre-launch row.
+
+## WALK RESULT — 2026-09-19, PARTIAL
+
+**Walked by Kyle on an iPhone 14 Plus, dev client, at default and 1.3x Dynamic Type. This walk
+is PARTIAL and the marker says so. Three steps were not run and three named surfaces no longer
+exist.**
+
+**WHAT WAS WALKED AND PASSED AT 1.3x.** Step 4 on `LoginScreen`: button label, typed input
+text, placeholder and helper text all render Inter. Step 11, both paywall price rows: the price
+renders Bold and the `/month` and `/year` suffixes render Regular, visibly distinct. This is the
+first time either surface has been seen rendered under the text primitive. Step 8's clipping
+check across the reachable screens, step 9's tightest-ratio containers on the surfaces that
+still exist, and step 14 clauses 1 and 2: no fixed-height container clipped, no button
+truncated.
+
+**ONE APPARENT CLIP WAS CHECKED AND IS NOT ONE.** A paywall capture showed the top of the
+heading sliced. Confirmed by Kyle on device as the header passing under the status bar
+mid-scroll; the heading is intact at rest. Recorded because step 8's subject is exactly this and
+a reader of the captures would otherwise carry the question.
+
+**WHAT WAS EXERCISED AT DEFAULT TYPE, NOT STEP BY STEP.** Today, Journey, Focus, Energy, Time,
+Journal and Regulate were opened and read in an earlier sitting the same day. No typography
+defect was visible. This informally covers steps 2, 5, 6 and 12; it is recorded as exercised
+rather than walked, because the steps were not run individually against their pass conditions.
+
+**THREE STEPS NOT RUN.** Step 1, the `DevTypography` diagnostic. Step 3, cold start and the
+system-font flash. Step 13, Reduce Motion. None was attempted; they are **NOT RUN** rather than
+not walkable, and a 14 Plus can run all three.
+
+**THREE SUBJECTS ARE MOOT, NOT SKIPPED.** Habits are no longer an accessible part of the app and
+will not ship at launch (Kyle, 2026-09-19). That retires `HabitDetailScreen` from step 4 and
+from step 8's five-screen list, and `WeeklyHabitGrid` from step 9's six tightest ratios. These
+are not gaps in the walk; the surfaces are going away. Step 9 was therefore walked against five
+containers, not six.
+
+**THE SE HALF OF ALL FOURTEEN: NOT WALKABLE IN THIS SETUP,** per standards §18(d). Not NOT RUN.
+
+**STEP 14 CLAUSE 3: RESOLVED BY DESK CHECK, 2026-09-19.** Neither walked nor outstanding. See
+the step-14 block above.
+
+**ATTESTED BY KYLE, 2026-09-19.** The date is observed, not inherited.
