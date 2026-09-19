@@ -1754,6 +1754,16 @@ case). `wellnessScore.service` de-wiring remains queued and is untouched by this
 > was measured on 2026-09-19 and is still the original at 941 x 1672, aspect 0.563, against
 > §8.1's required 1290 x 2796 at 0.461. R3 does not start until it is replaced.
 
+> **CORRECTED LATER THE SAME DAY, 2026-09-19. GATE (a) IS NOW CLOSED.** The regenerated asset
+> arrived after the measurement above was taken and replaces the original at
+> `mobile/assets/images/todayBackground.webp`. It measures 1290 x 2796 at aspect 0.461, WebP,
+> lossy, no alpha, and meets every item of §8.1's asset spec. The paragraph above is left standing
+> because it was true when written and because the sequence is the record: the asset was believed
+> replaced, was measured and was not, and then was. **BOTH OF R3's GATES ARE NOW CLEAR.** Gate
+> (b) by Kyle's ruling on the partial walk, gate (a) by the asset meeting spec. R3 remains
+> BLOCKED ON 8 AND 9 per its own marker; row 8 is merged at `8621ec9` and row 9 is unstarted, so
+> row 9 is now the only thing standing between the board and R3.
+
 ---
 
 ## 6. Content dependencies (Jen), in build order
@@ -3468,6 +3478,16 @@ was not promoted to another row. Row 9 still carries no marker and is still not 
 invented one. Promoting it is Kyle's call.
 
 **NO BASELINES CHANGED.** Docs only.
+
+**CORRECTED THE SAME DAY.** The gate (a) paragraph above says a replacement was believed to be
+in the tree and was not. That was true at the time of measurement. The regenerated asset arrived
+later on 2026-09-19, initially under the name `todayBackground.webp.webp` — a doubled extension
+that resolved to nothing, with the original still occupying the correct name. It is now in place
+at `mobile/assets/images/todayBackground.webp` at 1290 x 2796, aspect 0.461, WebP, lossy, no
+alpha, passing all five §8.1 items. The original 941 x 1672 file is deleted from the working tree
+and remains in history at `94c3a77`. **GATE (a) IS CLOSED. THE ASSET IS STILL REFERENCED BY
+NOTHING IN `mobile/src/`**; wiring it in is R3's job, so a correct asset on disk is the whole of
+what this closes.
 
 ### 2026-09-19 - Section B gets a row, scoped large end only, and three stale build-log claims are corrected
 
