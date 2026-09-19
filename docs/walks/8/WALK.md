@@ -3,7 +3,7 @@
 **Row:** journey roadmap §5 row 8, Good moments.
 **Build:** branch `journey/slice-8-good-moments`.
 **Device:** iPhone 14 Plus. No SE, no simulator. **23 steps.**
-**Walker:** Kyle. **Status: WALKED 2026-09-18. 20 of 23 walked, 1 FAIL, 2 NOT RUN.**
+**Walker:** Kyle. **Status: WALKED 2026-09-18. 19 of 23 walked, 3 FAILs, 1 NOT RUN.**
 
 > **THIS SCRIPT REPLACED AN EARLIER 21-STEP VERSION WHOLESALE, AND THE REASON IS
 > IN STEP 1.** The first script demanded a "fresh" account with no weekly cycle
@@ -260,14 +260,23 @@ confirming the whole path in the state every real user is actually in.
 
 ## Result, as run 2026-09-18
 
-**Walked by Kyle on an iPhone 14 Plus. 20 of 23 walked. 1 FAIL. 2 NOT RUN.**
+**Walked by Kyle on an iPhone 14 Plus. 19 of 23 walked. 3 FAILs. 1 NOT RUN.**
 **Not rounded to "walked".**
+
+> **CORRECTED 2026-09-18, AND THE CORRECTION IS THE POINT.** This section first
+> read **20 of 23, 1 FAIL, 2 NOT RUN**. That understated the failures twice
+> over. **THREE steps test the swipe, not one** - 19b, 20 and 23 - and all three
+> fail on this build; step 20 exists precisely because the gesture is dead, so
+> recording it as "could not be reached" made a FAIL look like an absence. And
+> **step 1 is a PASS**, so it comes off the NOT RUN list rather than sitting
+> there. **A record that understates its own failures is the same class of error
+> as the tsc baseline this slice already had to retract.**
 
 | | Steps | |
 |---|---|---|
-| **PASSED** | all except those below | 20 of 23 |
-| **FAILED** | **19b** | swipe-to-dismiss |
-| **NOT RUN** | **1**, **18** | both need a state a dev client cannot reach |
+| **PASSED** | all except those below | 19 of 23 |
+| **FAILED** | **19b**, **20**, **23** | **all three are the swipe.** See below |
+| **NOT RUN** | **18** | offline failure, not reachable on a dev client |
 
 ### Step 19b - FAIL. Swipe-to-dismiss is inert.
 
@@ -305,24 +314,43 @@ share the pattern. Neither belongs in slice 8.** Rowed as
 predicates stay exactly as built. This is recorded as non-functional pending a
 fix elsewhere, not deleted.
 
-**Step 20 could not be reached**, since it is the positive observable for the
-same gesture. It stands for the re-walk.
+### Steps 20 and 23 - FAIL. The same gesture, counted properly.
 
-### Step 1 - NOT RUN
+**STEP 20 IS A FAIL, NOT AN ABSENCE.** It asks whether the sheet follows the
+finger and snaps back. It does neither. **That is the failure observed directly**
+rather than a step that could not be run - the step exists as the positive
+observable for exactly this, and calling it unreached disguised a third data
+point as a gap.
+
+**STEP 23 IS A FAIL ON ITS SWIPE CLAUSE.** Its other two clauses PASS: the sheet
+fades in rather than sliding under Reduce Motion, and "Saved." still appears and
+the sheet still closes itself. **But "swipe-to-dismiss still works" does not**,
+and Reduce Motion is not permitted to remove a gesture, only its animation. It
+does not remove it here either - the gesture was already dead with Reduce Motion
+off.
+
+**So the swipe is tested three times and fails three times**, under normal
+motion as a dismissal (19b), under normal motion as tracking (20), and under
+Reduce Motion (23).
+
+### Step 1 - PASS, Outcome A
 
 The airplane-mode-and-pull-to-refresh variant above was added **after** the walk,
 from the same reasoning that replaced the script: the committed 21-step script
 asked for a fresh account and that state is unreachable, and the state that
 matters is a failed weekly read.
 
-**It has not been run.** When it is, Outcome A device-verifies the placement and
-Outcome B records that Firestore's offline cache served the read.
+**RUN 2026-09-18, AND IT IS OUTCOME A.** Launched online, airplane mode on,
+pulled to refresh on Today. **The journey block disappeared, ordinary content
+remained, and the Good moments row was still present on scroll.**
 
-**Why it matters more than an ordinary unrun step:** the only coverage that
-state has today is a jest test using a mocked rejection. That is a mock
-asserting a behaviour no device has confirmed - structurally the same shape as
+**THE PLACEMENT DECISION IS NOW DEVICE-VERIFIED AND NO LONGER RESTS ON A MOCK.**
+That matters because the weakness was named before it was closed: the only
+coverage that state had was a jest test using a mocked rejection - a mock
+asserting a behaviour no device had confirmed, **structurally the same shape as
 the swipe test, which passed its mutation check and stayed green while the
-gesture was dead.
+gesture was dead.** This is that gap closed by observation rather than argument,
+and it is the one place in this slice where the device agreed with the test.
 
 ### Step 18 - NOT RUN
 
@@ -331,22 +359,38 @@ cannot launch without network, which is what makes the launch-time offline state
 awkward to reach in this setup.
 
 **Recorded as a structural limitation of the setup, in the same class as the SE
-matrix, not as an oversight.**
+matrix, not as an oversight.** It is the only NOT RUN step on this walk.
 
-**One observation is outstanding and is deliberately not written up here.** The
-inline failure path was seen incidentally during the build window, before the
-rules were deployed, when a genuine server rejection produced it. **The walker's
-own account of what that looked like has not been supplied**, and it is not
-recorded from anyone else's reconstruction. It goes in at the merge docs commit,
-in his words, or not at all.
+**THE ONE OBSERVATION THAT MIGHT HAVE STOOD IN FOR IT IS NOT RECORDED, AND THE
+WALKER'S ANSWER IS WHY.** The inline failure path was seen incidentally during
+the build window, before the rules were deployed, when a genuine server
+rejection produced it. Asked what that looked like, **Kyle's answer was "I did
+not note it" (2026-09-18).**
+
+**So nothing is recorded about it.** Step 18 stays **NOT RUN** with no detail
+attached, and specifically **it is NOT written up as "behaved as expected"**. An
+unrecorded observation is not evidence, and the inline failure path on this
+surface remains unwalked.
 
 ### Outstanding for the re-walk
 
-Steps **19a, 19b, 19c and 23**, plus **20**, once `PANRESPONDER-VERIFICATION`
-lands. Step 23 cannot stand alone as the swipe regression check - see step 20's
-own note for why.
+**The three failing swipe steps - 19b, 20 and 23 - once
+`PANRESPONDER-VERIFICATION` lands**, plus 19a and 19c alongside them so all three
+dismissal routes are re-confirmed together. **Step 23 cannot stand alone as the
+swipe regression check**: `onPanResponderMove` no-ops under Reduce Motion, so a
+dead gesture and a working-but-still one look identical there. **Step 20 is the
+one that can tell them apart**, which is why it was added.
+
+**Step 18** also stands, whenever the offline path becomes reachable.
 
 ## Attestation
 
-Not yet given. It is recorded at the merge docs commit, dated the day it is
-given.
+**Given by Kyle, 2026-09-18: suites green on all four.**
+
+tsc **141** · jest **4008 of 242** · lint **994 errors / 1358 warnings** ·
+sentinel **149**. Plus rules **201 passing, 2 skipped** and functions **55**.
+
+**The date is observed, not inherited from an earlier row.** That distinction is
+this branch's own rule, written after an attestation date was twice taken from
+the wrong source - once from a row's prose and once from the day a report was
+read rather than the day the sitting happened.
