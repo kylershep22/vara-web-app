@@ -1313,6 +1313,12 @@ deploy. Deploy state lives on Kyle's checklist.
 > and reports green) and **501 raw-hex errors, 385 of them outside `src/constants/`** (not
 > 331). Both corrections are in the gate cell and in standards §17.
 
+> **AMENDED 2026-09-19.** "To be closed before R2's walk, which runs on the full matrix" is spent
+> twice over. R2 merged at `2467f6b` on 2026-09-14 without Section B, and the walk no longer runs
+> on the full matrix: Kyle scoped it large end only on 2026-09-19, 14 Plus standing in for the 16
+> Pro Max per §18(d), SE half a standing gap. It is now **required before R3** and owned by
+> `R1A-SECTION-B-WALK`.
+
 > **AMENDED 2026-09-12 (R1 Step 0, read-only, reported before anything was written). FOUR
 > RULINGS, AND THE ROW SPLITS FOUR WAYS RATHER THAN THREE.** The scope above is unedited.
 >
@@ -1634,6 +1640,16 @@ deploy. Deploy state lives on Kyle's checklist.
 >   (`ActivityListItem.tsx:58`, 0.15-alpha fill). §4.2: warm accents "never sit adjacent to each
 >   other". The four-to-one mapping is why this is easy to hit. `DESIGN_BACKLOG` item 11.
 
+> **AMENDED 2026-09-19.** Two clauses here are spent. "Still required before R2" became
+> **required before R3** when R2 merged at `2467f6b` on 2026-09-14. "The six `0091ce5`
+> screenshots" is now **three**, under the large-end-only ruling of 2026-09-19. Section B is owned
+> by `R1A-SECTION-B-WALK`. The statement that it is NOT RUN remains true.
+
+> **AMENDED 2026-09-19.** The clause "optional for this gate and required before R2" is spent on
+> its second half: Section B is **required before R3**, per R3's gate (b), and is owned by
+> `R1A-SECTION-B-WALK`. The pointer to `docs/walks/r1a/WALK.md` is still correct and that file
+> remains the canonical copy of the fourteen steps.
+
 > **R1d PREAMBLE — TWO STANDING RULES, INHERITED FROM R1b-i (added 2026-09-13 at its merge).**
 > Both were learned by getting them wrong on that row, and both bind every slice from here, not
 > only R1d. They are recorded against R1d because it is the next row to run, not because it is
@@ -1691,6 +1707,25 @@ the ones that cannot start until Jen's items land; slices 0–2 can start today.
 gap (grows by two collections here), payload logging strip before Sentry reconnection, web signup
 fix, a11y and font-scaling slices (the journey map's four titles at Dynamic Type sizes are a test
 case). `wellnessScore.service` de-wiring remains queued and is untouched by this build.
+
+> **AMENDED 2026-09-19. SECTION B IS NO LONGER THIS ROW'S DEBT AND THE SCREENSHOT COUNT IN ITS
+> WALK CELL IS SUPERSEDED.** Section B has its own board row, `R1A-SECTION-B-WALK`, added after
+> this one at `ee63eab`. The Walk cell's "six screenshots at `0091ce5`" is now **three**: the walk
+> is scoped large end only per Kyle's ruling of 2026-09-19, the 14 Plus stands in for the 16 Pro
+> Max per standards §18(d), and the three SE captures are a standing gap rather than an
+> outstanding action. The marker's "Section B, Section C and the SE half outstanding before R3"
+> stays true as written; only the ownership moved. Section C and the SE half are unaffected by
+> this block.
+
+> **AMENDED 2026-09-19. GATE (b) IS UNCHANGED IN SUBSTANCE AND ITS FIRST ACTION IS NOW THREE
+> CAPTURES, NOT SIX.** Section B still gates this row and nothing about that has softened. What
+> changed is that it is now owned by board row `R1A-SECTION-B-WALK` rather than sitting inside
+> R2's marker, and that it is scoped large end only: the 14 Plus stands in for the 16 Pro Max per
+> §18(d), so the three 16 Pro Max captures become three 14 Plus captures and the three SE
+> captures are a standing gap. Gate (b)'s closing clause, that `README.md` "still reads NOT
+> CAPTURED", is spent: the README was rewritten at `ee63eab` and now reads THREE TO CAPTURE,
+> THREE A STANDING GAP. The existing SE carve-out in this marker was already consistent with the
+> ruling and is unchanged.
 
 ---
 
@@ -3357,6 +3392,63 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the map route still offers it. **Record the result in this entry when observed. Until then
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
+
+### 2026-09-19 - Section B gets a row, scoped large end only, and three stale build-log claims are corrected
+
+**DOCS ONLY, TWO COMMITS ON `docs/r1a-section-b-row`:** `ee63eab` added board row
+`R1A-SECTION-B-WALK`, scoped the walk large end only, cut step 10's captures from six to three,
+took step 14's third clause off the device walk by desk check, corrected standards §5.4 and
+§18.1 in place, and moved **[Next]** off row 8. This commit appends the dated corrections across
+the rest of the tree.
+
+**WHY THE ROW EXISTS.** Section B - R1a's fourteen steps - had lived inside R2's marker and R3's
+gate (b) since 2026-09-14, owned by no row, and had been deferred four times. The reason it kept
+slipping was not the three hours: `docs/walks/r1a/WALK.md` bound all fourteen steps to both matrix
+devices at both type sizes, unqualified, and there is no SE device or simulator in this setup, so
+the gate was unsatisfiable on any hardware present. Kyle ruled it large end only on 2026-09-19:
+the 14 Plus stands in for the 16 Pro Max per standards §18(d), and the SE half of all fourteen
+is a standing gap reported **NOT WALKABLE IN THIS SETUP**, never **NOT RUN**.
+
+**THREE EARLIER §13 ENTRIES ARE CORRECTED HERE RATHER THAN BENEATH THEMSELVES**, per the slice-8
+precedent that a build-log entry is corrected by a later entry.
+
+**(1) THE R2 ENTRY (2026-09-14, heading at the "R2 built, walked and merged" line).** Its "WHAT IS
+STILL OWED" item (1) says Section B's first action is capturing the six `0091ce5`
+before-screenshots. **It is three.** Its later paragraph listing Section B among what "remains
+outstanding" is now owned by `R1A-SECTION-B-WALK`. Both remain true that Section B is unrun and
+gates R3.
+
+**(2) THE R1b-i ENTRY (2026-09-13).** "Still required before R2" became **required before R3**
+when R2 merged at `2467f6b`. "The six `0091ce5` screenshots" is **three**.
+
+**(3) THE R1a ENTRY (2026-09-12) NAMES THE WRONG CAPTURE COMMIT, AND THIS IS A PRE-EXISTING ERROR
+INDEPENDENT OF THIS WORK.** It says the before state is reachable at `git checkout 0115d90`, "the
+last commit before the codemod". **The capture point is `0091ce5`.** `docs/walks/r1a/README.md`
+has recorded `0091ce5` since it was written and explains why `0115d90` is the worse baseline: R1a
+step 2 had already changed the Paper theme and the PricingSelector weight. Kyle's own attestation
+four paragraphs below that passage already says `0091ce5`. So the entry contradicted the README
+and its own file's attestation. Corrected here rather than in place because it is a §13 entry.
+**ANYONE CAPTURING THE BEFORE STATE USES `0091ce5`.**
+
+**THE ONE ATTESTATION THAT WAS LEFT ALONE, DELIBERATELY.** Kyle's R2 attestation of 2026-09-14
+lists Section B as NOT RUN and required before R3. It names no screenshot count and says nothing
+false, so it is untouched. **A dated human attestation is not amended to reflect a later
+reorganization**; that is rewriting attestation history rather than correcting a claim.
+
+**WHAT STEP 14's DESK CHECK FOUND, RECORDED HERE BECAUSE IT CHANGED A STANDARD.** Advance widths
+read directly from the shipped Inter faces, wrapped over 8,558 characters of live Vara copy: **no
+style in the type scale reaches 65 characters per line on any shipped device.** `body` at 1.3x
+gives about **31** characters at 375pt and about **41** at 430pt; reaching 65 in the 343pt
+available at SE width would need a rendered size near **11.35pt**, below every entry in §5.2.
+The finding is device-independent, so the clause was never the SE-binding check §18.1 called it.
+§5.4's rule read as a target band was therefore unachievable everywhere and its claim that the
+band was "naturally satisfied" at 390pt was false by roughly a factor of two. Kyle ruled it a
+**CEILING** on 2026-09-19; §5.4 and §18.1 were corrected in place at `ee63eab`, which is a
+reasoned divergence from the §3.4 append convention on the grounds that the sentence stated a
+measurement rather than a decision.
+
+**NO BASELINES CHANGED.** Docs only across both commits; no source, test or config file is in
+either diff.
 
 ### 2026-09-18 - slice 8 built: a good moment is one line nobody counts, and the collection it lands in is not the one the row specified (branch `journey/slice-8-good-moments`, `2185d83` the code, this entry the docs; **BUILT; UNWALKED, UNMERGED**, script at `docs/walks/8/WALK.md`)
 
