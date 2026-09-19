@@ -8,6 +8,8 @@ React Native + Expo + TypeScript. All app code lives in `mobile/src/`.
 Run every command from `mobile/`, never the repo root: `npx tsc --noEmit`, `npm run lint`, `npm test`. The root has no `tsconfig.json` and no `typescript` dependency, so `npx tsc` there resolves to an unrelated placeholder package on npm that prints "This is not the tsc command you are looking for" and exits 1 having typechecked nothing. **Exit 1 with zero `error TS` lines is the trap** — that is not a failing build or a clean one, it is no build at all. A real run reports errors or prints nothing and exits 0.
 Jest must run with `--forceExit` (reanimated and timer handles keep the process alive). `npm test` already includes it.
 
+**THIS IS A WINDOWS `cmd` MACHINE. `grep` IS NOT AVAILABLE; `findstr` IS THE EQUIVALENT.** Use `findstr /C:"..."` for a literal phrase and `/N` for line numbers. This has ridden in every prompt for months and has never been written down here, which is why it kept being re-stated.
+
 ## SOURCE-OF-TRUTH PRECEDENCE
 
 Highest to lowest. When two documents disagree, the higher one wins.
@@ -16,7 +18,7 @@ Highest to lowest. When two documents disagree, the higher one wins.
 2. `docs/Vara_Today_IA_Restructure_Roadmap_v2.md` — IA, tabs, the Today surface, the capacity model — **only where the journey roadmap above is silent.**
 3. `docs/Vara_Reconciled_Product_Spec.md` (v1.7) — all other product behavior.
 4. `docs/brand/Vara_Brand_Voice_Copy_Guidelines.md` — all copy.
-5. `mobile/Vara_Mobile_UI_Standards.md` (v2.0) — the visual and interaction authority, including token-to-code mapping.
+5. `mobile/Vara_Mobile_UI_Standards.md` — the visual and interaction authority, including token-to-code mapping. **No version is quoted here on purpose.** The ladder's job is to say which document is authoritative, which is true at every version; the version lives in that document's own header, where it cannot drift from itself. This line read "(v2.0)" while the document was at v2.2.
 
 The contracts stay authoritative for their own scope beneath this ladder: `docs/Vara_Engine_Contract.md`, `docs/Vara_Protocol_Engine_Contract.md`, `docs/Vara_Modal_Design_System_v1.1.md`, `docs/Vara_Core_Loop_v2.md`.
 
@@ -68,6 +70,16 @@ These fail or warn in CI. Know them before you write code.
 - Commit on the branch before a device walk, so the walk has a fixed reference.
 - STOP-and-report gates are hard stops. Commit what is done, report, wait.
 - Never `git checkout --` to undo a mutation test; it reverts to HEAD and takes uncommitted work with it.
+
+## EVIDENCE AND MEASUREMENT
+
+Three rules, all of them paid for. Each says which slice bought it.
+
+- **Re-measure ALL FOUR baselines after the LAST change in a slice, not after the change you believe touched them.** A number measured mid-build and reported at the end is stale, and it is stale in the most convincing way: it was true when you took it. *Slice 8 measured tsc at 141, then a lint fix changed `any[]` to `unknown[]` in a test file and put six type errors in the branch, then lint and jest were re-run and tsc was not. The false 141 shipped into a commit message and a build log.*
+
+- **A green jest run is not a typecheck.** Jest compiles through Babel, which **strips types without checking them**. A suite can be entirely green with type errors in the tree. `tsc` is the only evidence of a typecheck, and "jest passed" is never a substitute for it. *Same slice: 4007 tests passed with six `tsc` errors present.*
+
+- **A mutation-checked test proves the assertion is sensitive to the logic. It does not prove the logic is reachable.** Where a handler is invoked directly rather than through a rendered interaction, **say so in the test**, and treat the behaviour as **unverified until a device walk confirms it**. *Slice 8's swipe test called the `PanResponder` predicates directly with a hand-made gesture object. It passed its mutation check and stayed green while the gesture was completely dead on the device — the predicates were correct and nothing ever called them.*
 
 ## POINTERS
 
