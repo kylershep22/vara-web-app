@@ -94,6 +94,12 @@ const USERID_FIELD_COLLECTIONS = [
   // Time blocking (TB-1) and task batching (TB-2).
   "dayBlocks", "capturedTasks",
 
+  // Good moments (journey slice 8). Free text the user chose to keep, so it
+  // is exactly the kind of row the 30-day promise is about. Ownership is in
+  // the userId field rather than the document ID, which is what lets it sweep
+  // here with its siblings instead of needing a delete by path.
+  "moments",
+
   // Analytics. The content firewall keeps event payloads free of user text,
   // but every row is still stamped with the uid, which is personal data.
   "analyticsEvents",

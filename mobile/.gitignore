@@ -50,3 +50,8 @@ google-services.json
 
 # Testing
 coverage/
+
+# Diagnostic output. Metro logs are captured during device walks (slice 8,
+# step 19b) and must never be committed, by anyone or by any future slice.
+metro.log
+*.metro.log

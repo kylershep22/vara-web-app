@@ -95,9 +95,20 @@ describe("deleteAccount cleanup manifest", () => {
       "dayBlocks", "capturedTasks",
       "analyticsEvents", "notificationPreferences", "memberships",
       "hiddenPosts",
+      "moments",
     ]) {
       expect(USERID_FIELD_COLLECTIONS).toContain(expected);
     }
+  });
+
+  it("names moments on the manifest, which is the WEAKER half of its guard", () => {
+    // Deliberately labelled. Membership on a list is what this suite can see
+    // and it is not evidence that anything is deleted - the header says so in
+    // as many words. The assertion that a moments document actually
+    // DISAPPEARS lives in deleteAccountSweep.test.js, against the emulator,
+    // and that is the one to change if this collection's ownership shape ever
+    // moves off the userId field.
+    expect(USERID_FIELD_COLLECTIONS).toContain("moments");
   });
 
   it("sweeps posts by authorId as well as userId", () => {

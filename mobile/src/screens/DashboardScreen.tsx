@@ -47,6 +47,9 @@ import { AdjustmentCard } from '../components/dashboard/AdjustmentCard';
 import { AdvancementCard } from '../components/dashboard/AdvancementCard';
 import { JourneyLine } from '../components/dashboard/JourneyLine';
 import { StartHereRow } from '../components/journey/StartHereRow';
+import { GoodMomentRow } from '../components/dashboard/GoodMomentRow';
+import { GoodMomentSheet } from '../components/dashboard/GoodMomentSheet';
+import { useGoodMoment } from '../hooks/useGoodMoment';
 import { JOURNEY_LINE_LABEL, TODAY_START_HERE_GLOSS } from '../constants/journeyCopy';
 import { journeyActionFor } from '../journey/journeyAction';
 import { useAdjustDoorStamp, useAdjustOffer } from '../hooks/useAdjustOffer';
@@ -153,6 +156,12 @@ const DashboardScreen: React.FC = () => {
       ? phaseSource(weeklyLanding.phase)
       : cycleSource(weeklyLanding.cycle);
   const todayCard = useTodayCard(user?.uid, todaySource);
+
+  // Good moments (journey slice 8). Deliberately NOT derived from any of the
+  // journey state above: the row is the same on every account, on every day,
+  // and reads nothing back. See GoodMomentRow's header for why that is a rule
+  // rather than a simplification.
+  const goodMoment = useGoodMoment(user?.uid);
 
   // The daily picker's visibility, and nothing else. Opening the sheet writes
   // NOTHING: `hasPickedToday` keys on the stored time field, so a write on open
@@ -781,6 +790,20 @@ const DashboardScreen: React.FC = () => {
                 onNavigateToHabits={() => go(NAV_TARGETS.plan, { tab: 'habits' })}
               />
 
+              {/* Good moments (journey slice 8).
+
+                  IN THE UNCONDITIONAL BLOCK, NOT THE JOURNEY BLOCK, AND THAT
+                  PLACEMENT IS THE DECISION THIS SLICE MADE. The journey block
+                  above is gated on `weeklyLanding.target === 'today' &&
+                  (cycle || phase)`, so a row mounted beside StartHereRow would
+                  be invisible to a user with neither a live cycle nor a phase
+                  — which is every fresh account. This surface is offered to
+                  everyone or it is not the quiet, optional thing it is
+                  supposed to be. It is also what makes the walk meaningful:
+                  the row can be confirmed on an account with no journey at
+                  all. */}
+              <GoodMomentRow onPress={goodMoment.openSheet} />
+
               {/* Surviving system prompts (live-gated), after the content. */}
               {(['notifOptIn', 'eventCode'] as const).map((id) => (
                 <React.Fragment key={id}>{renderSystemPrompt(id)}</React.Fragment>
@@ -814,6 +837,18 @@ const DashboardScreen: React.FC = () => {
             navigation.navigate(NAV_TARGETS.plan as never, { tab: 'routines' } as never);
           }}
           onComplete={handleRoutineComplete}
+        />
+      )}
+
+      {/* Good moments. Mounted only while open, on the DailyPickerSheet
+          precedent: the sheet's text lives in its own state, so an unmounted
+          sheet cannot carry yesterday's abandoned words into today. */}
+      {goodMoment.open && (
+        <GoodMomentSheet
+          visible
+          status={goodMoment.status}
+          onConfirm={goodMoment.save}
+          onDismiss={goodMoment.closeSheet}
         />
       )}
 

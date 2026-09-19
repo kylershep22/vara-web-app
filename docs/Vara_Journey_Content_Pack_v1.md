@@ -3,7 +3,7 @@
 **Authored by:** Jen
 **Approved by:** owner on delivery
 **Date:** 2026-09-05
-**Covers:** Recover internal structure · slice 5 display strings (16 title + 16 gloss) · A1 + A2 · C1 · B2 + C2 · Remove replacement menus · Recover and Refocus protocol copy (12 x title, action, why) · phase descriptors · Recover destination weighting · supporting-practice mapping (2 mapped, 19 none)
+**Covers:** Recover internal structure · slice 5 display strings (16 title + 16 gloss) · A1 + A2 · C1 · B2 + C2 · Remove replacement menus · Recover and Refocus protocol copy (12 x title, action, why) · phase descriptors · Recover destination weighting · supporting-practice mapping (2 mapped, 19 none) · Good moments (6 strings, added 2026-09-18)
 
 ---
 
@@ -34,6 +34,7 @@ that the strings came from this pack, and the sentinel figure stays flat.
 | [`phase-descriptors`](#phase-descriptors) | 4 phase descriptors + the usage rule that dissolves the `PHASE_DISPLAY` collision | roadmap row 7j (RESOLVED, no build); explanatory surfaces later |
 | [`destination-weighting`](#destination-weighting) | Recover destination weighting, 4 destinations x 3 capacities | roadmap row 7l |
 | [`supporting-practices`](#supporting-practices) | Which runnable practice satisfies which daily protocol: 2 mapped, 19 none | roadmap row 7k (LANDED, values only); slice 9 (auto-complete) is the first and only READER |
+| [`good-moments`](#good-moments) | Good moments: the row label, the prompt, both buttons and both outcome lines (6 strings) | roadmap row 8 (SHIPPED) |
 
 **Six sections need a note before you build:**
 
@@ -1651,3 +1652,59 @@ first choice and a fallback, and nothing in this table ranks them.
 > is a settled decision and not a finding for a later Step 0 to make: a slice
 > that "discovers" the bridge is nearly empty and treats it as a gap is
 > re-deciding something Jen already decided here.
+
+---
+
+# Part six, Sept 18 addition
+
+<a id="good-moments"></a>
+
+# 13. Good moments
+
+**Consumed by:** roadmap row 8. **Shipped 2026-09-18** in
+`mobile/src/components/dashboard/goodMoments.copy.ts`.
+
+**WHY THESE ARE IN THE PACK ONLY NOW, AND IT MATTERS FOR THE RULE AT THE TOP OF
+THIS FILE.** Jen delivered the prompt, the acknowledgment and the failure line on
+2026-09-12, into the roadmap's Section 13 rather than into this pack; the row
+label and the two button labels followed on 2026-09-18. Between those dates
+**a reader grepping this pack for slice 8's copy found nothing**, while the
+strings were approved and the sentinel was correctly flat for them. Slice 8
+copies them here so the pack's own rule — approved content lives in the pack,
+and the sentinel does not move for it — is true by the file rather than only by
+precedent. Slice 7n's two strings have the same history and the same gap; see
+the ledger comment in `copyDraftSentinel.test.ts`.
+
+**The feature is called "Good moments", not "Moments of joy"** (Jen,
+2026-09-12: joy sets the emotional bar too high). The Firestore collection is
+`moments`, which is unaffected — a collection name is not copy.
+
+| # | String | Where it appears |
+|---|---|---|
+| 1 | `Add a good moment` | The row on Today, below the fold |
+| 2 | `What was one good moment from today?` | Above the input, inside the sheet |
+| 3 | `Save` | The sheet's primary |
+| 4 | `Cancel` | The sheet's secondary |
+| 5 | `Saved.` | Inline in the sheet on success, then the sheet closes itself |
+| 6 | `Couldn't save that. Try again.` | Inline in the sheet on failure; the sheet stays open and the text survives |
+
+**THERE IS NO PLACEHOLDER STRING, AND ITS ABSENCE IS AUTHORED.** Jen's
+instruction, 2026-09-12: no placeholder text in the field. The prompt above the
+input is the whole framing, and a placeholder underneath it would either repeat
+the prompt or lead the user toward what counts as a good moment. **Do not add
+one later without asking** — an empty field here is a decision to say nothing.
+
+**"GRATITUDE" APPEARS IN NONE OF THESE AND MUST NOT APPEAR IN ANY STRING ADDED
+TO THIS SECTION.** Section 8 of the roadmap is the authority. Note that nine
+gratitude-named strings do exist elsewhere in the app today; they are tracked
+under the roadmap's `GRATITUDE-COPY-SWEEP` row and are **not precedent**.
+
+**NOTHING IS EVER COUNTED, SHOWN BACK, OR ACKNOWLEDGED BEYOND STRING 5.** The
+row is identical whether the user has saved nothing today or five things. There
+is no second-state string, and there is no list surface, because nothing reads
+the collection until Insights ships.
+
+**STRINGS 3 AND 4 ARE ORDINARY UI LABELS** and are recorded here for
+completeness rather than because they carry voice. If either is ever revised,
+that is Kyle's call under the owner split in the sentinel contract, not a
+content change.

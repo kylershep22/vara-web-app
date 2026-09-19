@@ -336,6 +336,61 @@ describe("deleteAccount sweep (emulated Firestore)", () => {
     expect(remaining.empty).toBe(true);
   });
 
+  it("deletes a good moment, written in its real shape", async () => {
+    // THE ASSERTION ROW 8 ASKED FOR, AND IT IS A REMOVAL, NOT A MEMBERSHIP.
+    // The sibling suite can only say "moments" appears on a list. This seeds
+    // the document `moments.service.ts` actually writes - userId, text and a
+    // timestamp, auto-ID - runs the real sweep, and reads back.
+    //
+    // THE AUTO-ID IS THE POINT. Row 8 originally specified `{uid}_{ts}`, and
+    // the slice shipped ownership in the userId FIELD instead. A sweep that
+    // reconstructed document IDs would pass against a composite ID and miss
+    // every row here; the query-based sweep does not care, and this test is
+    // what proves that rather than assuming it.
+    //
+    // TWO DOCUMENTS, because a user records more than one moment a day by
+    // design and a sweep that stopped at the first would look identical to a
+    // passing one on a single-document seed.
+    const uid = freshUid();
+    const bystander = freshUid();
+
+    const first = await db.collection("moments").add({
+      userId: uid,
+      text: "Coffee on the step before anyone was up.",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    const second = await db.collection("moments").add({
+      userId: uid,
+      text: "The dog met me at the door.",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    const other = await db.collection("moments").add({
+      userId: bystander,
+      text: "Not this one.",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Prove the seed landed, or every "is gone" assertion below is vacuous.
+    expect(first.id).not.toContain(uid);
+    expect((await first.get()).exists).toBe(true);
+    expect((await second.get()).exists).toBe(true);
+
+    const {counts, failures} = await deleteUserFirestoreData(db, uid);
+
+    expect(failures).toEqual([]);
+    expect(counts.moments).toBe(2);
+    expect((await first.get()).exists).toBe(false);
+    expect((await second.get()).exists).toBe(false);
+
+    const remaining = await db.collection("moments")
+        .where("userId", "==", uid).get();
+    expect(remaining.empty).toBe(true);
+
+    // The other user's moment is untouched. Deleting one account's words must
+    // not reach anyone else's.
+    expect((await other.get()).exists).toBe(true);
+  });
+
   it("does not touch another user's data", async () => {
     const victim = freshUid();
     const bystander = freshUid();
