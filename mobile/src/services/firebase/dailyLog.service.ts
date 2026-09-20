@@ -34,7 +34,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { requireDb } from './ensureDb';
-import type { DailyLog } from '../../types/models';
+import type { DailyCompletionSource, DailyLog, RemoveFamily } from '../../types/models';
 // Type-only import from the engine barrel: erased at compile time, so this does
 // NOT wire the weekly engine into the running app.
 import type { CapacityTier, TimeClass } from '../../protocolEngine';
@@ -64,6 +64,14 @@ export function dailyLogDocId(userId: string, date: string): string {
  * `protocolCompleted` in particular MUST stay optional: a pick that had to send
  * `false` would silently un-complete a day the user had already finished, the
  * first time anything re-opened the picker after completion.
+ *
+ * THE PROVENANCE KEYS ARE OFFERED, NOT GUARANTEED (slice 9.1a). A caller may
+ * supply `completionSource`, `protocolCellId` and `protocolFamily`, and the
+ * SERVICE decides whether they land - see `stampProvenance` below. A caller
+ * that supplies them on a write which is not establishing the completion has
+ * them dropped, silently and on purpose. `completedAt` is not offered at all:
+ * it is service-owned, it is in `stripOwnedKeys`, and there is no honest value
+ * a caller could compute for it.
  */
 export interface DailyLogInput {
   protocolCompleted?: boolean;
@@ -72,7 +80,27 @@ export interface DailyLogInput {
   dailyCapacity?: CapacityTier;
   /** The window the user said they had (roadmap 3b-ii-b). Omit to leave unchanged. */
   dailyTimeBudget?: TimeClass;
+  /** How the completion was established (9.1a). Kept only when provenance is stamped. */
+  completionSource?: DailyCompletionSource;
+  /** `ProtocolVariant.id` of the variant the caller RENDERED (9.1a). Never re-derived. */
+  protocolCellId?: string;
+  /** The Remove family of that variant (9.1a). Absent on Recover and Refocus. */
+  protocolFamily?: RemoveFamily;
 }
+
+/**
+ * The provenance keys, in one place, so the strip below and the stamp further
+ * down cannot fall out of step with each other.
+ *
+ * `completedAt` is NOT here: it never reaches this module from a caller, so
+ * there is nothing of it to conditionally keep. It is removed unconditionally
+ * by `stripOwnedKeys` and written only by the service.
+ */
+const CALLER_PROVENANCE_KEYS = [
+  'completionSource',
+  'protocolCellId',
+  'protocolFamily',
+] as const;
 
 /**
  * Did the user answer the daily picker for this day?
@@ -82,11 +110,24 @@ export interface DailyLogInput {
  * lives in exactly one place and changes in exactly one place.
  *
  * KEYED ON THE TIME FIELD, and that is not arbitrary. `dailyCapacity` cannot
- * serve, because 3b-i's completion write stamps a capacity SEEDED from
- * `capacityInitial` (see useTodayCard.markDone): every day completed since then
- * carries a tier the user never chose, and keying on it would report those days
- * as picked and suppress the morning prompt forever. Only an explicit confirm
- * writes a time budget.
+ * serve, because for a window on 2026-08-11 - between merges `530cfaa` and
+ * `6da51cc`, about seven hours - `markDone` stamped a capacity SEEDED from
+ * `capacityInitial` rather than one the user answered. A row written in that
+ * window carries a tier its owner never chose, and keying on it would report
+ * that day as picked and suppress the morning prompt for it forever.
+ *
+ * WHETHER ANY SUCH ROW EXISTS IS UNKNOWN AND IS NOT INFERRABLE FROM THIS REPO.
+ * It depends on whether a build shipped inside that window, which is deploy
+ * state and lives on Kyle's checklist. Nobody has checked. This predicate is
+ * built to be CORRECT IF THEY EXIST, which is a tolerated assumption and the
+ * cheap direction to be wrong in - not evidence that they do. Corrected in
+ * slice 9.1a, which found the previous wording asserting their existence as
+ * fact.
+ *
+ * THE SEED-WRITE ITSELF IS GONE, removed in `504282a` when the daily picker
+ * made a pick always precede completion. Nothing has written a capacity from
+ * `markDone` since; the confirm is the sole writer of the field. Only an
+ * explicit confirm writes a time budget.
  *
  * THE COUPLING, STATED SO IT CANNOT SURPRISE ANYONE: this is correct only while
  * the time question is MANDATORY in the picker. If a later slice lets the user
@@ -119,6 +160,11 @@ function stripOwnedKeys(patch: object): Record<string, unknown> {
   delete safe.userId;
   delete safe.createdAt;
   delete safe.updatedAt;
+  // `completedAt` joins them in slice 9.1a. It is not on `DailyLogInput`, so a
+  // typed caller cannot offer one; this makes that unconditional rather than
+  // dependent on nobody casting past the type, which is the same guarantee the
+  // four keys above already have.
+  delete safe.completedAt;
   return safe;
 }
 
@@ -133,6 +179,10 @@ function stripOwnedKeys(patch: object): Record<string, unknown> {
  * updateDoc would reject the first write of the day. Reads before writing so
  * `createdAt` is stamped exactly once — a blind serverTimestamp() under merge
  * resets the creation time on every subsequent call.
+ *
+ * THE SAME PRE-READ IS WHAT MAKES THE PROVENANCE RULE BELOW POSSIBLE, at no
+ * extra cost: the stored document is already in hand before anything is
+ * written.
  */
 export async function upsertDailyLog(
   userId: string,
@@ -142,13 +192,63 @@ export async function upsertDailyLog(
   const id = dailyLogDocId(userId, date);
   const ref = doc(requireDb(), DAILY_LOGS, id);
   const existing = await getDoc(ref);
+  const prior = existing.exists() ? existing.data() : undefined;
+
+  // PROVENANCE IS WRITTEN ONLY BY THE WRITE THAT ESTABLISHES THE COMPLETION,
+  // and all four fields are governed together: `completedAt`,
+  // `completionSource`, `protocolCellId` and `protocolFamily`. Either this
+  // write is the one that made the day complete and it may say when, how and
+  // against which slot - or it is not, and it may say none of those things.
+  //
+  // A RULE OVER OBSERVABLE STATE, NOT OVER AN EVENT, because this function has
+  // no concept of "a completion happened". It sees a patch and a stored
+  // document, and that is all it can reason from.
+  //
+  // (c) IS THE ONE THAT PROTECTS HISTORICAL ROWS AND IT IS NOT OPTIONAL. A row
+  // completed before slice 9.1a carries `protocolCompleted: true` and no
+  // provenance at all. Without (c), any later write of `protocolCompleted:
+  // true` to that row would stamp TODAY's timestamp, source and protocol onto
+  // a completion that happened weeks ago, under a phase, capacity and family
+  // the user may since have changed. The fabrication would be indistinguishable
+  // from a real record, and the row cannot be repaired once it is wrong.
+  //
+  // DO NOT DELETE ANY CLAUSE ON THE GROUNDS THAT markDone ALREADY GUARDS IT.
+  // `useTodayCard.markDone` returns early on `completed`, so today nothing
+  // reaches here twice and (c) never fires in production. That is a property
+  // of ONE CALLER AT ONE MOMENT, not a structural guarantee, and 9.1b adds a
+  // second surface that can sit open across a change.
+  //
+  // WHICH CLAUSE DOES THE WORK, STATED SO THE OTHER IS NOT TIDIED AWAY:
+  // (c) is load-bearing today. (b) is unreachable through the app - the key is
+  // off `DailyLogInput` and `stripOwnedKeys` removes it - and covers a console
+  // or Admin SDK write, and any future second writer. A later reader who
+  // observes that (b) alone passes must not conclude (c) is redundant; they
+  // catch different writes.
+  const stampProvenance =
+    // (a) this patch is asserting completion
+    input.protocolCompleted === true &&
+    // (b) nothing has stamped provenance before
+    prior?.completedAt === undefined &&
+    // (c) the day was not ALREADY complete before this write
+    prior?.protocolCompleted !== true;
+
+  const patch = stripOwnedKeys(input);
+  if (!stampProvenance) {
+    // The caller's provenance keys are DROPPED HERE rather than omitted at the
+    // call site, deliberately: the invariant is the service's to hold, and a
+    // caller that has to know whether its own write is the establishing one
+    // would be re-deriving this rule badly. `completedAt` needs no line - it
+    // never arrives, and `stripOwnedKeys` has already removed it.
+    for (const key of CALLER_PROVENANCE_KEYS) delete patch[key];
+  }
 
   await setDoc(
     ref,
     {
-      ...stripOwnedKeys(input),
+      ...patch,
       userId,
       date,
+      ...(stampProvenance ? { completedAt: serverTimestamp() } : {}),
       ...(existing.exists() ? {} : { createdAt: serverTimestamp() }),
       updatedAt: serverTimestamp(),
     },

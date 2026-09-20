@@ -618,6 +618,34 @@ export interface WeeklyCycle {
 }
 
 /**
+ * HOW a day's completion was established (journey slice 9.1a, roadmap section 9 R7).
+ *
+ * TWO ROUTES AND NO THIRD. Section 9 R7 settles completion semantics as
+ * "user-declared or naturally completed", and this union is that decision
+ * expressed where the compiler can hold it:
+ *
+ *   'user_declared'  the user tapped "Mark it done".
+ *   'natural'        a Vara-guided practice completed in the player.
+ *
+ * STARTING, COMMITTING OR SCHEDULING IS NOT COMPLETION, so neither value
+ * covers them and no third value should be added for them. A commitment is a
+ * separate fact on a separate field, and it is slice 9.2's to add.
+ *
+ * 'natural' HAS NO WRITER YET. 9.1a writes 'user_declared' and nothing else;
+ * the player bridge that would write 'natural' is not in the active sequence.
+ * The value exists now so that when it arrives, an absent `completionSource`
+ * keeps meaning exactly one thing - written before 9.1a - rather than becoming
+ * ambiguous between that and "declared, before we started recording how".
+ *
+ * NOT `CompletionSource`, WHICH ALREADY EXISTS AND MEANS SOMETHING ELSE.
+ * `CompletionSource = 'track' | 'home'` (below, on `HabitCompletion.source`)
+ * records WHERE a habit completion was triggered from. This one records HOW a
+ * day's completion was established. Two different questions; neither type is
+ * renamed for the other's benefit.
+ */
+export type DailyCompletionSource = 'user_declared' | 'natural';
+
+/**
  * One day's completion state. At most one per user per day.
  *
  * DOCUMENT ID IS DETERMINISTIC: `${userId}_${date}`, matching the existing
@@ -626,7 +654,12 @@ export interface WeeklyCycle {
  * ambiguously the way a slug-bearing org ID could.
  *
  * Completion is BINARY (S9.2): done or not yet. Never a percentage, never a
- * grade. Do not add a partial-completion field.
+ * grade. Do not add a partial-completion field. THE FOUR PROVENANCE FIELDS
+ * BELOW ARE NOT A SOFTENING OF THAT (slice 9.1a): `completedAt`,
+ * `completionSource`, `protocolCellId` and `protocolFamily` record WHEN a
+ * completion happened, HOW it was established and WHICH SLOT it was against.
+ * None of them grades a day, and none of them expresses a degree. The binary
+ * rule is about the STATE; these describe a state that already is `true`.
  *
  * THIS ROW IS ALSO WHERE THE DAY'S INPUTS LIVE (roadmap 3b). Capacity used to be
  * locked for the week on the cycle; it is answered per day now, and the answer
@@ -638,8 +671,37 @@ export interface DailyLog {
   userId: string;
   /** ISO date, YYYY-MM-DD. */
   date: string;
-  protocolCompleted: boolean;
-  /** Practices actually run that day. May be empty. */
+  /**
+   * Did the user complete the day's action?
+   *
+   * OPTIONAL SINCE SLICE 9.1a, AND THE CHANGE IS A CORRECTION RATHER THAN A
+   * WIDENING. It was declared `boolean` and was never written on every row.
+   * `upsertDailyLog` merges, and the two writers are disjoint: the picker's
+   * confirm sends `dailyCapacity` + `dailyTimeBudget` and nothing else, so a
+   * day that was PICKED AND NOT YET COMPLETED has no `protocolCompleted` key
+   * at all. That is CURRENT behaviour on a row written today, not a legacy
+   * artefact, and the type now says so.
+   *
+   * ABSENT AND `false` MEAN THE SAME THING TO A READER, AND ONLY ONE
+   * PREDICATE GETS THAT RIGHT. Read it as `=== true`. A truthiness test is
+   * fine by accident; a `!== false` test reports an unanswered day as
+   * complete. Both production readers use `=== true` already - see
+   * `useTodayCard`'s load effect and `deriveConsistentDays`.
+   *
+   * NEVER INFER A DECLINE FROM ABSENCE. "No key" means the user has not
+   * answered, not that they said no. Nothing in the app records a declined
+   * day and nothing should read one here.
+   */
+  protocolCompleted?: boolean;
+  /**
+   * Practices actually run that day. May be empty.
+   *
+   * DELIBERATELY LEFT REQUIRED although it has the same absence property as
+   * `protocolCompleted` above (slice 9.1a): widening a second field in the
+   * same change would muddy the type-error diff that proves the first one was
+   * safe. It has no reader anywhere in `src/`, which is a separate finding and
+   * a separate slice.
+   */
   practiceIds: string[];
 
   /**
@@ -651,6 +713,30 @@ export interface DailyLog {
    * first time the matrix content changed. The inputs are the durable fact; the
    * protocol is a view of them. The next slices add a time input alongside this
    * one and an explicit override, and both are only expressible this way.
+   *
+   * CLARIFIED IN SLICE 9.1a, AND THE RULE ABOVE IS UNCHANGED. `protocolCellId`
+   * and `protocolFamily` now sit on this row, and they are an APPLICATION of
+   * the rule rather than an exception to it: the premise "can already be
+   * recomputed" is TRUE FOR TODAY and FALSE FOR A PAST DAY.
+   *
+   * `selectProtocol` takes SIX inputs - phase, capacity, time, destination,
+   * removeFamily, adjustChoice - and this row stores TWO of them. The other
+   * four live on the mutable `journeyStates` document: `phaseKey` has history,
+   * but `destination`, `removeFamily` and `adjustChoice` are single scalars
+   * with none, and `adjustChoice` is nulled on every phase change. Re-capture
+   * a Remove target and every past day silently becomes a different protocol.
+   *
+   * FOR REMOVE SPECIFICALLY THE DERIVATION CANNOT EVEN NARROW TO ONE. All
+   * three variants in a Remove cell share an `estMinutes` and therefore a
+   * `timeClass`, so `(capacity, timeClass)` leaves three candidates and the
+   * only discriminator is `family`, which is not on this row and has no
+   * history. Add the matrix itself being versioned by nothing but the app
+   * binary - slice 7i replaced twelve protocols' copy - and a re-derivation
+   * returns what is true now rather than what was served then.
+   *
+   * SO HISTORICAL IDENTITY IS NOT A DERIVED VALUE. It is not recomputable, so
+   * storing it is not storing a second copy of anything. Do not read this as
+   * permission to store a value that IS recomputable; the general rule stands.
    *
    * OPTIONAL, and absent on every row written before this field existed and on
    * every day the user has not answered for. Absent means NOT PICKED and falls
@@ -683,6 +769,99 @@ export interface DailyLog {
    * makes the content pass able to light it up without a migration.
    */
   dailyTimeBudget?: TimeClass;
+
+  // -------------------------------------------------------------------------
+  // COMPLETION PROVENANCE (journey slice 9.1a)
+  //
+  // Four optional fields recording WHEN a completion happened, HOW it was
+  // established and WHICH SLOT it was against. They are written TOGETHER, by
+  // `upsertDailyLog`, and only on the write that establishes the completion -
+  // see the stampProvenance rule in `dailyLog.service.ts`.
+  //
+  // ABSENT ON EVERY ROW WRITTEN BEFORE 9.1a, AND ABSENCE IS NEVER A DEFECT.
+  // A legacy completed day is a completed day whose provenance is unknown.
+  // Nothing may back-fill these from today's engine, and nothing may treat a
+  // completed row without them as broken, partial or in need of repair.
+  //
+  // NOTHING READS THEM YET, AND THAT IS DELIBERATE RATHER THAN AN OVERSIGHT.
+  // 9.1a is the write path; the surfaces that consume provenance arrive with
+  // 9.1b and 9.2. An unread field here is a record being kept, not dead code.
+  // -------------------------------------------------------------------------
+
+  /**
+   * When the completion was established. Server time.
+   *
+   * SERVICE-OWNED AND STAMPED EXACTLY ONCE. It is not on `DailyLogInput` and
+   * `stripOwnedKeys` removes it, so a caller cannot supply or forge one;
+   * `upsertDailyLog` writes it and nothing else does.
+   *
+   * IT IS NOT A SECOND COPY OF `protocolCompleted`, and the two must not be
+   * allowed to drift into disagreement. `protocolCompleted` remains the SOLE
+   * AUTHORITY on whether a day is done - it is what `deriveConsistentDays`
+   * counts and what the card renders. This says WHEN, and an absent
+   * `completedAt` beside `protocolCompleted: true` is the normal state of
+   * every pre-9.1a row. Never read absence here as not-done.
+   *
+   * DO NOT `orderBy` THIS FIELD. Firestore omits documents that lack the
+   * ordered field, so a query ordered on `completedAt` would silently drop
+   * every legacy row and return a partial history that looks complete.
+   */
+  completedAt?: Timestamp;
+
+  /**
+   * How the completion was established: the user said so, or a guided
+   * practice finished (section 9 R7).
+   *
+   * 9.1a WRITES `'user_declared'` AND NOTHING ELSE. Absence therefore means
+   * "written before 9.1a" and will keep meaning only that once a 'natural'
+   * writer exists.
+   */
+  completionSource?: DailyCompletionSource;
+
+  /**
+   * WHICH SLOT of the protocol matrix was served: `ProtocolVariant.id`, by
+   * convention `${phase}-${capacity}`.
+   *
+   * CELL-LEVEL BY DESIGN, so it does not identify a variant on its own. It is
+   * read together with `protocolFamily` below, and the pair is what resolves
+   * to one of the nine Remove variants. `selectProtocol.test.ts` pins that the
+   * nine pairs are distinct ("holds one AUTHORED variant per family per remove
+   * cell"); there is deliberately no second uniqueness test here.
+   *
+   * WRITTEN FROM THE VARIANT THE CARD RENDERED, never re-derived at write
+   * time. Nothing on the write path calls `selectProtocol`: a re-derivation
+   * would record what is true at the instant of the tap rather than what the
+   * user was looking at, and on a screen that can sit open those differ.
+   *
+   * MAY BE ABSENT ON A COMPLETED ROW AND THAT IS VALID. The load-failure path
+   * has no resolved protocol, and every row written before 9.1a has none.
+   *
+   * THE PAIR RECORDS WHICH SLOT WAS SERVED, NOT WHICH WORDS THE USER READ.
+   * It resolves against the matrix as it stands in the app version doing the
+   * resolving, and AUTHORED COPY CHANGES UNDER A FIXED KEY: slice 7i replaced
+   * twelve protocols' copy and 7k amended R1's phrase, and neither moved a
+   * cell or a family. So the same pair can point at different words across
+   * versions. ACCEPTED, NOT A GAP. This answers "which protocol did we
+   * serve", never "what did it say". Anything needing the words the user
+   * actually read needs a different mechanism, and a content-version field
+   * here is expressly not it.
+   */
+  protocolCellId?: string;
+
+  /**
+   * Which Remove family the served variant belongs to - the discriminator
+   * that makes `protocolCellId` unique.
+   *
+   * ONLY REMOVE VARIANTS CARRY ONE. `family` is optional on `ProtocolVariant`
+   * because Recover disambiguates by `mechanism` and Refocus has one variant
+   * per cell, so this field is absent on a completed Recover or Refocus day
+   * even after 9.1a. Absent means "the served variant had no family", not
+   * "we failed to record it".
+   *
+   * The slot-not-content limitation on `protocolCellId` above binds this
+   * field equally; the two are one reference.
+   */
+  protocolFamily?: RemoveFamily;
 
   createdAt: Timestamp;
   updatedAt: Timestamp;

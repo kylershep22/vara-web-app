@@ -22,18 +22,26 @@ import {
   ADVANCE_MIN_CONSISTENT_DAYS,
 } from '../../constants/journey';
 import type { DailyLog, PhaseKey, PhaseRead, WeeklyCycle } from '../../types/models';
+import {
+  completionWithProvenance,
+  dailyLog,
+  historicalCompletion,
+  identityWithoutCompletion,
+  pickedNotCompleted,
+} from '../../services/firebase/__tests__/dailyLogFixtures';
 
 const ENTERED = '2026-08-10';
 
-/** A day's log. Only `date` and `protocolCompleted` are read by the derivation. */
+/**
+ * A day's log. Only `date` and `protocolCompleted` are read by the derivation.
+ *
+ * A two-line alias over the shared fixture (slice 9.1a) rather than a fourth
+ * private definition of "a DailyLog". The positional signature is kept so the
+ * nine call sites below read as they did; what changed is that the shape now
+ * comes from one place.
+ */
 const log = (date: string, protocolCompleted: boolean): DailyLog =>
-  ({
-    id: 'alice_' + date,
-    userId: 'alice',
-    date,
-    protocolCompleted,
-    practiceIds: [],
-  }) as unknown as DailyLog;
+  dailyLog(date, { userId: 'alice', protocolCompleted });
 
 /** `n` completed days running from `from`. */
 function completedRun(from: string, n: number): DailyLog[] {
@@ -135,6 +143,77 @@ describe('deriveConsistentDays', () => {
 
   test('is 0 for no logs at all', () => {
     expect(deriveConsistentDays([], ENTERED)).toBe(0);
+  });
+});
+
+// THE HISTORICAL-READ CONTRACT, at the derivation (slice 9.1a).
+//
+// `deriveConsistentDays` reads `protocolCompleted` and `date` and nothing
+// else, and slice 9.1a's four provenance fields must not change that. The
+// cases below are the four stored shapes a real collection now holds; the
+// contract is that the count depends on the completion flag alone.
+//
+// WHY HERE AND NOT IN A CROSS-CUTTING SUITE. The derivation is a pure function
+// and this file owns it. `useTodayCard` needs a rendered hook and three
+// service mocks; `hasPickedToday` is exercised where the real predicate runs.
+// Three homes, one shared fixture, so the contract is one thing while each
+// assertion sits with the code it constrains.
+describe('deriveConsistentDays - the historical-read contract (9.1a)', () => {
+  test('a legacy completed row COUNTS, with its protocol unknown', () => {
+    // The row this contract mostly exists for: completed before 9.1a, so it
+    // carries no completedAt, no completionSource and no identity. Absent
+    // provenance is not a defect and must not cost the user a day.
+    const logs = [
+      historicalCompletion('2026-08-10', { userId: 'alice' }),
+      historicalCompletion('2026-08-11', { userId: 'alice' }),
+    ];
+    expect(deriveConsistentDays(logs, ENTERED)).toBe(2);
+    // Stated rather than assumed: these rows really are provenance-free.
+    expect(logs[0].completedAt).toBeUndefined();
+    expect(logs[0].protocolCellId).toBeUndefined();
+  });
+
+  test('an ABSENT completion flag does not count, and is not a declined day', () => {
+    // A picked-but-not-completed row has no `protocolCompleted` KEY at all.
+    // `=== true` is what makes absent and false behave identically here; a
+    // `!== false` test would count this day as complete.
+    const row = pickedNotCompleted('2026-08-10', { userId: 'alice' });
+    expect(row.protocolCompleted).toBeUndefined();
+    expect(deriveConsistentDays([row], ENTERED)).toBe(0);
+  });
+
+  test('an explicit false and an absent flag reach the same answer', () => {
+    expect(
+      deriveConsistentDays([log('2026-08-10', false)], ENTERED)
+    ).toBe(deriveConsistentDays([pickedNotCompleted('2026-08-10', { userId: 'alice' })], ENTERED));
+  });
+
+  test('identity WITHOUT a completion flag does not count', () => {
+    // A state the 9.1a writer cannot produce, asserted anyway: the day a
+    // reader starts treating `protocolCellId` as evidence of completion, this
+    // is what catches it.
+    const row = identityWithoutCompletion('2026-08-10', { userId: 'alice' });
+    expect(row.protocolCellId).toBeDefined();
+    expect(deriveConsistentDays([row], ENTERED)).toBe(0);
+  });
+
+  test('a provenance-bearing completion counts exactly like a legacy one', () => {
+    // The new shape must be worth neither more nor less than the old one.
+    expect(
+      deriveConsistentDays(
+        [completionWithProvenance('2026-08-10', { userId: 'alice' })],
+        ENTERED
+      )
+    ).toBe(deriveConsistentDays([historicalCompletion('2026-08-10', { userId: 'alice' })], ENTERED));
+  });
+
+  test('the two shapes mix in one phase without either being discounted', () => {
+    const logs = [
+      historicalCompletion('2026-08-10', { userId: 'alice' }),
+      pickedNotCompleted('2026-08-11', { userId: 'alice' }),
+      completionWithProvenance('2026-08-12', { userId: 'alice' }),
+    ];
+    expect(deriveConsistentDays(logs, ENTERED)).toBe(2);
   });
 });
 

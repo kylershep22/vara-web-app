@@ -56,6 +56,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { cycleSource, phaseSource, useTodayCard } from '../useTodayCard';
 import type { PhaseContext } from '../../journey/resolveJourney';
 import type { DailyLog, WeeklyCycle } from '../../types/models';
+import { dailyLog } from '../../services/firebase/__tests__/dailyLogFixtures';
 
 const MONDAY = '2026-08-10';
 const TUESDAY = '2026-08-11';
@@ -71,15 +72,9 @@ const cycle = (): WeeklyCycle =>
     protocolId: 'focus-normal',
   }) as WeeklyCycle;
 
+/** A two-line alias over the shared fixture (slice 9.1a). */
 const log = (date: string, over: Partial<DailyLog> = {}): DailyLog =>
-  ({
-    id: `u1_${date}`,
-    userId: 'u1',
-    date,
-    protocolCompleted: false,
-    practiceIds: [],
-    ...over,
-  }) as DailyLog;
+  dailyLog(date, over);
 
 /** Move the wall clock, in a way `new Date()` inside the hook will observe. */
 function setToday(iso: string) {

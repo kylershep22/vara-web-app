@@ -56,6 +56,16 @@ import { cycleSource, phaseSource, useTodayCard } from '../useTodayCard';
 import type { PhaseContext } from '../../journey/resolveJourney';
 import { PROTOCOL_MATRIX } from '../../protocolEngine';
 import type { DailyLog, WeeklyCycle } from '../../types/models';
+import {
+  completionWithProvenance,
+  dailyLog,
+  historicalCompletion,
+  identityWithoutCompletion,
+  pickedNotCompleted,
+} from '../../services/firebase/__tests__/dailyLogFixtures';
+
+/** The one day every case in this suite is about. */
+const TODAY = '2026-08-05';
 
 const cycle = (over: Partial<WeeklyCycle> = {}): WeeklyCycle =>
   ({
@@ -69,16 +79,13 @@ const cycle = (over: Partial<WeeklyCycle> = {}): WeeklyCycle =>
     ...over,
   }) as WeeklyCycle;
 
-/** Today's stored log, as getDailyLog returns it. */
-const log = (over: Partial<DailyLog> = {}): DailyLog =>
-  ({
-    id: 'u1_2026-08-05',
-    userId: 'u1',
-    date: '2026-08-05',
-    protocolCompleted: false,
-    practiceIds: [],
-    ...over,
-  }) as DailyLog;
+/**
+ * Today's stored log, as getDailyLog returns it.
+ *
+ * A two-line alias over the shared fixture (slice 9.1a). The date is fixed
+ * here because every case in this suite is about one day.
+ */
+const log = (over: Partial<DailyLog> = {}): DailyLog => dailyLog(TODAY, over);
 
 async function renderToday(c: WeeklyCycle = cycle()) {
   const view = renderHook(() => useTodayCard('u1', cycleSource(c)));
@@ -175,15 +182,31 @@ describe('useTodayCard — capacity read from the day, seeded from the week', ()
       // (3b-ii-b) made the pick always precede completion, so that write became
       // a second writer of one field and was removed. The picker's confirm is
       // now the sole writer, which useTodayCard.dailyPick.test.ts pins.
+      //
+      // SLICE 9.1a WIDENED THE EXPECTED PATCH AND THE PURPOSE IS UNCHANGED.
+      // Completion now carries provenance - source and the served slot - and
+      // the assertion stays EXACT so it still fails if a capacity write ever
+      // comes back. The `not.toHaveProperty` lines below say that in the form
+      // a reader will look for.
       const { result } = await renderToday(cycle({ capacityInitial: 'limited' }));
 
       act(() => result.current.markDone());
 
       await waitFor(() => expect(mockUpsertDailyLog).toHaveBeenCalled());
-      expect(mockUpsertDailyLog.mock.calls[0][2]).toEqual({
+      const written = mockUpsertDailyLog.mock.calls[0][2];
+      expect(written).toEqual({
         protocolCompleted: true,
         practiceIds: [],
+        completionSource: 'user_declared',
+        protocolCellId: 'refocus-limited',
       });
+      expect(written).not.toHaveProperty('dailyCapacity');
+      expect(written).not.toHaveProperty('dailyTimeBudget');
+      // ABSENT, NOT undefined. Refocus variants carry no family, and
+      // ignoreUndefinedProperties is false on this Firestore instance, so the
+      // key has to be missing rather than present-and-undefined or the write
+      // throws. `toEqual` cannot tell those apart; this can.
+      expect(written).not.toHaveProperty('protocolFamily');
     });
   });
 });
@@ -387,5 +410,105 @@ describe('useTodayCard sourced from a PhaseContext (journey slice 2)', () => {
     renderHook(() => useTodayCard('u1', null));
     expect(mockGetDailyLog).not.toHaveBeenCalled();
     expect(mockCountForOutcome).not.toHaveBeenCalled();
+  });
+});
+
+// THE HISTORICAL-READ CONTRACT, at the hook (slice 9.1a).
+//
+// The hook decides one thing from the stored completion state: whether the
+// card shows the done row or the CTA. `useTodayCard.ts` reads it as
+// `log?.protocolCompleted === true`, and these cases pin that the four stored
+// shapes a real collection now holds all reach the right answer.
+//
+// WHAT IT MUST NEVER DO, and each has a case below: treat a legacy completed
+// row as anything other than complete; read an ABSENT completion key as a
+// user's declared "no"; infer completion from the presence of identity; or
+// surface provenance it has not been asked to surface.
+describe('useTodayCard - the historical-read contract (9.1a)', () => {
+  beforeEach(() => {
+    mockCountForOutcome.mockReset().mockResolvedValue(2);
+    mockGetFloor.mockReset().mockResolvedValue('ten minutes outside');
+    mockGetDailyLog.mockReset().mockResolvedValue(null);
+    mockUpsertDailyLog.mockReset().mockResolvedValue(undefined);
+    mockGetCyclesForUser.mockReset().mockResolvedValue([]);
+  });
+
+  test('a legacy completed row reads as COMPLETE with no provenance at all', async () => {
+    const row = historicalCompletion(TODAY);
+    expect(row.completedAt).toBeUndefined();
+    expect(row.completionSource).toBeUndefined();
+    expect(row.protocolCellId).toBeUndefined();
+    mockGetDailyLog.mockResolvedValue(row);
+
+    const { result } = await renderToday();
+
+    expect(result.current.completed).toBe(true);
+    // And the card still has an action to name: an unknown protocol is not a
+    // broken day, and nothing about the read degrades.
+    expect(result.current.protocol).not.toBeNull();
+    expect(result.current.failed).toBe(false);
+  });
+
+  test('an ABSENT completion key reads as not-done, never as a declined day', async () => {
+    // Sub-shape 3a: a picker confirm writes capacity and time and nothing
+    // else, so `protocolCompleted` has no key. `=== true` is what makes this
+    // behave like `false`; a `!== false` read would report it complete.
+    const row = pickedNotCompleted(TODAY);
+    expect(row.protocolCompleted).toBeUndefined();
+    mockGetDailyLog.mockResolvedValue(row);
+
+    const { result } = await renderToday();
+
+    expect(result.current.completed).toBe(false);
+    // The day WAS answered, which is a different fact and must not be
+    // confused with the one above.
+    expect(result.current.picked).toBe(true);
+  });
+
+  test('an explicit false and an absent key are indistinguishable to the card', async () => {
+    mockGetDailyLog.mockResolvedValue(log({ protocolCompleted: false }));
+    const explicit = await renderToday();
+    expect(explicit.result.current.completed).toBe(false);
+
+    mockGetDailyLog.mockResolvedValue(pickedNotCompleted(TODAY));
+    const absent = await renderToday();
+    expect(absent.result.current.completed).toBe(false);
+  });
+
+  test('identity WITHOUT a completion key does not read as complete', async () => {
+    // A state 9.1a's writer cannot produce. Asserted so that a later reader
+    // who starts treating `protocolCellId` as evidence of completion fails
+    // here rather than in production.
+    const row = identityWithoutCompletion(TODAY);
+    expect(row.protocolCellId).toBeDefined();
+    mockGetDailyLog.mockResolvedValue(row);
+
+    const { result } = await renderToday();
+
+    expect(result.current.completed).toBe(false);
+  });
+
+  test('a provenance-bearing row reads exactly like a legacy completed one', async () => {
+    mockGetDailyLog.mockResolvedValue(completionWithProvenance(TODAY));
+    const withProvenance = await renderToday();
+
+    mockGetDailyLog.mockResolvedValue(historicalCompletion(TODAY));
+    const without = await renderToday();
+
+    expect(withProvenance.result.current.completed).toBe(
+      without.result.current.completed
+    );
+    expect(withProvenance.result.current.completed).toBe(true);
+  });
+
+  test('nothing from the stored row is re-derived onto a legacy completion', async () => {
+    // The engine can always produce today's protocol, which is what makes
+    // back-filling tempting. The hook must not write one: a completion read
+    // is a read, and `markDone` is the only thing on this hook that writes.
+    mockGetDailyLog.mockResolvedValue(historicalCompletion(TODAY));
+
+    await renderToday();
+
+    expect(mockUpsertDailyLog).not.toHaveBeenCalled();
   });
 });
