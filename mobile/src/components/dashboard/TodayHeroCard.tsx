@@ -141,6 +141,28 @@ export interface TodayHeroCardProps {
   consistentDays?: number;
   saving: boolean;
   saveFailed: boolean;
+  /**
+   * The card's data belongs to a day that has ended (rollover safety).
+   *
+   * SUPPRESSES BOTH BRANCHES OF THE COMPLETION CONTROL, not just the button.
+   * A stale load carries the previous day's `completed` as well as its
+   * `protocol`, so a card that trusted it would show a check and an
+   * acknowledgment for a day nobody has completed.
+   *
+   * REUSES THE `saving` TREATMENT rather than introducing a second one: there
+   * is no presentation in this app bound to the hook's `loading` field, and the
+   * dimmed, disabled control is the existing idiom for "not actionable right
+   * now". `styles.cta` keeps its `minHeight`, so nothing reflows.
+   *
+   * WHAT IT DOES NOT COVER, recorded so it is not mistaken for an oversight:
+   * `protocol.dailyAction` above still renders the PREVIOUS day's text while
+   * this is true. Replacing the card body would mean a skeleton this component
+   * does not have, and building one was explicitly out of scope for the slice
+   * that added this flag.
+   *
+   * OPTIONAL so every existing call site and fixture is unaffected.
+   */
+  staleDate?: boolean;
   onMarkDone: () => void;
 }
 
@@ -154,6 +176,7 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
   consistentDays = 0,
   saving,
   saveFailed,
+  staleDate = false,
   onMarkDone,
 }) => (
   <View style={styles.card} testID="home-today-hero">
@@ -174,8 +197,14 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
     )}
 
     {/* The one action. Forward-only: once done there is nothing to un-tap, so
-        the control becomes a state rather than staying a button. */}
-    {completed ? (
+        the control becomes a state rather than staying a button.
+
+        `staleDate` SUPPRESSES THE DONE BRANCH TOO. Until the new day's load
+        commits, `completed` is the PREVIOUS day's answer, so this branch would
+        render a check and an acknowledgment for a day nobody has completed.
+        Falling through to the disabled control shows a state that is merely
+        not-yet-known, which is true, instead of one that is wrong. */}
+    {completed && !staleDate ? (
       <View style={styles.doneRow} testID="home-today-done">
         <View style={styles.doneCheck}>
           <Check size={14} strokeWidth={2.5} color={Colors.white} />
@@ -197,12 +226,12 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
       </View>
     ) : (
       <TouchableOpacity
-        style={[styles.cta, saving && styles.ctaDisabled]}
+        style={[styles.cta, (saving || staleDate) && styles.ctaDisabled]}
         onPress={onMarkDone}
-        disabled={saving}
+        disabled={saving || staleDate}
         activeOpacity={0.8}
         accessibilityRole="button"
-        accessibilityState={{ disabled: saving }}
+        accessibilityState={{ disabled: saving || staleDate }}
         accessibilityLabel={COMPLETION_COPY.markDone}
         testID="home-today-complete"
       >

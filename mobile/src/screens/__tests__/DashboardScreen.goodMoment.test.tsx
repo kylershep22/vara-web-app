@@ -185,6 +185,9 @@ function todayCard(over: Record<string, unknown> = {}) {
   return {
     protocol: { ...PROTOCOL_MATRIX.refocus.normal[0], quickWinActive: true },
     floorCommitment: null, completed: false, loading: false, failed: false,
+    // Rollover safety. The card reads it, so a fixture that omitted it would
+    // pass on undefined rather than on a stated value.
+    staleDate: false,
     markDone: jest.fn(), saving: false, saveFailed: false, picked: true,
     prefillCapacity: 'normal', prefillTime: 'medium', confirmPick: jest.fn(),
     pickSaving: false, pickFailed: false, consistentDays: 0,

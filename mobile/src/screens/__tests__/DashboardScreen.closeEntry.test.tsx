@@ -193,6 +193,9 @@ function todayCardState(over: Record<string, unknown> = {}) {
     floorCommitment: null,
     completed: false,
     loading: false,
+    // Rollover safety. The card reads it, so a fixture that omitted it would
+    // pass on undefined rather than on a stated value.
+    staleDate: false,
     failed: false,
     markDone: jest.fn(),
     saving: false,
