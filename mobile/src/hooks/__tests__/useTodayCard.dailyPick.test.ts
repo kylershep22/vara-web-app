@@ -43,6 +43,7 @@ import { cycleSource, phaseSource, useTodayCard } from '../useTodayCard';
 import type { PhaseContext } from '../../journey/resolveJourney';
 import { PROTOCOL_MATRIX } from '../../protocolEngine';
 import type { DailyLog, WeeklyCycle } from '../../types/models';
+import { dailyLog } from '../../services/firebase/__tests__/dailyLogFixtures';
 
 const TODAY = '2026-08-11';
 const YESTERDAY = '2026-08-10';
@@ -59,15 +60,9 @@ const cycle = (over: Partial<WeeklyCycle> = {}): WeeklyCycle =>
     ...over,
   }) as WeeklyCycle;
 
+/** A two-line alias over the shared fixture (slice 9.1a). */
 const log = (date: string, over: Partial<DailyLog> = {}): DailyLog =>
-  ({
-    id: `u1_${date}`,
-    userId: 'u1',
-    date,
-    protocolCompleted: false,
-    practiceIds: [],
-    ...over,
-  }) as DailyLog;
+  dailyLog(date, over);
 
 /** Serve a specific row per date; anything unlisted is absent. */
 function rows(byDate: Record<string, DailyLog>) {
@@ -103,8 +98,19 @@ describe('useTodayCard — the daily pick', () => {
     });
 
     test('is NOT picked when today carries only a seeded capacity', async () => {
-      // The 3b-i completion write stamps a capacity the user never chose. It
-      // must not read as an answer.
+      // A row carrying a capacity the user never chose must not read as an
+      // answer. Such rows could only have been written in a ~7-hour window on
+      // 2026-08-11, between merges `530cfaa` and `6da51cc`, when markDone
+      // stamped a capacity seeded from `capacityInitial`; that write was
+      // removed in `504282a`.
+      //
+      // WHETHER ANY EXISTS IS UNKNOWN - it turns on whether a build shipped
+      // inside that window, which is deploy state and is not inferrable from
+      // this repo. The assertion holds either way: the predicate should
+      // behave this way whether or not such rows are out there, and being
+      // correct about a row that may not exist costs nothing. Rationale
+      // corrected in slice 9.1a; the previous wording was present-tense about
+      // a removed write and asserted the rows' existence as fact.
       rows({ [TODAY]: log(TODAY, { protocolCompleted: true, dailyCapacity: 'normal' }) });
       const { result } = await renderToday();
 
@@ -261,8 +267,18 @@ describe('useTodayCard — the daily pick', () => {
 
       await waitFor(() => expect(mockUpsertDailyLog).toHaveBeenCalled());
       const written = mockUpsertDailyLog.mock.calls[0][2];
-      expect(written).toEqual({ protocolCompleted: true, practiceIds: [] });
+      // WIDENED BY SLICE 9.1a AND STILL EXACT. Completion now carries
+      // provenance; the capacity assertion below is the one this case exists
+      // for and it is kept in its own line rather than left implicit in the
+      // object above.
+      expect(written).toEqual({
+        protocolCompleted: true,
+        practiceIds: [],
+        completionSource: 'user_declared',
+        protocolCellId: 'refocus-slammed',
+      });
       expect(written).not.toHaveProperty('dailyCapacity');
+      expect(written).not.toHaveProperty('dailyTimeBudget');
     });
   });
 });

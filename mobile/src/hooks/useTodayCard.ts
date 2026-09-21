@@ -29,13 +29,22 @@
  * picker that writes it arrives in 3b-ii.
  *
  * COMPLETION IS KEYED TO THE DATE AND NOTHING ELSE. dailyLogs documents are
- * `${userId}_${date}`, and `protocolCompleted` is a plain boolean on that row
- * with no protocolId beside it. So changing capacity cannot clear a completed
- * day: completion does not record WHICH protocol was done, so there is nothing
- * for a different tier to invalidate. (`dailyCapacity` now sits on the same row,
- * but it is an input the day was run at, not a key completion is qualified by.)
- * That is a property of the schema, not behavior implemented here, and it is
- * why this hook re-reads the log by date rather than by cycle.
+ * `${userId}_${date}`, and `protocolCompleted` is the only thing that says a
+ * day is done. So changing capacity cannot clear a completed day: nothing
+ * about the completion is qualified by which protocol was served, so there is
+ * nothing for a different tier to invalidate. (`dailyCapacity` sits on the
+ * same row, but it is an input the day was run at, not a key completion is
+ * qualified by.) That is a property of the schema, not behavior implemented
+ * here, and it is why this hook re-reads the log by date rather than by cycle.
+ *
+ * THE ROW DOES RECORD WHICH PROTOCOL WAS SERVED SINCE SLICE 9.1a, AND THE
+ * PROPERTY ABOVE SURVIVES IT. This comment used to say the boolean sat there
+ * "with no protocolId beside it", and after 9.1a that sentence is false:
+ * `protocolCellId` and `protocolFamily` are written alongside the completion.
+ * They are a RECORD OF WHAT WAS SERVED, never a key completion is read
+ * through. No reader consults them to decide whether a day is done, and none
+ * may start: the moment completion is qualified by protocol identity, a
+ * capacity change CAN clear a completed day and this guarantee is gone.
  *
  * THE CONTINUITY COUNT WAS ALSO HERE and retired with the card that rendered
  * it (journey slice 6, roadmap section 9 R4). This hook no longer reads
@@ -540,6 +549,24 @@ export function useTodayCard(
           // run, so nothing goes here. Practices logged from the player are a
           // separate write.
           practiceIds: [],
+          // HOW the day was established (section 9 R7). One route in 9.1a:
+          // the user tapped. 'natural' has no writer until a guided practice
+          // can satisfy a protocol in the player.
+          completionSource: 'user_declared',
+          // WHICH SLOT was served, READ FROM THE VARIANT THIS CARD RENDERED.
+          // Nothing on this path calls selectProtocol, and nothing may: a
+          // re-derivation at write time records what is true at the instant
+          // of the tap rather than what the user was looking at, and the two
+          // differ the moment a surface can sit open across a change.
+          //
+          // CONDITIONAL, AND AN ABSENT IDENTITY IS A VALID ROW. `protocol` is
+          // null on the load-failure path, and `family` is undefined on every
+          // Recover and Refocus variant. ignoreUndefinedProperties is false
+          // on this Firestore instance, so an explicit undefined THROWS at
+          // write time rather than being dropped: the key has to be absent,
+          // not present-and-undefined.
+          ...(protocol?.id ? { protocolCellId: protocol.id } : {}),
+          ...(protocol?.family ? { protocolFamily: protocol.family } : {}),
         });
         if (!activeRef.current) return;
         setSaving(false);
@@ -553,7 +580,14 @@ export function useTodayCard(
         setSaving(false);
       }
     })();
-  }, [uid, todayIso, completed, saving]);
+    // THE TWO IDENTITY PRIMITIVES, NOT THE PROTOCOL OBJECT. `protocol` is a
+    // fresh object on every load, so depending on it would rebuild this
+    // callback on each resolve for no gain; the two strings change only when
+    // the served variant actually does. Omitting them entirely is the real
+    // hazard: a journeyStates write bumps `revisionToken`, re-runs the load
+    // and re-resolves the protocol, and a callback captured before that would
+    // write the previous variant's identity.
+  }, [uid, todayIso, completed, saving, protocol?.id, protocol?.family]);
 
   /**
    * Write today's answer. THE ONLY WRITE IN THE PICKER FLOW.
