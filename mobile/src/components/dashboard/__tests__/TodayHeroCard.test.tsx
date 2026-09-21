@@ -187,6 +187,62 @@ describe('TodayHeroCard', () => {
       expect(screen.getByTestId('home-today-done')).toBeTruthy();
       expect(screen.queryByTestId('home-today-complete')).toBeNull();
     });
+  });
+
+  /**
+   * THE ROLLOVER TREATMENT, the render-time half of the completion invariant.
+   *
+   * `staleDate` means the card's data belongs to a day that has ended: every
+   * frame between the calendar date moving and the new day's load committing.
+   * The hook refuses the write on the same flag; this is what stops the control
+   * being OFFERED in the first place, including in the frame React paints
+   * before the load effect has even run.
+   *
+   * REUSES THE `saving` TREATMENT rather than adding a second one. There is no
+   * presentation in this app bound to the hook's `loading` field, and the
+   * dimmed, disabled control is the existing idiom for "not actionable now".
+   */
+  describe('a load that belongs to a day that has ended', () => {
+    test('the completion control is rendered but not actionable', () => {
+      const screen = renderCard({}, { staleDate: true });
+      const cta = screen.getByTestId('home-today-complete');
+
+      // STILL MOUNTED, deliberately: `styles.cta` carries the touch-target
+      // minHeight, so the card holds its shape instead of collapsing and
+      // reflowing every time the day turns.
+      expect(cta.props.accessibilityState).toEqual({ disabled: true });
+    });
+
+    test('no done-state is shown even when the stale load says completed', () => {
+      // THE GUARANTEE THIS CASE EXISTS FOR. `completed` is the PREVIOUS day's
+      // answer until the new load commits, so trusting it would render a check
+      // and an acknowledgment for a day nobody has completed.
+      const screen = renderCard({}, { completed: true, staleDate: true });
+
+      expect(screen.queryByTestId('home-today-done')).toBeNull();
+      expect(screen.getByTestId('home-today-complete')).toBeTruthy();
+    });
+
+    test('the done-state returns once the load is no longer stale', () => {
+      // The other side of the branch above, so a guard that suppressed the
+      // done-state unconditionally could not pass.
+      const screen = renderCard({}, { completed: true, staleDate: false });
+
+      expect(screen.getByTestId('home-today-done')).toBeTruthy();
+      expect(screen.queryByTestId('home-today-complete')).toBeNull();
+    });
+
+    test('an absent staleDate changes nothing for existing callers', () => {
+      // The prop is optional so every call site and fixture predating it keeps
+      // its behaviour. This is what makes that a tested claim.
+      const screen = renderCard();
+      const cta = screen.getByTestId('home-today-complete');
+
+      expect(cta.props.accessibilityState).toEqual({ disabled: false });
+    });
+  });
+
+  describe('the one action, continued', () => {
 
     // THE DONE-LINE'S WORDS, and the four tests below are deliberately about
     // the WORDS rather than about a reference. `COMPLETION_COPY` is module-

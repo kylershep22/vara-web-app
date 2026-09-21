@@ -156,6 +156,23 @@ export interface TodayCard {
    * READ-ONLY. Nothing outside this hook may set it.
    */
   todayIso: string;
+  /**
+   * The committed load belongs to a day that has ENDED (rollover safety).
+   *
+   * True from the render where `todayIso` moves until the new day's load
+   * commits. While it is true the card holds the PREVIOUS day's protocol,
+   * completion and pick state, and none of them describe today.
+   *
+   * THE CONSUMER MUST NOT PRESENT COMPLETION AS ACTIONABLE OR AS DONE while
+   * this is true. Both halves matter: the stale `protocol` is what a write
+   * would stamp, and the stale `completed` is what a done-state would claim.
+   *
+   * DATE ONLY, NEVER IDENTITY. A same-day revision leaves `todayIso` untouched,
+   * so this stays false and the user completes the protocol they read - which
+   * is the intended outcome, arriving by this NOT firing rather than by any
+   * comparison of variants.
+   */
+  staleDate: boolean;
 }
 
 const EMPTY: Omit<TodayCard, 'markDone' | 'confirmPick'> = {
@@ -175,6 +192,11 @@ const EMPTY: Omit<TodayCard, 'markDone' | 'confirmPick'> = {
   // because EMPTY is typed as the full card minus its two callbacks, and an
   // empty string would be a date nothing can parse rather than a date.
   todayIso: '',
+  // NOTHING HAS LOADED ON THIS PATH, so the honest value is `true`. It is never
+  // read there - `protocol` is null, so the card is not mounted - but a `false`
+  // here would assert that a load belonging to today had committed, which is
+  // the one thing this flag exists to be trusted about.
+  staleDate: true,
   pickSaving: false,
   pickFailed: false,
 };
@@ -230,6 +252,19 @@ export function useTodayCard(
   // the conditional floor read both derive from the stored capacity, so a local
   // patch would leave one of them wrong; re-reading is what keeps them together.
   const [reloadToken, setReloadToken] = useState(0);
+  /**
+   * The date the COMMITTED load belongs to, or null before the first one.
+   *
+   * Committed in the SAME batch as `setProtocol`, which is the whole mechanism:
+   * React applies them together, so the protocol on screen and the day it was
+   * resolved for can never disagree.
+   *
+   * NOTHING ELSE IN THIS HOOK PAIRS A PROTOCOL WITH A DAY. `todayIso` is the
+   * live clock and has already moved on by the time the staleness matters, and
+   * `dayCapacity` names a tier that repeats across days. That absence is what
+   * let a completion be written against one day carrying another day's variant.
+   */
+  const [loadedForIso, setLoadedForIso] = useState<string | null>(null);
 
   const activeRef = useRef(true);
 
@@ -481,6 +516,12 @@ export function useTodayCard(
 
         if (!activeRef.current) return;
         setProtocol(resolved);
+        // STAMPED WITH THE DATE THIS CLOSURE CAPTURED, not with the live one.
+        // `todayIso` here is the value the read above was made against, so a
+        // load that resolves after the day has moved stamps the day it actually
+        // served rather than the day it happened to land in. In the same batch
+        // as the protocol it describes, deliberately.
+        setLoadedForIso(todayIso);
         setFloorCommitment(floor);
         setDayCapacity(todaysCapacity);
         setCompleted(log?.protocolCompleted === true);
@@ -523,6 +564,22 @@ export function useTodayCard(
   ]);
 
   /**
+   * The committed load belongs to a day that has ended.
+   *
+   * DERIVED DURING RENDER, WHICH IS THE ENTIRE POINT. `setLoading(true)` runs in
+   * a passive effect, and React paints the commit BEFORE passive effects flush,
+   * so a loading flag cannot reach the first frame after the date moves. That
+   * frame is interactive, and a gate that misses it narrows the window without
+   * closing it. This is computed in that render, so both guards below are true
+   * in the first painted frame.
+   *
+   * ONE DEFINITION, TWO CONSUMERS: the render-time treatment on the card and
+   * the completion-boundary guard in `markDone`. Neither re-derives it, so they
+   * cannot drift apart.
+   */
+  const staleDate = loadedForIso !== todayIso;
+
+  /**
    * Mark today done. One direction only: there is no un-complete.
    *
    * Completion is binary and forward-only by spec (S9.2 permits done or not
@@ -535,7 +592,11 @@ export function useTodayCard(
    * on a round trip to see it acknowledged.
    */
   const markDone = useCallback(() => {
-    if (!uid || completed || saving) return;
+    // `staleDate` IS CHECKED HERE AS WELL AS ON THE CARD, and the duplication is
+    // the point: the render-time treatment makes the control non-actionable,
+    // but a tap already dispatched when the day turned must still refuse. The
+    // invariant is held at the write, not only on screen.
+    if (!uid || completed || saving || staleDate) return;
 
     setSaving(true);
     setSaveFailed(false);
@@ -587,7 +648,7 @@ export function useTodayCard(
     // hazard: a journeyStates write bumps `revisionToken`, re-runs the load
     // and re-resolves the protocol, and a callback captured before that would
     // write the previous variant's identity.
-  }, [uid, todayIso, completed, saving, protocol?.id, protocol?.family]);
+  }, [uid, todayIso, completed, saving, staleDate, protocol?.id, protocol?.family]);
 
   /**
    * Write today's answer. THE ONLY WRITE IN THE PICKER FLOW.
@@ -650,6 +711,7 @@ export function useTodayCard(
     prefillTime,
     consistentDays,
     todayIso,
+    staleDate,
     confirmPick,
     pickSaving,
     pickFailed,

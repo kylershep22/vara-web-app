@@ -588,6 +588,14 @@ const DashboardScreen: React.FC = () => {
                       completed={todayCard.completed}
                       saving={todayCard.saving}
                       saveFailed={todayCard.saveFailed}
+                      /* Rollover safety. True while the card still holds the
+                         previous day's protocol and completion, which is every
+                         frame between the date moving and the new day's load
+                         committing. The card renders its completion control as
+                         non-actionable rather than presenting a stale action or
+                         a stale done-state; the hook refuses the write on the
+                         same flag. */
+                      staleDate={todayCard.staleDate}
                       onMarkDone={todayCard.markDone}
                       /* Never rendered. Decides whether the done state shows
                          the variant's own acknowledgment or the plain line. */
