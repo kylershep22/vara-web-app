@@ -3,7 +3,7 @@
 **Row:** journey roadmap §5 row 9, split. 9.1a is the write path and the data model.
 **Build:** branch `journey/slice-9-1a-completion-provenance`, commit `cb2eb0f`.
 **Device:** iPhone 14 Plus. **17 steps.**
-**Walker:** Kyle. **Status: NOT YET WALKED.**
+**Walker:** Kyle. **Status: WALKED 2026-09-21. 11 of 17 passed, 6 NOT RUN, ZERO FAILS. ATTESTED 2026-09-21.**
 
 ---
 
@@ -329,32 +329,102 @@ so in the result rather than reporting a pass on the device half.
 
 ## Results
 
-_To be filled in by the walker._
-
-**Environment:** _(Firebase project, named from the build config)_
-**Test account uid:** _______
-**Step 0 document ID:** _______
-**Walk date:** _______
-**Device:** _______
+**Environment:** the single Firebase project configured in `mobile/.env`. Verified
+repo-wide that only one exists - `.env` and `.env.production` carry the same id,
+`.env.local` and `eas.json` carry none - so there was no wrong-project risk to
+discharge by inspection. **The project id is deliberately not written here**, per the
+standing rule that it stays out of docs.
+**Test account uid:** `qFQy5IMvDoedal69sz7NIukd1Jv1`
+**Step 0 document ID:** `dailyLogs/qFQy5IMvDoedal69sz7NIukd1Jv1_2026-09-07`
+**Walk date:** 2026-09-21
+**Device:** iPhone 14 Plus, dev client. Default Dynamic Type, Reduce Motion off.
 
 | Step | Result | Notes |
 |---|---|---|
-| 0 | | |
-| 0b | | |
-| 1 | | |
-| 2 | | |
-| 3 | | |
-| 4 | | |
-| 5 | | |
-| 6 | | |
-| 7 | | |
-| 8 | | |
-| 9 | | |
-| 10 | | |
-| 11 | | |
-| 12 | | |
-| 13 | | |
-| 14 | | |
-| 15 | | |
-| 16 | | |
-| 17 | | |
+| 0 | PASS | `..._2026-09-07`. `protocolCompleted: true`; all four provenance fields absent; `dailyCapacity` `limited`, `dailyTimeBudget` `medium`. Identified on `main` BEFORE the branch build was installed. |
+| 0b | PASS | The row is 2026-09-07, not today, so no surface renders it. Noted and moved on, as the step directs. |
+| 1 | PASS | Card showed "Make it harder to reach", Remove phase. Picker answered `Normal` and `5 min or less`. Recorded for step 12. |
+| 2 | PASS | Check and done state appeared immediately on the first tap, not after a round trip. |
+| 3 | PASS | Remove variant acknowledgment rendered. |
+| 4 | NOT RUN | Needs 5+ completed days in the current phase, which began 2026-09-07. Deliberately not constructed by hand. |
+| 5 | PASS | Done state persisted on return; no control to un-complete. |
+| 6 | NOT RUN | Needs a fresh uncompleted day. The walk gets one per real day and the device clock was not changed. |
+| 7 | PASS | Force-quit and relaunch; the day still read complete. |
+| 8 | NOT RUN | Needs a rollover, i.e. a fresh day or a clock change. Neither available. |
+| 9 | NOT RUN | Its fallback depends on step 4. Its own subject, the 2026-09-20 completion written on `main`, is no longer today and Today renders only today. See the result note: step 14 covers the historical read more directly. |
+| 10 | PASS | `..._2026-09-21` carries all four. `completedAt` 2026-09-21 12:13:29 PM UTC-4, twelve seconds after `createdAt` 12:13:17 - a real server time. `completionSource` `user_declared`. |
+| 11 | PASS | `protocolCompleted` still boolean `true`; `practiceIds` still `[]`; `date` matches the document ID. |
+| 12 | PASS | `protocolCellId` `remove-normal` against "Make it harder to reach" / Remove / `Normal` recorded at step 1. `dailyTimeBudget` stored `short`, matching `5 min or less`. |
+| 13 | PASS | `protocolFamily` `behavioral`, present as required for a Remove variant. |
+| 14 | PASS | `..._2026-09-07` re-opened by its recorded ID. All four provenance fields STILL ABSENT - absent, not null - beside `protocolCompleted: true` and 2026-09-07 `createdAt`/`updatedAt`. |
+| 15 | NOT RUN | No app path produces a second write to a completed day. Not hand-edited: a console edit tests the console, not the service. Guarantee rests on its unit test. |
+| 16 | NOT RUN | Depends on step 6. |
+| 17 | NOT RUN | Depends on step 8. |
+
+---
+
+## WALK RESULT - 2026-09-21, 11 OF 17, NO FAILURES
+
+**Walked by Kyle on an iPhone 14 Plus, dev client, 2026-09-21. ELEVEN PASSED, SIX NOT
+RUN, ZERO FAILED. Attested 2026-09-21.**
+
+**SECTION C RAN IN FULL WHERE IT COULD, AND IT IS THE RESULT THAT MATTERS.** Sections A
+and B would have passed on main; everything this slice adds is in the console, and it
+was inspected.
+
+**THE NEW COMPLETION CARRIES ALL FOUR FIELDS, CORRECTLY.**
+`dailyLogs/qFQy5IMvDoedal69sz7NIukd1Jv1_2026-09-21`, written at the step-2 tap:
+
+- `completedAt` 2026-09-21 12:13:29 PM UTC-4, twelve seconds after `createdAt` at
+  12:13:17. A real server time, not an epoch and not a string.
+- `completionSource` `user_declared`, underscore correct.
+- `protocolCellId` `remove-normal`.
+- `protocolFamily` `behavioral`.
+- `protocolCompleted` still boolean `true`; `practiceIds` still `[]`; `date` matches the
+  document ID.
+
+**STEP 12 IS THE ONE THE IDENTITY DESIGN EXISTED FOR, AND IT PASSED AGAINST A RECORDED
+OBSERVATION RATHER THAN AN IMPRESSION.** The card on screen showed "Make it harder to
+reach" under a Remove phase, with `Normal` capacity and `5 min or less` answered in the
+picker. The stored `remove-normal` / `behavioral` matches that variant, and
+`dailyTimeBudget` stored `short`, matching the time answer. Identity was read from the
+variant the card RENDERED, never re-derived at write time. Before this walk that was an
+argument in a Step 0; it is now an observation.
+
+**STEP 14 IS THE MOST IMPORTANT RESULT IN THE WALK AND IT PASSED.**
+`dailyLogs/qFQy5IMvDoedal69sz7NIukd1Jv1_2026-09-07`, a genuine pre-9.1a completed row
+identified on main BEFORE the branch build was installed, was re-opened after the walk by
+its recorded ID. It still carries `protocolCompleted: true` and `createdAt`/`updatedAt`
+of 2026-09-07, and `completedAt`, `completionSource`, `protocolCellId` and
+`protocolFamily` are ALL STILL ABSENT - absent, not null. Clause (c) of
+`stampProvenance` is now verified in production and not only by its unit test. A
+fabricated timestamp on that row would have been indistinguishable from a real one and
+unrepairable, which is why this step existed.
+
+**SIX STEPS NOT RUN, AND THE REASONS ARE STRUCTURAL RATHER THAN OVERSIGHTS.**
+
+- Steps 6, 8, 16 and 17 each need a FRESH UNCOMPLETED DAY, and the walk gets one per real
+  day. Kyle declined to change the device clock, which is the only mechanism that
+  manufactures another. Step 6 is the offline revert, step 8 the rollover, step 16 the
+  post-revert document inspection and step 17 the rollover day's shape. All four are
+  regression or shape checks on behaviour this slice did not change; none tests a
+  provenance field.
+- Step 4, the acknowledgment quieting past five consistent days, needs 5+ completed days
+  in the current phase, which began 2026-09-07. NOT RUN, and deliberately not constructed
+  by hand - the count derives from real completed days and a hand-made row would test the
+  derivation against data the app did not write.
+- Step 9's fallback path depends on step 4, so it is NOT RUN with it. Its subject, the
+  2026-09-20 completion written on main, has no surface that renders it: Today renders
+  today. THE HISTORICAL READ IS NOT THEREBY UNVERIFIED - step 14 inspected the historical
+  row directly and found it untouched, which is stronger evidence than an inference from
+  a derived count would have been.
+
+**ONE OBSERVATION THE STEPS DID NOT ASK FOR.** A second pre-9.1a completed row was
+created deliberately on main on 2026-09-20, before the branch build was installed, to
+give step 9 a rendering subject. It did not serve that purpose, because the day had
+passed by the time the walk ran. It remains on the record as a second provenance-free row
+and was not touched by this build.
+
+**NO SEPARATE DEV DATABASE EXISTS.** The repo configures one Firebase project; the test
+account's rows are production rows. Recorded so a later reader does not assume an
+isolated environment.
