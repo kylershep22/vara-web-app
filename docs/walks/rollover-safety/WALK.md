@@ -3,7 +3,7 @@
 **Row:** daily protocol rollover safety. Blocks 9.1b, which blocks R3.
 **Build:** branch `fix/rollover-safety`.
 **Device:** iPhone 14 Plus. **9 steps, in two sections.**
-**Walker:** Kyle. **Status: NOT RUN.**
+**Walker:** Kyle. **Status: WALKED 2026-09-21. 9 of 9 passed, ZERO FAILS. ATTESTED 2026-09-21.**
 
 ---
 
@@ -158,3 +158,46 @@ device, and PASS / FAIL / NOT RUN / FINDING per step.
 **Section B's observation is a report, not a pass/fail.** Write down what the
 card actually did. If it was undisruptive, say so plainly - that is the answer
 the step was asked to produce.
+
+---
+
+## Results
+
+**2026-09-21 · Kyle · iPhone 14 Plus, dev client · Dynamic Type default · Reduce Motion off**
+
+| Step | | Result |
+|---|---|---|
+| A1 | The day's action is offered | **PASS** |
+| A2 | Completion lands | **PASS** |
+| A3 | The acknowledgment matches the protocol | **PASS** |
+| A4 | A second tap is a no-op | **PASS** |
+| A5 | Completion survives a restart | **PASS** |
+| A6 | Leaving and returning does not disturb it | **PASS** |
+| B0 | Get the card into its uncompleted state | **PASS** |
+| B1 | Trigger a journey write and watch the card | **PASS** |
+| B2 | The tap works again afterwards | **PASS** |
+| B3 | Sanity check on the surrounding surface | **PASS** |
+
+**9 of 9 steps passed. Zero failures. Zero not run. Attested 2026-09-21.**
+
+*(Ten rows, nine steps: B0 is setup for B1 and is recorded rather than counted.)*
+
+---
+
+## WALK RESULT — 2026-09-21, 9 OF 9, NO FAILURES
+
+**Walked by Kyle on an iPhone 14 Plus, dev client, 2026-09-21. NINE PASSED, ZERO FAILED, ZERO NOT RUN. Attested 2026-09-21.**
+
+**A1 IS THE RESULT THAT MATTERED MOST AND IT PASSED.** The realistic risk in this change was always the opposite of the bug: a guard tight enough to refuse a legitimate tap. On a normal day with nothing in flight the CTA rendered at full strength, tappable, exactly as before. The guard does not fire when it should not.
+
+**THE COMPLETION PATH IS UNREGRESSED.** A2 completed optimistically on the first tap. A3 rendered the variant's own acknowledgment, "Nice. That's in place.", against the behavioral variant in remove-normal, matching the protocol on screen. A4's second tap was a no-op, A5 survived a restart, A6 held across tab switches without flashing through the button state.
+
+**B1 PRODUCED NO VISIBLE CHANGE AT ALL, AND THAT IS BETTER THAN THE CONTRACT ACCEPTED.** Kyle explicitly accepted, in advance, that the card might sit dimmed and un-tappable for several seconds on every rollover — the cost of deriving staleDate during render rather than from a passive effect. Across a revisionToken bump, which re-arms exactly the load a midnight rollover re-arms, the device showed nothing: no dim, no flash, no cycling, no jump, no resize, no collapse, no shift in the content below. The accepted cost was not charged on this device and this connection. RECORDED AS AN OBSERVATION, NOT A GUARANTEE — a faster path than predicted is not proof that a slower one cannot occur on a cold network.
+
+**B2 PASSED, WHICH IS THE SECOND TRIPWIRE.** After the transition settled, the tap completed normally. The guard releases; it does not latch.
+
+**B3: the rest of Today was undisturbed.** The journey line, the offer slot, the Good moments row and the close entry all behaved as before. This slice passes one prop to one card and touches nothing else on the screen.
+
+**WHAT THIS WALK DID NOT AND COULD NOT SHOW, stated rather than implied.** The window itself, which needs the calendar date to change under a running app plus a tap within the next few seconds. That the fix closes it — no walk can demonstrate the absence of a race. The superseded-load defect, which is a separate approved row and untouched here. A corrupted row, because the bad write cannot be provoked, which is why this walk has no console section at all.
+
+**THE CORRECTNESS EVIDENCE IS THE AUTOMATED COVERAGE, AND IT IS STRONGER THAN THE WALK.** See the §13 entry for the red test and the mutation battery.
