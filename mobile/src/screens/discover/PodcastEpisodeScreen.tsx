@@ -47,7 +47,12 @@ export default function PodcastEpisodeScreen() {
 
   if (!episode) return null;
 
-  const isCurrentlyPlaying = isPlaying && currentTrack === episode.title;
+  // FIXED IN LEARN-REHOUSE. This read `currentTrack === episode.title`.
+  // `currentTrack` is an `AudioTrack | null` — an OBJECT carrying a `.title` —
+  // so the comparison was always false and the play control never showed the
+  // playing state. It sat in the tsc baseline as TS2367; the identical defect
+  // was in MasterclassScreen and moved to LearnLibrary with the fix applied.
+  const isCurrentlyPlaying = isPlaying && currentTrack?.title === episode.title;
 
   const handlePlay = () => {
     playTrack(episode.title, episode.audioUrl, false, podcastCover);

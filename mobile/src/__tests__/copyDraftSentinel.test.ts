@@ -737,7 +737,63 @@ import * as path from 'path';
 // NOTHING THIS SLICE REPLACED CARRIED A SENTINEL EITHER, so -0 is correct
 // rather than convenient: the surface is new, and there was no prior string on
 // it to retire.
-const EXPECTED_SENTINELS = 149;
+//
+// 150 AT LEARN-REHOUSE, 2026-09-21: -1 AND +2, AND THE TWO DIRECTIONS HAVE
+// DIFFERENT CAUSES. The slice re-housed the podcast library from the Energy
+// hub's "Learn" row onto the Learn tab (IA roadmap step 5, "re-house
+// podcasts"). Nine user-facing strings landed and one was deleted; only three
+// of those ten move this number.
+//
+// THE -1 IS A DELETION, NOT AN APPROVAL, and it takes the third case from the
+// block at the top of this file rather than the contract's first. The string is
+// LearnHubScreen's placeholder, "Things worth understanding will live here."
+// NO OWNER IS NAMED BECAUSE NOBODY SIGNED IT OFF: the tab it stood in for
+// stopped being a shell, so the line describing a tab with no content had
+// nothing left to describe. Same shape as journey slice 3b's weekly-open
+// deletion above.
+//
+// THE +2 ARE MINE, NOT KYLE'S, AND THAT IS THE WHOLE REASON THEY COUNT. They
+// are the two chip accessibility labels in components/library/LearnLibrary.tsx:
+// "Listen on Apple Podcasts. Opens outside the app." and "Listen on Spotify.
+// Opens outside the app." Section 16 requires every pressable to carry a label
+// naming the action, and the chips had none on either screen, so the wording
+// had to be written; nobody has reviewed it. Unapproved drafted copy takes a
+// sentinel, which is the contract's second case, and these are pending Kyle as
+// UI owner.
+//
+// SEVEN STRINGS ENTER FLAT AND DO NOT COUNT, by the "approved copy is not
+// drafted copy" route the 7n and slice-8 entries above establish. All seven are
+// KYLE'S, authored and approved by him as UI strings in the build prompt that
+// commissioned this slice - which is the owner the contract assigns to UI copy,
+// so the warrant is the full one rather than the weaker cross-owner kind the
+// ADJUST_COPY entry above had to flag. They are the six feed states' copy:
+// "Episodes aren't available" / "You're offline, so we can't load them right
+// now." (state 2); "You're offline. Showing episodes saved earlier." (state 3);
+// "Episodes didn't load" / "We couldn't reach the feed right now." / "Try
+// again" (states 4 and 6); and "Showing saved episodes. We couldn't refresh the
+// feed." (state 5).
+//
+// THE ROUTE CHOSEN IS "ENTERING FLAT" (the :319-322 precedent), NOT "+n THEN -n
+// IN ONE COMMIT" (the ADJUST_COPY precedent). Both land on 150. The second
+// route exists for a string landing on a surface whose owner is someone else
+// and then being cleared by whoever was available, which is why that entry has
+// to record a weaker warrant. There is no second owner here: UI copy is Kyle's
+// and Kyle wrote these, so a +7/-7 would be recording a handoff that never
+// happened.
+//
+// AND THE TWELVE STRINGS THAT MOVED HOUSE DO NOT COUNT, WHICH IS WORTH SAYING
+// RATHER THAN LEAVING TO ARITHMETIC. MasterclassScreen's body was extracted to
+// LearnLibrary and its existing strings went with it unchanged - EPISODES,
+// MASTERCLASS, "Also available on", "Loading content...", "Loading podcast...",
+// the episode/episodes plural, "Ep. {n}", "Episode details", "Now playing",
+// "Play episode", "Apple", "Spotify". NONE carried a sentinel before the move
+// and none gained one, so the count is untouched by them. THAT IS NOT THE SAME
+// AS THEM BEING APPROVED: they are unreviewed strings that have been shipping
+// two taps deep and now sit on a primary tab. This file cannot see a change of
+// prominence - its contract has no promotion case - so the risk is recorded
+// here and flagged to Kyle rather than silently absorbed. Two of them, the
+// all-caps section labels, are also the shape standards 5.4 bans.
+const EXPECTED_SENTINELS = 150;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');

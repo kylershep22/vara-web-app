@@ -61,39 +61,34 @@ const CATEGORIES: CategoryCardConfig[] = [
   },
 ];
 
-// Secondary entries below the three protocol categories. These are not "ways to
-// shift how you feel" (the three cards above) — they are the library surfaces
-// re-homed into Energy by the Four-Pillar IA. B-3d.2 adds Journal (Rest /
-// evening wind-down reflection); B-3d.3 adds the Learn library (Masterclass).
-interface SecondaryEntry {
-  id: string;
-  route: 'Journal' | 'Masterclass';
-  label: string;
-  descriptor: string;
-  icon: string;
-}
-
-const SECONDARY_ENTRIES: SecondaryEntry[] = [
-  {
-    id: 'journal',
-    route: 'Journal',
-    label: 'Journal',
-    descriptor: 'Wind down with an evening reflection.',
-    icon: 'book-outline',
-  },
-  {
-    id: 'learn',
-    route: 'Masterclass',
-    label: 'Learn',
-    descriptor: 'Short lessons on why these practices work.',
-    icon: 'school-outline',
-  },
-];
+// ONE SECONDARY ENTRY, AND THE SECTION AROUND IT IS GONE (LEARN-REHOUSE).
+//
+// B-3d re-homed two library surfaces into Energy and grouped them: B-3d.2 added
+// Journal (Rest / evening wind-down reflection) and B-3d.3 added the Learn
+// library. LEARN IS NO LONGER HERE — the podcast library it pointed at now
+// lives on the Learn TAB (`ROUTES.PillarLearn` -> `LearnHubScreen`), which is
+// the IA roadmap's step 5, "re-house podcasts". The `Masterclass` AppStack
+// route still exists and still renders the same content, but nothing on this
+// screen links to it.
+//
+// So the grouping had one member left, and a "library surfaces" section holding
+// a single row reads as a leftover rather than a decision. Journal is now its
+// own row, written inline the way the Focus hub writes its secondary entry
+// (FocusHubScreen.tsx:158-172) rather than mapped over a one-element array.
+//
+// ENERGY'S SECONDARY TIER IS QUIETER THAN FOCUS'S AND MUST STAY THAT WAY: the
+// leading icon and the chevron are both 20 here where Focus uses 24 and no
+// leading icon at all. Copying Focus's markup wholesale would silently change
+// both.
+const JOURNAL_ENTRY = {
+  label: 'Journal',
+  descriptor: 'Wind down with an evening reflection.',
+  icon: 'book-outline',
+} as const;
 
 type NavigationProp = NativeStackNavigationProp<{
   EnergyBrowse: { category: ProtocolBrowseCategory };
   Journal: undefined;
-  Masterclass: undefined;
 }>;
 
 export function EnergyHubScreen() {
@@ -150,27 +145,24 @@ export function EnergyHubScreen() {
           ))}
         </View>
 
-        {/* Library surfaces re-homed into Energy (B-3d). Quieter than the three
-            category cards above so the "three ways" framing stays primary. */}
-        <View style={styles.secondary}>
-          {SECONDARY_ENTRIES.map((e) => (
-            <TouchableOpacity
-              key={e.id}
-              style={styles.secondaryRow}
-              onPress={() => navigation.navigate(e.route)}
-              accessibilityRole="button"
-              accessibilityLabel={`${e.label}. ${e.descriptor}`}
-              testID={`energy-hub-secondary-${e.id}`}
-            >
-              <Icon name={e.icon as any} size={20} color={Colors.mutedSageGray} />
-              <View style={styles.secondaryText}>
-                <Text style={styles.secondaryLabel}>{e.label}</Text>
-                <Text style={styles.cardDescriptor}>{e.descriptor}</Text>
-              </View>
-              <Icon name="chevron-right" size={20} color={Colors.mutedSageGray} />
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* Journal, the one library surface still homed here (B-3d.2). Quieter
+            than the three category cards above so the "three ways" framing
+            stays primary. The testID is unchanged from when this was a mapped
+            section: a test and the device walk both name it. */}
+        <TouchableOpacity
+          style={styles.secondaryRow}
+          onPress={() => navigation.navigate('Journal')}
+          accessibilityRole="button"
+          accessibilityLabel={`${JOURNAL_ENTRY.label}. ${JOURNAL_ENTRY.descriptor}`}
+          testID="energy-hub-secondary-journal"
+        >
+          <Icon name={JOURNAL_ENTRY.icon as any} size={20} color={Colors.mutedSageGray} />
+          <View style={styles.secondaryText}>
+            <Text style={styles.secondaryLabel}>{JOURNAL_ENTRY.label}</Text>
+            <Text style={styles.cardDescriptor}>{JOURNAL_ENTRY.descriptor}</Text>
+          </View>
+          <Icon name="chevron-right" size={20} color={Colors.mutedSageGray} />
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -245,13 +237,16 @@ const styles = StyleSheet.create({
     ...TextStyles.bodySmall,
     color: Colors.mutedSageGray,
   },
-  // Secondary entries (re-homed library surfaces): de-emphasized vs the category
-  // cards — no border/surface fill, smaller icon, lighter label.
-  secondary: {
-    marginTop: Spacing.xl,
-    gap: Spacing.xs,
-  },
+  // The Journal entry: de-emphasized vs the category cards — no border/surface
+  // fill, smaller icon, lighter label.
+  //
+  // `secondary`, the section wrapper, went with the grouping (LEARN-REHOUSE).
+  // It carried `marginTop: Spacing.xl` and a `gap` that had nothing left to
+  // space; the margin moves here so the row keeps its distance from the cards
+  // above. minHeight stays: 16's touch-target floor applies to a lone row
+  // exactly as it did to a grouped one.
   secondaryRow: {
+    marginTop: Spacing.xl,
     minHeight: SizeTokens.touchTargetMin,
     flexDirection: 'row',
     alignItems: 'center',

@@ -70,6 +70,23 @@ jest.mock('expo-linear-gradient', () => ({
   LinearGradient: 'LinearGradient',
 }));
 
+// expo-network (LEARN-REHOUSE). `LearnLibrary` reads connectivity directly from
+// `getNetworkStateAsync` rather than through `useNetworkStatus`, so any suite
+// that renders the Learn tab or the Masterclass screen reaches this module.
+//
+// THE DEFAULT IS CONNECTED, WHICH IS THE ORDINARY CASE AND NOT AN ASSUMPTION
+// THE COMPONENT INHERITS. The component treats "online", "offline" and
+// "unknown" as three distinct values, and the suites that care override this
+// per test — including the unknown case, which is what a REJECTED promise here
+// produces. A suite that never touches it gets the boring path.
+jest.mock('expo-network', () => ({
+  getNetworkStateAsync: jest.fn().mockResolvedValue({
+    isConnected: true,
+    isInternetReachable: true,
+    type: 'WIFI',
+  }),
+}));
+
 // Same failure, same fix, one layer further out (journey slice 7a). `expo` and
 // `expo-video` are what VideoPlayerModal imports, and both reach
 // expo-modules-core's EventEmitter at import time. Nothing needed them until

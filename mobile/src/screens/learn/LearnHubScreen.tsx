@@ -1,13 +1,24 @@
-// Learn tab root — IA restructure step 2 (nav skeleton).
+// Learn tab root — IA restructure step 5, "re-house podcasts" (LEARN-REHOUSE).
 //
-// A SHELL, on the same terms as PracticesHubScreen: it makes the four-tab bar
-// real and walkable now, and carries no logic, no data, no navigation and
-// nothing tappable. Content arrives in a later step.
+// NO LONGER A SHELL. It was one from IA step 2 until this slice: a title and a
+// single placeholder line, no data, nothing tappable. It now renders the
+// podcast library that used to sit two taps deep behind the Energy hub's
+// "Learn" row, via the shared `LearnLibrary` component.
+//
+// THE CHROME IS UNCHANGED AND THAT IS DELIBERATE. `edges={['top']}`, the
+// `useTabBarInset()` call, the title row with its H1 and the `learn-hub`
+// testID all predate this slice and were already correct for a tab root. The
+// work here was putting content UNDER the existing title, not rebuilding the
+// frame around it.
+//
+// NO HERO BAND. Standards 2.8 assigns this route ATMOSPHERIC and both 2.8 and
+// template 11F bar a band on a tab root ("Tab-root hubs (Journey, Learn) are
+// atmospheric with no band"), so `ScreenHeader` must not appear here.
 //
 // Naming note: the route id is ROUTES.PillarLearn, not `Learn`. The Masterclass
 // AppStack screen already ships with the visible header title "Learn", so the
 // prefix keeps a route id and a header string from ever being read as the same
-// thing.
+// thing. That screen is now chrome around the same shared component.
 
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -16,12 +27,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTabBarInset } from '../../hooks/useTabBarInset';
 
 import { Colors, Spacing, TextStyles } from '../../constants';
-
-// COPY: draft, not from guidelines doc - pending Jen
-// Stands in for a tab that has no content yet, so this is a build-state message
-// rather than a real empty state. It used to render an on-screen [COPY GAP]
-// prefix; that convention is retired and no marker text may reach the UI.
-const PLACEHOLDER = 'Things worth understanding will live here.';
+import { LearnLibrary } from '../../components/library/LearnLibrary';
 
 export function LearnHubScreen() {
   // Bottom clearance for the floating tab bar (12.2).
@@ -36,7 +42,7 @@ export function LearnHubScreen() {
         <View style={styles.titleRow}>
           <Text style={styles.title}>Learn</Text>
         </View>
-        <Text style={styles.intro}>{PLACEHOLDER}</Text>
+        <LearnLibrary />
       </ScrollView>
     </SafeAreaView>
   );
@@ -66,10 +72,8 @@ const styles = StyleSheet.create({
     ...TextStyles.h1,
     color: Colors.evergreenTeal,
   },
-  intro: {
-    ...TextStyles.body,
-    color: Colors.mutedSageGray,
-  },
+  // `intro` went with the placeholder it styled. The body's own copy now comes
+  // from LearnLibrary, which carries its own type scale.
 });
 
 export default LearnHubScreen;
