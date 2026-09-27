@@ -2,6 +2,11 @@
 
 **Branch:** `feat/learn-rehouse` · **Commit:** `3148b4b` · **Base:** `main` @ `7233bac`
 **Written:** 2026-09-21 · **Owner of the walk:** Kyle
+**Device:** iPhone 14 Plus, dev client. **22 steps, in four sections.**
+**Status: WALKED 2026-09-27. 7 PASS, 2 steps FINDING (one finding), 13 NOT RUN, ZERO FAILS.**
+**ONE FINDING: both podcast chips opened a page-not-found. Fixed on the same
+branch at `865d69d` and NOT RE-WALKED — the chips need one more tap on a device
+before this walk is closed.**
 
 The build is committed, so the walk has a fixed reference. Every step below has a
 pass condition. Record a result per step; a step that is not run is recorded as
@@ -274,3 +279,119 @@ discoverable either way.
 baseline. The single new warning is `max-lines` on the new `LearnLibrary` test
 file, which is 306 lines against a 300 limit. I left it rather than deleting a
 test or splitting a coherent suite to get under the number.
+
+---
+
+## Results
+
+**2026-09-27 · Kyle · iPhone 14 Plus, dev client**
+
+**22 steps: 7 PASS · 2 FINDING · 13 NOT RUN · ZERO FAILS.**
+
+| Step | | Result |
+|---|---|---|
+| A1 | Bottom inset, 14 Plus, scrolled fully down | **PASS** |
+| A2 | Bottom inset, SE | **NOT RUN** — the SE is not walkable in this setup, expected by the script, outstanding since R1b-i |
+| A3 | Top inset | **PASS** |
+| A4 | No band on the tab root | **PASS** |
+| A5 | The title survives every state | **NOT RUN** — the step requires triggering each Section C state, and only state 1 was reached |
+| B1 | Real episodes from the live feed | **PASS** — five episodes from the live Captivate feed |
+| B2 | The play button swaps to pause and takes the active fill | **PASS** — and this is the observation the step was written for |
+| B3 | Episode details | **PASS** |
+| B4 | Masterclass absence reads as absence | **NOT RUN** — not reported |
+| B5 | Energy's Journal row | **NOT RUN** — not reported; the orphaned-row judgement call is still unanswered |
+| C1 | State 1 — online, feed loads | **PASS** — this is the state B1 and B2 were walked in |
+| C2 | State 3 — offline with a warm cache | **NOT RUN** — **this is the headline step and it is unwalked** |
+| C3 | State 5 — feed failed with a cache | **NOT RUN** — needs a network that resolves but cannot reach `feeds.captivate.fm`; the script anticipates this |
+| C4 | State 2 — offline with a genuinely cold cache | **NOT RUN** — needs a reinstall, which the script says to record rather than approximate |
+| C5 | State 4 — feed failed, no cache | **NOT RUN** — reachable only in the reinstalled state with the feed unreachable; hardest to force |
+| C6 | State 6 — connectivity unknown | **NOT RUN** — not producible on a healthy device, per the script |
+| D1 | Apple, app installed | **FINDING** — a page-not-found, not The Resilient Brain |
+| D2 | Apple, app NOT installed | **NOT RUN** — requires deleting Apple Podcasts |
+| D3 | Spotify, app installed | **FINDING** — a page-not-found, not The Resilient Brain |
+| D4 | Spotify, app NOT installed | **NOT RUN** — requires a device without Spotify |
+| D5 | VoiceOver on both chips | **NOT RUN** — the two drafted labels are still unreviewed out loud |
+| D6 | Chip touch targets — LOOK, do not fix | **NOT RUN** — no observation recorded, so a future slice has nothing to scope against |
+
+### D1 and D3 in full — the finding
+
+**Both chips opened a page-not-found.** Apple `id1800655498` and Spotify
+`show/4PYCeTiYRfeWKiYtyMIen4` are both dead. Kyle then confirmed on the device
+that the replacement pair — Apple `id1882167234`, Spotify
+`show/2Q22r7SDIHkN0cvy1zmH4F` — resolves to **The Resilient Brain** in a browser.
+
+**Fixed on the same branch at `865d69d`**, across four files and eight literals,
+tests included. **NOT RE-WALKED.** The fix is pinned by tests asserting the new
+URLs, which is not the same as a tap on a device. **D1–D4 stay open until someone
+taps the chips on the corrected build.**
+
+**THIS IS A FINDING, NOT A FAIL.** The move, the six states and the cache fix are
+independent of which URL pair is right, exactly as the script said in advance.
+
+### Why this was found at all, which belongs in the record
+
+The pass condition read **"confirm the app opens THE RESILIENT BRAIN"**, never
+"confirm a link opens". **A link opened. It opened a 404.** Apple Podcasts came
+up; something rendered; a tap produced a response. Every softer wording of that
+step — "the chip works", "Apple Podcasts opens", "the link resolves" — passes on
+what Kyle actually saw, and **two dead links would have shipped on a primary
+tab**, on the Learn tab and on the Podcast Episode screen both.
+
+The step was worded that way because the URL pair was in doubt when the slice was
+built and the repo could not settle it. It was worded to settle it. It did.
+
+---
+
+## WALK RESULT — 2026-09-27, 7 PASS, 1 FINDING ACROSS 2 STEPS, 13 NOT RUN
+
+**Walked by Kyle on an iPhone 14 Plus, dev client, 2026-09-27.**
+
+**THE FINDING: BOTH PODCAST CHIPS POINTED AT A SHOW THAT DOES NOT EXIST.** Apple
+`id1800655498` and Spotify `show/4PYCeTiYRfeWKiYtyMIen4` both 404. The corrected
+pair was confirmed in a browser on the device and replaced everywhere it appears
+at `865d69d` — both surfaces, so they cannot diverge — with the chip tests
+re-pinned to the new URLs, because a test asserting a dead link passes for the
+wrong reason. **Not re-walked. One tap closes it.**
+
+**`isEpisodePlaying` IS CONFIRMED FIXED BY OBSERVATION, WHICH IS THE ENTIRE POINT
+OF WALKING IT.** The old expression compared an `AudioTrack` object to a string
+and was permanently false; it had been shipping since the screen was written and
+sat invisible inside the tsc baseline as a `TS2367`. On the device, the playing
+row showed a **filled teal pause control** while every other row showed a **pale
+play control**. That is the first time that state has ever rendered. No unit test
+produced this evidence and none could — the tests pin the label, not the pixels.
+
+**THE TAB RENDERS AND WORKS.** Five episodes from the live Captivate feed, real
+titles and durations; the player runs; the episode detail screen pushes and
+returns. The tab-root geometry holds: the last card clears the floating capsule
+with breathing room, the title clears the Dynamic Island, and there is no
+watercolor band on the tab root.
+
+**WHAT THIS WALK DID NOT COVER, stated so the result is not read as broader than
+it is.**
+
+1. **The cache fix — the headline change — is unwalked.** C2 is the step that
+   proves a cache older than an hour still displays, and it was not run. The
+   evidence for it is unit coverage only. **This is the largest gap in the
+   record**, because it is the one behaviour the slice added to scope.
+2. **Four of the six states.** C3, C4, C5 and C6 are all NOT RUN. C4 needs a
+   reinstall, C3 and C5 need a cooperative broken network, C6 cannot be produced
+   on a healthy device at all.
+3. **The chips on the corrected build.** See the finding.
+4. **VoiceOver.** The two chip accessibility labels are CC's own wording, carry
+   sentinels, and are still unheard and unapproved.
+5. **The touch-target observation.** D6 asked only for a report on how hard the
+   24pt chips are to hit. None was recorded, so the future slice that fixes them
+   has no device evidence to be scoped against.
+6. **Masterclass absence (B4) and Energy's standalone Journal row (B5).** Neither
+   was reported. B5 in particular carried a judgement call that no test can
+   return — whether the single remaining row reads as deliberate or as the
+   leftover of a deleted pair — and it is still unanswered.
+7. **The SE half of the matrix**, unchanged and still outstanding since R1b-i.
+8. **`MasterclassScreen`**, which cannot be walked because nothing links to it
+   any more. Registered, correct and unreachable: the DARK shape §2.8 defines.
+
+**NOTHING FAILED.** Seven passes, one finding across two steps, thirteen not run.
+The not-run count is high and most of it is structural — a reinstall, a broken
+network, a second device — but C2 is not structural and is the one worth coming
+back for.
