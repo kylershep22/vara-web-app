@@ -266,7 +266,29 @@ export function useTodayCard(
    */
   const [loadedForIso, setLoadedForIso] = useState<string | null>(null);
 
-  const activeRef = useRef(true);
+  /**
+   * "Is this hook still mounted", for the two CALLBACKS and nothing else.
+   *
+   * `markDone` and `confirmPick` outlive the load run they were called under -
+   * any journey write re-arms the load mid-write - so their post-write state
+   * must answer to the mount, never to a run. Gated on a run, `saving` and
+   * `pickSaving` would stick true, a failed write would never revert, and the
+   * confirm's reload would be skipped exactly when a newer load had read the
+   * row before the pick landed.
+   *
+   * The load effect does NOT read this. It owns a per-run flag of its own; see
+   * the note at its head.
+   */
+  const mountedRef = useRef(true);
+  // SET TRUE IN THE EFFECT BODY, not only at `useRef(true)`: StrictMode's
+  // simulated remount runs the cleanup and then this body, and an initializer
+  // alone would leave the flag false for the life of the component.
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   /**
    * TODAY, AS STATE, so the day can roll over under a running app.
@@ -420,7 +442,18 @@ export function useTodayCard(
   // its focus effect re-resolves on every return to the tab.
 
   useEffect(() => {
-    activeRef.current = true;
+    // RUN OWNERSHIP (ASYNC-LOAD-OWNERSHIP). This run may mutate state only
+    // while it is the CURRENT run. React runs a run's cleanup before its
+    // successor's body, so once a dependency moves this is false for good and
+    // every await below that resolves late finds it false.
+    //
+    // A SHARED REF CANNOT DO THIS. It stood here as `activeRef`: the old run's
+    // cleanup set it false and the new run's body set it straight back to true,
+    // so a superseded load's reads resolved, found it true, and committed over
+    // the run that replaced it. One boolean cannot tell "unmounted" from
+    // "superseded". A per-run closure flag is the house pattern for exactly
+    // this (useAdjustOffer on this same screen, among ~29 sites).
+    let active = true;
 
     if (!uid || !sourceKey || !phaseKey || !capacitySeed) {
       setProtocol(null);
@@ -429,9 +462,10 @@ export function useTodayCard(
       setCompleted(false);
       setPicked(false);
       setLoading(false);
-      return () => {
-        activeRef.current = false;
-      };
+      // Nothing is in flight on this branch, so there is no run to cancel. The
+      // PREVIOUS run's own cleanup already ran, which is what stops a load
+      // still in flight when uid or source went away from committing here.
+      return undefined;
     }
 
     setLoading(true);
@@ -495,14 +529,14 @@ export function useTodayCard(
         if (enteredAtIso) {
           try {
             const since = await getDailyLogsSince(uid, enteredAtIso);
-            if (activeRef.current) {
+            if (active) {
               setConsistentDays(deriveConsistentDays(since, enteredAtIso));
             }
           } catch (error) {
             logger.error('[useTodayCard] consistency read failed:', error);
-            if (activeRef.current) setConsistentDays(0);
+            if (active) setConsistentDays(0);
           }
-        } else if (activeRef.current) {
+        } else if (active) {
           setConsistentDays(0);
         }
 
@@ -514,7 +548,7 @@ export function useTodayCard(
         const floor =
           todaysCapacity === 'slammed' ? await getFloorCommitment(uid) : null;
 
-        if (!activeRef.current) return;
+        if (!active) return;
         setProtocol(resolved);
         // STAMPED WITH THE DATE THIS CLOSURE CAPTURED, not with the live one.
         // `todayIso` here is the value the read above was made against, so a
@@ -531,7 +565,10 @@ export function useTodayCard(
         setLoading(false);
       } catch (error) {
         logger.error('[useTodayCard] load failed:', error);
-        if (!activeRef.current) return;
+        // THE SHARPER HALF of the guard. A superseded run that rejects after
+        // its successor committed would otherwise null a valid protocol and
+        // set `failed`, destroying the newer state rather than replacing it.
+        if (!active) return;
         setProtocol(null);
         // Cleared WITH the protocol, never left behind it: the tier describes a
         // day that failed to resolve, and a stale one beside a null protocol is
@@ -543,7 +580,7 @@ export function useTodayCard(
     })();
 
     return () => {
-      activeRef.current = false;
+      active = false;
     };
   }, [
     uid,
@@ -629,11 +666,11 @@ export function useTodayCard(
           ...(protocol?.id ? { protocolCellId: protocol.id } : {}),
           ...(protocol?.family ? { protocolFamily: protocol.family } : {}),
         });
-        if (!activeRef.current) return;
+        if (!mountedRef.current) return;
         setSaving(false);
       } catch (error) {
         logger.error('[useTodayCard] completion write failed:', error);
-        if (!activeRef.current) return;
+        if (!mountedRef.current) return;
         // Revert: a check that survives a failed write tells the user the day
         // is recorded when it is not, and they would find it unchecked tomorrow.
         setCompleted(false);
@@ -676,16 +713,16 @@ export function useTodayCard(
           dailyCapacity: nextCapacity,
           dailyTimeBudget: nextTime,
         });
-        if (!activeRef.current) return;
+        if (!mountedRef.current) return;
         setReloadToken((n) => n + 1);
       } catch (error) {
         logger.error('[useTodayCard] daily pick write failed:', error);
-        if (!activeRef.current) return;
+        if (!mountedRef.current) return;
         // The day stays unpicked and the prompt stays on screen, which is the
         // truthful state: nothing was recorded.
         setPickFailed(true);
       } finally {
-        if (activeRef.current) setPickSaving(false);
+        if (mountedRef.current) setPickSaving(false);
       }
     },
     [uid, todayIso, pickSaving]

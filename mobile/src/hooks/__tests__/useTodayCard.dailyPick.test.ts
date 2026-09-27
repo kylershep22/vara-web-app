@@ -172,6 +172,8 @@ describe('useTodayCard — the daily pick', () => {
 
       expect(mockUpsertDailyLog).toHaveBeenCalledTimes(1);
       expect(mockUpsertDailyLog.mock.calls[0][1]).toBe(TODAY);
+      // The sheet's spinner clears. Stuck true, `confirmPick` refuses forever.
+      expect(result.current.pickSaving).toBe(false);
       expect(mockUpsertDailyLog.mock.calls[0][2]).toEqual({
         dailyCapacity: 'slammed',
         dailyTimeBudget: 'short',
@@ -219,6 +221,7 @@ describe('useTodayCard — the daily pick', () => {
 
       expect(result.current.pickFailed).toBe(true);
       expect(result.current.picked).toBe(false);
+      expect(result.current.pickSaving).toBe(false);
     });
   });
 
@@ -363,4 +366,5 @@ describe('the daily pick on the PhaseContext path (journey slice 2)', () => {
 
     await waitFor(() => expect(view.result.current.picked).toBe(true));
   });
+
 });
