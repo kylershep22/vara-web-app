@@ -6,7 +6,7 @@
 // in useTodayCard and is covered there.
 
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 
 import { TodayHeroCard } from '../TodayHeroCard';
 import { OUTCOME_LABELS } from '../../../screens/weekly/copy';
@@ -239,6 +239,56 @@ describe('TodayHeroCard', () => {
       const cta = screen.getByTestId('home-today-complete');
 
       expect(cta.props.accessibilityState).toEqual({ disabled: false });
+    });
+  });
+
+  /**
+   * THE VARIANT TREATMENT (STALE-SOURCE-COMPLETION), and why it is NOT the
+   * rollover treatment above.
+   *
+   * `variantStale` means the card holds a variant the current journey would no
+   * longer serve: a phase advance has reached Home and the new load has not
+   * committed. It dims the control exactly as `staleDate` does. It does NOT
+   * touch the done branch, because completion is keyed to the date alone - a
+   * day already done is still done after an advance, and hiding the check
+   * would show it as a dimmed "Mark done".
+   */
+  describe('a load resolved under a variant that is no longer current', () => {
+    test('the completion control is rendered but not actionable', () => {
+      const screen = renderCard({}, { variantStale: true });
+      const cta = screen.getByTestId('home-today-complete');
+
+      expect(cta.props.accessibilityState).toEqual({ disabled: true });
+    });
+
+    test('a press on the stale control does not reach onMarkDone', () => {
+      const onMarkDone = jest.fn();
+      const screen = renderCard({}, { variantStale: true, onMarkDone });
+
+      fireEvent.press(screen.getByTestId('home-today-complete'));
+
+      expect(onMarkDone).not.toHaveBeenCalled();
+    });
+
+    test('the done-state STAYS when the day is already complete', () => {
+      // THE DISTINCTION FROM `staleDate`. A mutation that routed this flag into
+      // the done branch alongside `staleDate` is what this catches.
+      const screen = renderCard({}, { completed: true, variantStale: true });
+
+      expect(screen.getByTestId('home-today-done')).toBeTruthy();
+      expect(screen.queryByTestId('home-today-complete')).toBeNull();
+    });
+
+    test('an absent variantStale changes nothing for existing callers', () => {
+      const onMarkDone = jest.fn();
+      const screen = renderCard({}, { onMarkDone });
+      const cta = screen.getByTestId('home-today-complete');
+
+      expect(cta.props.accessibilityState).toEqual({ disabled: false });
+      // The press path is live when nothing is stale, so the refusal above is
+      // the flag's doing and not the harness's.
+      fireEvent.press(cta);
+      expect(onMarkDone).toHaveBeenCalledTimes(1);
     });
   });
 

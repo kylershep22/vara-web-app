@@ -188,6 +188,8 @@ function todayCard(over: Record<string, unknown> = {}) {
     // Rollover safety. The card reads it, so a fixture that omitted it would
     // pass on undefined rather than on a stated value.
     staleDate: false,
+    // STALE-SOURCE-COMPLETION. Also read by the card, and stated for the same reason.
+    variantStale: false,
     markDone: jest.fn(), saving: false, saveFailed: false, picked: true,
     prefillCapacity: 'normal', prefillTime: 'medium', confirmPick: jest.fn(),
     pickSaving: false, pickFailed: false, consistentDays: 0,

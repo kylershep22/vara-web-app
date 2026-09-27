@@ -51,7 +51,7 @@
  * anything weekly: the day's protocol, the day's log and the phase's consistent
  * days are all it serves.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
 import {
@@ -170,9 +170,84 @@ export interface TodayCard {
    * DATE ONLY, NEVER IDENTITY. A same-day revision leaves `todayIso` untouched,
    * so this stays false and the user completes the protocol they read - which
    * is the intended outcome, arriving by this NOT firing rather than by any
-   * comparison of variants.
+   * comparison of variants. Variant identity is `variantStale`'s job.
    */
   staleDate: boolean;
+  /**
+   * The committed load was resolved under a DIFFERENT variant identity from
+   * the one the source now carries (STALE-SOURCE-COMPLETION).
+   *
+   * True from the render where a phase advance, a captured family, a recorded
+   * adjustment or a destination reaches this hook until the load resolved for
+   * it commits. While it is true, `protocol` is a variant the current journey
+   * would not serve, and completing it would stamp that variant's identity on
+   * a day that counts toward the NEW phase.
+   *
+   * THE CONSUMER GATES THE COMPLETION CONTROL ON THIS AND ON NOTHING ELSE. It
+   * must NOT hide the done state, and that is the whole difference from
+   * `staleDate`. A date change makes `completed` untrue; a variant change does
+   * not, because completion is keyed to the date alone (see the header). A day
+   * already done stays done across an advance, and suppressing the done branch
+   * here would show it, briefly, as a dimmed "Mark done".
+   *
+   * VARIANT IDENTITY, NEVER SOURCE IDENTITY. A revision that leaves every
+   * variant input where it was - an offer exposure, a decline, a replacement
+   * pick, a server timestamp resolving - keeps this false. See
+   * ProtocolVariantIdentity.
+   */
+  variantStale: boolean;
+}
+
+/**
+ * THE INPUTS FROM THE SOURCE THAT DECIDE WHICH VARIANT IS SERVED
+ * (STALE-SOURCE-COMPLETION). The one place to add a fifth.
+ *
+ * `selectProtocol` takes six arguments and reads nothing else - no clock, no
+ * randomness, no module state, only the static matrix. Four of them arrive on
+ * the source and are here. The other two are deliberately absent, and a later
+ * reader must not "complete" the set by adding them:
+ *
+ *   CAPACITY AND TIME come off the day's log, not the source. On this device
+ *   their only writer is `confirmPick`, which reloads, and the picker opens
+ *   only from SetTodayCard, which is never on screen while the hero is. So
+ *   neither can move under a rendered card without a reload already covering
+ *   it.
+ *
+ *   ANOTHER DEVICE CAN MOVE THEM, and no stamp would see it: this client never
+ *   receives the new values, so a stamp would compare the old values against
+ *   themselves. That is a freshness problem, ledgered as
+ *   CROSS-CLIENT-STATE-FRESHNESS, not a gap in this identity.
+ *
+ * `revisionToken` IS NOT HERE EITHER, and `phaseKey` is spelled out rather than
+ * inferred from it. Every journeyStates write bumps the token, including the
+ * offer exposures Home writes on an ordinary visit, so keying on it would make
+ * the CTA go dead on a normal day. And the token can read 0 on both sides of an
+ * advance while the server timestamp is unresolved (dayRollover.test.ts pins
+ * that), so it cannot stand in for the phase.
+ *
+ * `cycleId` identifies the day on the legacy path, where the other three are
+ * constants and the phase is the cycle's own outcome.
+ */
+export interface ProtocolVariantIdentity {
+  cycleId: string | null;
+  phaseKey: PhaseKey | undefined;
+  destination: DestinationKey;
+  removeFamily: RemoveFamily | undefined;
+  adjustChoice: AdjustChoiceId | null;
+}
+
+/**
+ * Field-by-field equality over EVERY key of the identity, so adding a field to
+ * the interface and to its one builder below is the whole change - there is no
+ * comparison list elsewhere to forget.
+ */
+function sameVariantIdentity(
+  a: ProtocolVariantIdentity,
+  b: ProtocolVariantIdentity
+): boolean {
+  return (Object.keys(a) as (keyof ProtocolVariantIdentity)[]).every(
+    (key) => a[key] === b[key]
+  );
 }
 
 const EMPTY: Omit<TodayCard, 'markDone' | 'confirmPick'> = {
@@ -197,6 +272,8 @@ const EMPTY: Omit<TodayCard, 'markDone' | 'confirmPick'> = {
   // here would assert that a load belonging to today had committed, which is
   // the one thing this flag exists to be trusted about.
   staleDate: true,
+  // `true` for the same reason: nothing has loaded, so no variant is current.
+  variantStale: true,
   pickSaving: false,
   pickFailed: false,
 };
@@ -253,18 +330,27 @@ export function useTodayCard(
   // patch would leave one of them wrong; re-reading is what keeps them together.
   const [reloadToken, setReloadToken] = useState(0);
   /**
-   * The date the COMMITTED load belongs to, or null before the first one.
+   * What the COMMITTED load was resolved FOR: the date, and the variant
+   * identity. null before the first commit.
    *
-   * Committed in the SAME batch as `setProtocol`, which is the whole mechanism:
-   * React applies them together, so the protocol on screen and the day it was
-   * resolved for can never disagree.
+   * ONE STAMP, COMMITTED IN THE SAME BATCH AS `setProtocol`, which is the whole
+   * mechanism: React applies them together, so the protocol on screen and the
+   * day and inputs it was resolved for can never disagree.
    *
-   * NOTHING ELSE IN THIS HOOK PAIRS A PROTOCOL WITH A DAY. `todayIso` is the
-   * live clock and has already moved on by the time the staleness matters, and
-   * `dayCapacity` names a tier that repeats across days. That absence is what
-   * let a completion be written against one day carrying another day's variant.
+   * NOTHING ELSE IN THIS HOOK PAIRS A PROTOCOL WITH WHAT CHOSE IT. `todayIso`
+   * is the live clock and the source is the live journey, and both have moved
+   * on by the time the staleness matters. That absence is what let a completion
+   * be written against one day carrying another day's variant (ROLLOVER-SAFETY),
+   * and against one phase carrying another phase's (STALE-SOURCE-COMPLETION).
+   *
+   * ONE STAMP, TWO FLAGS, NOT ONE. `staleDate` and `variantStale` are derived
+   * from its two halves separately below because they mean different things on
+   * screen: a stale date invalidates `completed`, a stale variant does not.
    */
-  const [loadedForIso, setLoadedForIso] = useState<string | null>(null);
+  const [loadedFor, setLoadedFor] = useState<{
+    iso: string;
+    variant: ProtocolVariantIdentity;
+  } | null>(null);
 
   /**
    * "Is this hook still mounted", for the two CALLBACKS and nothing else.
@@ -411,6 +497,16 @@ export function useTodayCard(
   const enteredAtIso =
     source !== null && source.kind === 'phase' ? source.phase.enteredAtIso : '';
 
+  const cycleId = source !== null && source.kind === 'cycle' ? source.cycle.id : null;
+
+  // THE LIVE VARIANT IDENTITY, built in exactly one place. Memoised on its own
+  // primitives so the load effect can list it as a dependency without re-arming
+  // on anything those primitives do not already re-arm it on.
+  const variantIdentity = useMemo<ProtocolVariantIdentity>(
+    () => ({ cycleId, phaseKey, destination, removeFamily, adjustChoice }),
+    [cycleId, phaseKey, destination, removeFamily, adjustChoice]
+  );
+
   // TWO SOURCES, AND ONLY ONE OF THEM WAS THE SHIM. This comment used to say
   // the whole thing was re-homed in slice 4; that overstated it.
   //
@@ -555,7 +651,10 @@ export function useTodayCard(
         // load that resolves after the day has moved stamps the day it actually
         // served rather than the day it happened to land in. In the same batch
         // as the protocol it describes, deliberately.
-        setLoadedForIso(todayIso);
+        //
+        // THE VARIANT HALF IS THE SAME RULE: the identity THIS RUN resolved
+        // under, captured with its closure, never the one live when it landed.
+        setLoadedFor({ iso: todayIso, variant: variantIdentity });
         setFloorCommitment(floor);
         setDayCapacity(todaysCapacity);
         setCompleted(log?.protocolCompleted === true);
@@ -598,6 +697,10 @@ export function useTodayCard(
     capacitySeed,
     todayIso,
     reloadToken,
+    // Stamped by the commit. It changes only when one of its primitives does,
+    // and every one of those is already a dependency here or inside
+    // `sourceKey`, so listing it re-arms nothing new.
+    variantIdentity,
   ]);
 
   /**
@@ -614,7 +717,21 @@ export function useTodayCard(
    * the completion-boundary guard in `markDone`. Neither re-derives it, so they
    * cannot drift apart.
    */
-  const staleDate = loadedForIso !== todayIso;
+  const staleDate = loadedFor?.iso !== todayIso;
+
+  /**
+   * The committed load was resolved under a different variant identity.
+   *
+   * THE SAME RENDER-TIME DERIVATION AS `staleDate`, for the same reason: the
+   * source moves in a render, the load re-arms only in the passive effect after
+   * it, and the frame between is painted and tappable. Derived here, this is
+   * true in that frame.
+   *
+   * KEPT SEPARATE FROM `staleDate` BECAUSE THE CARD TREATS THEM DIFFERENTLY.
+   * See the field note on TodayCard: this one gates the control only.
+   */
+  const variantStale =
+    loadedFor === null || !sameVariantIdentity(loadedFor.variant, variantIdentity);
 
   /**
    * Mark today done. One direction only: there is no un-complete.
@@ -633,7 +750,12 @@ export function useTodayCard(
     // the point: the render-time treatment makes the control non-actionable,
     // but a tap already dispatched when the day turned must still refuse. The
     // invariant is held at the write, not only on screen.
-    if (!uid || completed || saving || staleDate) return;
+    //
+    // `variantStale` IS HELD HERE ON THE SAME TERMS (STALE-SOURCE-COMPLETION).
+    // It is not optional hardening. provenance is stamped only by the write
+    // that establishes the completion, so a stale first write is permanent: no
+    // later tap can correct the row. Refusing it here is the only defence.
+    if (!uid || completed || saving || staleDate || variantStale) return;
 
     setSaving(true);
     setSaveFailed(false);
@@ -685,7 +807,16 @@ export function useTodayCard(
     // hazard: a journeyStates write bumps `revisionToken`, re-runs the load
     // and re-resolves the protocol, and a callback captured before that would
     // write the previous variant's identity.
-  }, [uid, todayIso, completed, saving, staleDate, protocol?.id, protocol?.family]);
+  }, [
+    uid,
+    todayIso,
+    completed,
+    saving,
+    staleDate,
+    variantStale,
+    protocol?.id,
+    protocol?.family,
+  ]);
 
   /**
    * Write today's answer. THE ONLY WRITE IN THE PICKER FLOW.
@@ -749,6 +880,7 @@ export function useTodayCard(
     consistentDays,
     todayIso,
     staleDate,
+    variantStale,
     confirmPick,
     pickSaving,
     pickFailed,

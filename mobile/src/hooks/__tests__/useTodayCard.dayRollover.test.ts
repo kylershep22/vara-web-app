@@ -489,13 +489,16 @@ describe('reload identity on the PhaseContext path (journey slice 2)', () => {
     //
     // A revisionToken bump re-arms the load and puts the card through the same
     // window a rollover does: `protocol` is the previous resolution until the
-    // new one commits. But the DATE has not moved, so `loadedForIso` still
+    // new one commits. But the DATE has not moved, so `loadedFor.iso` still
     // equals `todayIso` and `staleDate` stays false throughout. The user
     // completes the protocol they actually read, which is 9.1a's recorded
     // intent - record what the card rendered, never what is true at the tap.
     //
-    // A guard that compared protocol IDENTITY instead of the date would refuse
-    // here, and this test is what would catch that being added.
+    // A guard keyed on SOURCE identity (the revision token) would refuse here,
+    // and this test is what would catch that being added. `variantStale` does
+    // not: a token bump that leaves every variant input alone is not a new
+    // variant. The advance case, where it DOES refuse, and the cell id this
+    // write carries are pinned in useTodayCard.variantStale.test.ts.
     const held = new Promise<never[]>(() => {});
     const { result, rerender } = renderHook(
       ({ p }: { p: PhaseContext }) => useTodayCard('u1', phaseSource(p)),
