@@ -5,7 +5,7 @@
 **Row:** a superseded Today load must not mutate state belonging to the run that
 replaced it. Blocks 9.1b, which blocks R3.
 **Build:** branch `fix/async-load-ownership`.
-**Walker:** Kyle. **Status: NOT WALKED.**
+**Walker:** Kyle. **Status: WALKED 2026-09-27. All sections PASS, ZERO FAILs. ATTESTED 2026-09-27.**
 
 ---
 
@@ -142,4 +142,25 @@ outcomes you got.
 
 ## Results
 
-*(not yet walked)*
+**2026-09-27 · Kyle · iPhone 14 Plus, dev client · Dynamic Type default · Reduce Motion off**
+
+| Section | | Result |
+|---|---|---|
+| A | The pick: `confirmPick` still clears its own spinner | **PASS** |
+| B | Completion: `markDone` still clears `saving` | **PASS** |
+| C | A reload: the hero updates after a journey write | **PASS** |
+
+**All sections PASS. Zero failures. Attested 2026-09-27: tsc 139 · jest 4099 of 245 · lint 994
+errors, 1363 warnings · sentinel 150.**
+
+---
+
+## WALK RESULT — 2026-09-27, ALL SECTIONS PASS
+
+**Walked by Kyle on an iPhone 14 Plus, 2026-09-27. Attested the same day. REGRESSION ONLY, AND A CLEAN WALK IS NOT ACCEPTANCE HERE — the script says so on its first line and it is repeated here so a later reader does not mistake this for verification of the fix.**
+
+**WHAT THE WALK CONFIRMS.** That separating one shared flag into two mechanisms did not break the three things those mechanisms guard. The pick confirms and its spinner clears. Completion lands and the control is tappable again after a failed write. The hero updates after a journey change. The visible failure mode, had the two been collapsed back into one, is a control that goes dead and stays dead: `saving` or `pickSaving` stuck true with the CTA permanently disabled. None of that occurred.
+
+**WHAT CARRIES THE FIX IS THE AUTOMATED EVIDENCE.** Six supersession tests went red on the unfixed hook before anything changed, each failing for the defect's own reason, and the stale-rejection case is the sharpest: expected `recover-normal`, got `undefined`. The superseded run did not write stale data, it ERASED the valid newer state. Nothing covered that path before this slice. Six mutations were then applied and every one was caught.
+
+**WHAT NO WALK CAN SHOW HERE:** the race itself, the stale-rejection path, the cross-date case, StrictMode behaviour, and the same-date journey defect, which is the next row.
