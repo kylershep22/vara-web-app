@@ -310,51 +310,44 @@ describe('useTodayCard across the day boundary', () => {
       });
     });
 
-    test('a load that resolves after the date moved stamps the day it SERVED', async () => {
-      // THE STAMP MUST CARRY THE DATE ITS CLOSURE CAPTURED, not the live clock.
-      // The two are identical whenever a load commits on the day it started,
-      // which is every other case in this file - so without this test the stamp
-      // could read `toIsoDate(new Date())` and nothing would notice.
+    test("a superseded day's load cannot commit over the new day's", async () => {
+      // HISTORY: an earlier Today load could settle after a dependency-triggered
+      // reload and overwrite the newer run (ASYNC-LOAD-OWNERSHIP).
       //
-      // Here the previous day's read is still in flight when the date moves, so
-      // it commits a protocol that was resolved for a day that has ended. The
-      // captured date makes that visible and the write refuses; the live clock
-      // would label it as today's and let the stale variant through.
-      //
-      // THIS IS NOT A FIX FOR THE SUPERSEDED-LOAD DEFECT and must not be read
-      // as one. `activeRef` is a single shared boolean, so the stale load still
-      // COMMITS - the card goes on showing the previous day's action until
-      // something else re-arms the effect. Only the WRITE is refused. The cause
-      // is tracked separately and is deliberately untouched here.
+      // Monday's read is held while the date moves; Tuesday's load resolves
+      // first and commits; Monday's is released LAST. It must change nothing.
       let releaseMonday: (value: DailyLog | null) => void = () => {};
       const mondayRead = new Promise<DailyLog | null>((resolve) => {
         releaseMonday = resolve;
       });
       mockGetDailyLog
         .mockReset()
-        .mockImplementation(async (_uid: string, date: string) =>
-          date === MONDAY ? mondayRead : new Promise<DailyLog | null>(() => {})
-        );
+        .mockImplementation(async (_uid: string, date: string) => {
+          if (date === MONDAY) return mondayRead;
+          // PICKED, so Tuesday's load does not read Monday for the pre-fill and
+          // wait on the held promise itself.
+          if (date === TUESDAY) {
+            return pickedNotCompleted(TUESDAY, { dailyCapacity: 'normal' });
+          }
+          return null;
+        });
 
       const { result } = renderHook(() => useTodayCard('u1', cycleSource(cycle())));
       expect(result.current.protocol).toBeNull();
 
-      // The day turns while Monday's read is still outstanding.
       setToday(TUESDAY);
       foreground();
-      await waitFor(() => expect(result.current.todayIso).toBe(TUESDAY));
+      await waitFor(() => expect(result.current.protocol?.id).toBe('refocus-normal'));
+      expect(result.current.staleDate).toBe(false);
 
-      // Monday's load now resolves and commits, carrying Monday's variant.
       await act(async () => {
         releaseMonday(pickedNotCompleted(MONDAY, { dailyCapacity: 'slammed' }));
       });
-      await waitFor(() => expect(result.current.protocol?.id).toBe('refocus-slammed'));
+      await act(async () => {});
 
-      expect(result.current.staleDate).toBe(true);
-
-      act(() => result.current.markDone());
-
-      expect(mockUpsertDailyLog).not.toHaveBeenCalled();
+      expect(result.current.protocol?.id).toBe('refocus-normal');
+      expect(result.current.dayCapacity).toBe('normal');
+      expect(result.current.staleDate).toBe(false);
     });
 
     test('a day already complete when the date moves still refuses', async () => {
@@ -522,5 +515,8 @@ describe('reload identity on the PhaseContext path (journey slice 2)', () => {
     act(() => result.current.markDone());
 
     await waitFor(() => expect(mockUpsertDailyLog).toHaveBeenCalled());
+    // The control comes back. A `markDone` owned by the load's run rather than
+    // by the mount would leave this true, and the CTA disabled for good.
+    await waitFor(() => expect(result.current.saving).toBe(false));
   });
 });
