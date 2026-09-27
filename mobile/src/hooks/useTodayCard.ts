@@ -80,6 +80,11 @@ import type {
 } from '../types/models';
 import { addDaysIso, toIsoDate } from '../utils/weekStart';
 import { logger } from '../utils/logger';
+import {
+  isVariantStale,
+  type ProtocolVariantIdentity,
+  type TodayLoadStamp,
+} from './protocolVariantIdentity';
 
 export interface TodayCard {
   protocol: ResolvedProtocolVariant | null;
@@ -198,58 +203,6 @@ export interface TodayCard {
   variantStale: boolean;
 }
 
-/**
- * THE INPUTS FROM THE SOURCE THAT DECIDE WHICH VARIANT IS SERVED
- * (STALE-SOURCE-COMPLETION). The one place to add a fifth.
- *
- * `selectProtocol` takes six arguments and reads nothing else - no clock, no
- * randomness, no module state, only the static matrix. Four of them arrive on
- * the source and are here. The other two are deliberately absent, and a later
- * reader must not "complete" the set by adding them:
- *
- *   CAPACITY AND TIME come off the day's log, not the source. On this device
- *   their only writer is `confirmPick`, which reloads, and the picker opens
- *   only from SetTodayCard, which is never on screen while the hero is. So
- *   neither can move under a rendered card without a reload already covering
- *   it.
- *
- *   ANOTHER DEVICE CAN MOVE THEM, and no stamp would see it: this client never
- *   receives the new values, so a stamp would compare the old values against
- *   themselves. That is a freshness problem, ledgered as
- *   CROSS-CLIENT-STATE-FRESHNESS, not a gap in this identity.
- *
- * `revisionToken` IS NOT HERE EITHER, and `phaseKey` is spelled out rather than
- * inferred from it. Every journeyStates write bumps the token, including the
- * offer exposures Home writes on an ordinary visit, so keying on it would make
- * the CTA go dead on a normal day. And the token can read 0 on both sides of an
- * advance while the server timestamp is unresolved (dayRollover.test.ts pins
- * that), so it cannot stand in for the phase.
- *
- * `cycleId` identifies the day on the legacy path, where the other three are
- * constants and the phase is the cycle's own outcome.
- */
-export interface ProtocolVariantIdentity {
-  cycleId: string | null;
-  phaseKey: PhaseKey | undefined;
-  destination: DestinationKey;
-  removeFamily: RemoveFamily | undefined;
-  adjustChoice: AdjustChoiceId | null;
-}
-
-/**
- * Field-by-field equality over EVERY key of the identity, so adding a field to
- * the interface and to its one builder below is the whole change - there is no
- * comparison list elsewhere to forget.
- */
-function sameVariantIdentity(
-  a: ProtocolVariantIdentity,
-  b: ProtocolVariantIdentity
-): boolean {
-  return (Object.keys(a) as (keyof ProtocolVariantIdentity)[]).every(
-    (key) => a[key] === b[key]
-  );
-}
-
 const EMPTY: Omit<TodayCard, 'markDone' | 'confirmPick'> = {
   protocol: null,
   floorCommitment: null,
@@ -347,10 +300,7 @@ export function useTodayCard(
    * from its two halves separately below because they mean different things on
    * screen: a stale date invalidates `completed`, a stale variant does not.
    */
-  const [loadedFor, setLoadedFor] = useState<{
-    iso: string;
-    variant: ProtocolVariantIdentity;
-  } | null>(null);
+  const [loadedFor, setLoadedFor] = useState<TodayLoadStamp | null>(null);
 
   /**
    * "Is this hook still mounted", for the two CALLBACKS and nothing else.
@@ -730,8 +680,7 @@ export function useTodayCard(
    * KEPT SEPARATE FROM `staleDate` BECAUSE THE CARD TREATS THEM DIFFERENTLY.
    * See the field note on TodayCard: this one gates the control only.
    */
-  const variantStale =
-    loadedFor === null || !sameVariantIdentity(loadedFor.variant, variantIdentity);
+  const variantStale = isVariantStale(loadedFor, variantIdentity);
 
   /**
    * Mark today done. One direction only: there is no un-complete.
@@ -807,16 +756,7 @@ export function useTodayCard(
     // hazard: a journeyStates write bumps `revisionToken`, re-runs the load
     // and re-resolves the protocol, and a callback captured before that would
     // write the previous variant's identity.
-  }, [
-    uid,
-    todayIso,
-    completed,
-    saving,
-    staleDate,
-    variantStale,
-    protocol?.id,
-    protocol?.family,
-  ]);
+  }, [uid, todayIso, completed, saving, staleDate, variantStale, protocol?.id, protocol?.family]);
 
   /**
    * Write today's answer. THE ONLY WRITE IN THE PICKER FLOW.
