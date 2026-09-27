@@ -97,14 +97,14 @@ export default function PodcastEpisodeScreen() {
           <View style={styles.platformLinks}>
             <TouchableOpacity
               style={styles.platformChip}
-              onPress={() => Linking.openURL('https://podcasts.apple.com/us/podcast/the-resilient-brain/id1800655498')}
+              onPress={() => Linking.openURL('https://podcasts.apple.com/us/podcast/the-resilient-brain/id1882167234')}
             >
               <Icon name="apple" size={14} color={VARA_COLORS.charcoal} />
               <Text style={styles.platformText}>Apple Podcasts</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.platformChip}
-              onPress={() => Linking.openURL('https://open.spotify.com/show/4PYCeTiYRfeWKiYtyMIen4')}
+              onPress={() => Linking.openURL('https://open.spotify.com/show/2Q22r7SDIHkN0cvy1zmH4F')}
             >
               <Icon name="spotify" size={14} color="#1DB954" />
               <Text style={styles.platformText}>Spotify</Text>

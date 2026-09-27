@@ -67,15 +67,14 @@ const VARA_COLORS = {
 /**
  * The two platform links.
  *
- * THESE ARE THE URLs ALREADY IN THE TREE (`PodcastEpisodeScreen.tsx:95,:102`),
- * NOT A SECOND PAIR THAT WAS OFFERED WITH DIFFERENT SHOW IDs. The repo cannot
- * say which pair is current, so the slice uses the one that already ships and
- * the device walk confirms WHICH PODCAST OPENS rather than that a link opens.
- * If the walk shows these are wrong, that is four dead links across two screens
- * and a follow-up, not a defect in the re-housing.
+ * The walk of 2026-09-27 settled which pair is current. The pair that had been
+ * in the tree since March 404ed on both platforms; these two are the ones Kyle
+ * confirmed resolve to The Resilient Brain in a browser on the device. The same
+ * pair is inlined in `PodcastEpisodeScreen.tsx`, which is a duplication no one
+ * has collapsed yet — change one surface and you must change the other.
  */
-const APPLE_URL = 'https://podcasts.apple.com/us/podcast/the-resilient-brain/id1800655498';
-const SPOTIFY_URL = 'https://open.spotify.com/show/4PYCeTiYRfeWKiYtyMIen4';
+const APPLE_URL = 'https://podcasts.apple.com/us/podcast/the-resilient-brain/id1882167234';
+const SPOTIFY_URL = 'https://open.spotify.com/show/2Q22r7SDIHkN0cvy1zmH4F';
 
 /**
  * Copy for the six states.

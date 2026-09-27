@@ -174,7 +174,7 @@ describe('LearnHubScreen — what is tappable now', () => {
     fireEvent.press(getByTestId('learn-chip-apple'));
 
     expect(openURL).toHaveBeenCalledWith(
-      'https://podcasts.apple.com/us/podcast/the-resilient-brain/id1800655498'
+      'https://podcasts.apple.com/us/podcast/the-resilient-brain/id1882167234'
     );
     openURL.mockRestore();
   });
@@ -187,7 +187,7 @@ describe('LearnHubScreen — what is tappable now', () => {
 
     fireEvent.press(getByTestId('learn-chip-spotify'));
 
-    expect(openURL).toHaveBeenCalledWith('https://open.spotify.com/show/4PYCeTiYRfeWKiYtyMIen4');
+    expect(openURL).toHaveBeenCalledWith('https://open.spotify.com/show/2Q22r7SDIHkN0cvy1zmH4F');
     openURL.mockRestore();
   });
 });
