@@ -3,10 +3,13 @@
 **Branch:** `feat/learn-rehouse` · **Commit:** `3148b4b` · **Base:** `main` @ `7233bac`
 **Written:** 2026-09-21 · **Owner of the walk:** Kyle
 **Device:** iPhone 14 Plus, dev client. **22 steps, in four sections.**
-**Status: WALKED 2026-09-27. 7 PASS, 2 steps FINDING (one finding), 13 NOT RUN, ZERO FAILS.**
-**ONE FINDING: both podcast chips opened a page-not-found. Fixed on the same
-branch at `865d69d` and NOT RE-WALKED — the chips need one more tap on a device
-before this walk is closed.**
+**Status: WALKED 2026-09-27, RE-WALKED 2026-09-27 after the chip fix.
+9 PASS, 5 NOT WALKABLE IN THIS SETUP, 8 NOT RUN, ZERO FAILS.**
+**ONE FINDING, FOUND AND FIXED AND RE-WALKED: both podcast chips opened a
+page-not-found. Fixed at `865d69d` and re-walked on the corrected build — all
+four chips, both platforms on both surfaces, open The Resilient Brain. Closed.**
+**THE CACHE FIX SHIPS DEVICE-UNOBSERVED.** Every offline state is **NOT WALKABLE
+IN THIS SETUP**, not NOT RUN: see *The offline states* below.
 
 The build is committed, so the walk has a fixed reference. Every step below has a
 pass condition. Record a result per step; a step that is not run is recorded as
@@ -286,47 +289,66 @@ test or splitting a coherent suite to get under the number.
 
 **2026-09-27 · Kyle · iPhone 14 Plus, dev client**
 
-**22 steps: 7 PASS · 2 FINDING · 13 NOT RUN · ZERO FAILS.**
+**22 steps: 9 PASS · 5 NOT WALKABLE IN THIS SETUP · 8 NOT RUN · ZERO FAILS.**
+
+**Sections A–C walked 2026-09-27 on `3148b4b`. Section D re-walked the same day on
+the corrected build at `865d69d`.**
 
 | Step | | Result |
 |---|---|---|
 | A1 | Bottom inset, 14 Plus, scrolled fully down | **PASS** |
-| A2 | Bottom inset, SE | **NOT RUN** — the SE is not walkable in this setup, expected by the script, outstanding since R1b-i |
+| A2 | Bottom inset, SE | **NOT WALKABLE IN THIS SETUP** — no SE device; expected by the script, outstanding since R1b-i |
 | A3 | Top inset | **PASS** |
 | A4 | No band on the tab root | **PASS** |
-| A5 | The title survives every state | **NOT RUN** — the step requires triggering each Section C state, and only state 1 was reached |
+| A5 | The title survives every state | **NOT WALKABLE IN FULL** — the title held in state 1, the only state reached; the states it still needs are the ones this method cannot reach |
 | B1 | Real episodes from the live feed | **PASS** — five episodes from the live Captivate feed |
 | B2 | The play button swaps to pause and takes the active fill | **PASS** — and this is the observation the step was written for |
 | B3 | Episode details | **PASS** |
 | B4 | Masterclass absence reads as absence | **NOT RUN** — not reported |
 | B5 | Energy's Journal row | **NOT RUN** — not reported; the orphaned-row judgement call is still unanswered |
 | C1 | State 1 — online, feed loads | **PASS** — this is the state B1 and B2 were walked in |
-| C2 | State 3 — offline with a warm cache | **NOT RUN** — **this is the headline step and it is unwalked** |
-| C3 | State 5 — feed failed with a cache | **NOT RUN** — needs a network that resolves but cannot reach `feeds.captivate.fm`; the script anticipates this |
-| C4 | State 2 — offline with a genuinely cold cache | **NOT RUN** — needs a reinstall, which the script says to record rather than approximate |
-| C5 | State 4 — feed failed, no cache | **NOT RUN** — reachable only in the reinstalled state with the feed unreachable; hardest to force |
-| C6 | State 6 — connectivity unknown | **NOT RUN** — not producible on a healthy device, per the script |
-| D1 | Apple, app installed | **FINDING** — a page-not-found, not The Resilient Brain |
-| D2 | Apple, app NOT installed | **NOT RUN** — requires deleting Apple Podcasts |
-| D3 | Spotify, app installed | **FINDING** — a page-not-found, not The Resilient Brain |
-| D4 | Spotify, app NOT installed | **NOT RUN** — requires a device without Spotify |
+| C2 | State 3 — offline with a warm cache | **NOT WALKABLE IN THIS SETUP** — a dev client cannot launch without Metro. **This is the headline step, and the cache fix it proves ships device-unobserved.** |
+| C3 | State 5 — feed failed with a cache | **NOT RUN** — needs a network that resolves but cannot reach `feeds.captivate.fm`. **Attemptable**: the app stays online, so Metro stays reachable |
+| C4 | State 2 — offline with a genuinely cold cache | **NOT WALKABLE IN THIS SETUP** — needs the app to open for the first time offline, which a dev client cannot do; the reinstall is the lesser obstacle |
+| C5 | State 4 — feed failed, no cache | **NOT RUN** — the reinstalled state with the feed blocked. **Attemptable** for the same reason as C3, and hardest to force |
+| C6 | State 6 — connectivity unknown | **NOT WALKABLE IN THIS SETUP** — needs `getNetworkStateAsync` to reject, which a healthy device will not do; the script says so in advance |
+| D1 | Apple, app installed | **PASS** on the corrected build — opens The Resilient Brain. **Was the FINDING on `3148b4b`** |
+| D2 | Apple, app NOT installed | **NOT RUN** — requires deleting Apple Podcasts. The URL itself is confirmed; what is unobserved is only the Safari handoff |
+| D3 | Spotify, app installed | **PASS** on the corrected build — opens The Resilient Brain. **Was the FINDING on `3148b4b`** |
+| D4 | Spotify, app NOT installed | **NOT RUN** — requires a device without Spotify. Same residual as D2: the URL is confirmed, the handoff is not |
 | D5 | VoiceOver on both chips | **NOT RUN** — the two drafted labels are still unreviewed out loud |
 | D6 | Chip touch targets — LOOK, do not fix | **NOT RUN** — no observation recorded, so a future slice has nothing to scope against |
 
-### D1 and D3 in full — the finding
+### D1 and D3 in full — the finding, and its close
 
-**Both chips opened a page-not-found.** Apple `id1800655498` and Spotify
-`show/4PYCeTiYRfeWKiYtyMIen4` are both dead. Kyle then confirmed on the device
+**On `3148b4b`, both chips opened a page-not-found.** Apple `id1800655498` and
+Spotify `show/4PYCeTiYRfeWKiYtyMIen4` are both dead. Kyle confirmed on the device
 that the replacement pair — Apple `id1882167234`, Spotify
 `show/2Q22r7SDIHkN0cvy1zmH4F` — resolves to **The Resilient Brain** in a browser.
 
-**Fixed on the same branch at `865d69d`**, across four files and eight literals,
-tests included. **NOT RE-WALKED.** The fix is pinned by tests asserting the new
-URLs, which is not the same as a tap on a device. **D1–D4 stay open until someone
-taps the chips on the corrected build.**
+**Fixed at `865d69d`**, across four files and eight literals, tests included.
 
-**THIS IS A FINDING, NOT A FAIL.** The move, the six states and the cache fix are
-independent of which URL pair is right, exactly as the script said in advance.
+**RE-WALKED THE SAME DAY, AND THE FINDING IS CLOSED.** Kyle tapped **all four
+chips** on the corrected build — **Apple and Spotify on the Learn library body,
+and Apple and Spotify on `PodcastEpisodeScreen`** — and **every one opened The
+Resilient Brain**. D1 and D3 close as PASS.
+
+**THE RE-WALK COVERED MORE THAN D1 AND D3 ASKED FOR, AND THAT IS THE POINT OF THE
+FOUR-FILE SWEEP.** The script's D section only ever names the Learn tab's chips.
+Checking `PodcastEpisodeScreen` as well is what confirms the two surfaces did not
+diverge: **had the fix landed only on the Learn body, the dead pair would still
+have been one tap away** on the episode screen, and nothing in this script would
+have caught it.
+
+**D2 AND D4 REMAIN NOT RUN, AND THE RESIDUAL IS SMALL BUT REAL.** Both are the
+app-NOT-installed variants and need Apple Podcasts or Spotify deleted from the
+device. **The URLs themselves are now confirmed twice over** — in a browser and
+through the installed apps — so what is unobserved is only the Safari handoff when
+no app is there to claim the link, not whether the show exists.
+
+**THIS WAS A FINDING, NOT A FAIL.** The move, the six states and the cache fix
+were always independent of which URL pair was right, exactly as the script said in
+advance.
 
 ### Why this was found at all, which belongs in the record
 
@@ -340,18 +362,65 @@ tab**, on the Learn tab and on the Podcast Episode screen both.
 The step was worded that way because the URL pair was in doubt when the slice was
 built and the repo could not settle it. It was worded to settle it. It did.
 
+### The offline states — NOT WALKABLE IN THIS SETUP, not NOT RUN
+
+**A dev client loads its JS bundle from Metro and cannot launch without a
+network.** Any state that requires the app to **start or run offline** is
+therefore unreachable by this walking method. **That is a property of the tooling,
+not an untried step**, and recording it as NOT RUN would misdescribe it.
+
+**THE DISTINCTION MATTERS AND THE BOARD ALREADY DRAWS IT ELSEWHERE.**
+
+- **NOT WALKABLE IN THIS SETUP** — a machine or a build is missing, or the state
+  is one a healthy device will not produce. Nobody could have run it.
+- **NOT RUN** — a walker did not attempt something they could have.
+
+**THIS IS NOT NEW AND NOT SPECIFIC TO THIS SLICE. Slice 8 hit the same wall at its
+step 18**, where the offline failure path was reported NOT RUN for exactly this
+reason. It is a standing limitation of the method, now recorded on the board as
+`OFFLINE-PATHS-UNWALKABLE`.
+
+**Reclassified here:** C2, C4 and C6, plus A5 in full, because the states it needs
+are the states this method cannot reach. **A2 as well**, for the adjacent reason
+that no SE device exists in this setup.
+
+**C3 and C5 stay NOT RUN and are genuinely attemptable.** Both need a network that
+resolves while `feeds.captivate.fm` does not — a router-level block, not airplane
+mode — and the app stays **online** throughout, so Metro stays reachable. They are
+hard, not impossible.
+
+#### The consequence, stated rather than implied: THE CACHE FIX SHIPS DEVICE-UNOBSERVED
+
+**C2 is the step that proves it, and C2 cannot be walked here.** The cache fix was
+**the one behaviour added to this slice's scope mid-build**, on Kyle's ruling that
+**the TTL governs refresh eligibility, not display eligibility** — and **no device
+has seen it work.**
+
+**WHAT CARRIES IT IS THE AUTOMATED COVERAGE, AND IT WAS MUTATION-CHECKED.** Both
+stale-cache tests **fail when the fallback is removed**, so they are pinned to the
+behaviour rather than passing alongside it. **That is evidence, and it is not
+observation.** The honest description is that the fix is **carried by tests, not by
+a walk.**
+
+**THE ROUTE THAT WOULD CLOSE IT, recorded so a later reader does not re-derive
+it:** a **preview or release build**, which loads its bundle from the binary rather
+than from Metro and can therefore be launched in airplane mode. **Arranging one is
+not this walk's to do** — it is a launch-plan decision.
+
 ---
 
-## WALK RESULT — 2026-09-27, 7 PASS, 1 FINDING ACROSS 2 STEPS, 13 NOT RUN
+## WALK RESULT — 2026-09-27, 9 PASS, 5 NOT WALKABLE, 8 NOT RUN, ZERO FAILS
 
-**Walked by Kyle on an iPhone 14 Plus, dev client, 2026-09-27.**
+**Walked by Kyle on an iPhone 14 Plus, dev client, 2026-09-27, and re-walked the
+same day on the corrected build at `865d69d`.**
 
-**THE FINDING: BOTH PODCAST CHIPS POINTED AT A SHOW THAT DOES NOT EXIST.** Apple
-`id1800655498` and Spotify `show/4PYCeTiYRfeWKiYtyMIen4` both 404. The corrected
-pair was confirmed in a browser on the device and replaced everywhere it appears
-at `865d69d` — both surfaces, so they cannot diverge — with the chip tests
-re-pinned to the new URLs, because a test asserting a dead link passes for the
-wrong reason. **Not re-walked. One tap closes it.**
+**THE FINDING IS FOUND, FIXED AND CLOSED.** Both podcast chips pointed at a show
+that does not exist: Apple `id1800655498` and Spotify
+`show/4PYCeTiYRfeWKiYtyMIen4` both 404. The corrected pair was replaced everywhere
+it appears at `865d69d` — four files, eight literals, tests included — and then
+**re-walked across all four chips, both platforms on both surfaces, every one
+opening The Resilient Brain.** The four-file sweep is what made one check
+sufficient for both surfaces.
 
 **`isEpisodePlaying` IS CONFIRMED FIXED BY OBSERVATION, WHICH IS THE ENTIRE POINT
 OF WALKING IT.** The old expression compared an `AudioTrack` object to a string
@@ -367,17 +436,21 @@ returns. The tab-root geometry holds: the last card clears the floating capsule
 with breathing room, the title clears the Dynamic Island, and there is no
 watercolor band on the tab root.
 
+**THE CACHE FIX SHIPS DEVICE-UNOBSERVED, AND THAT IS THE ONE THING WORTH CARRYING
+OUT OF THIS RECORD.** It is carried by mutation-checked coverage rather than by
+observation, because C2 is **not walkable in this setup** rather than skipped. See
+*The offline states* above, and the `OFFLINE-PATHS-UNWALKABLE` row on the board.
+
 **WHAT THIS WALK DID NOT COVER, stated so the result is not read as broader than
 it is.**
 
-1. **The cache fix — the headline change — is unwalked.** C2 is the step that
-   proves a cache older than an hour still displays, and it was not run. The
-   evidence for it is unit coverage only. **This is the largest gap in the
-   record**, because it is the one behaviour the slice added to scope.
-2. **Four of the six states.** C3, C4, C5 and C6 are all NOT RUN. C4 needs a
-   reinstall, C3 and C5 need a cooperative broken network, C6 cannot be produced
-   on a healthy device at all.
-3. **The chips on the corrected build.** See the finding.
+1. **Every offline state.** C2, C4 and C6 are **NOT WALKABLE IN THIS SETUP** — a
+   dev client cannot launch without Metro. This is the standing limitation, not
+   this slice's gap, and it takes the cache fix with it.
+2. **C3 and C5**, which are NOT RUN and genuinely attemptable with a router-level
+   block on the feed host.
+3. **D2 and D4**, the app-NOT-installed chip variants. The URLs are confirmed; the
+   Safari handoff is not.
 4. **VoiceOver.** The two chip accessibility labels are CC's own wording, carry
    sentinels, and are still unheard and unapproved.
 5. **The touch-target observation.** D6 asked only for a report on how hard the
@@ -391,7 +464,8 @@ it is.**
 8. **`MasterclassScreen`**, which cannot be walked because nothing links to it
    any more. Registered, correct and unreachable: the DARK shape §2.8 defines.
 
-**NOTHING FAILED.** Seven passes, one finding across two steps, thirteen not run.
-The not-run count is high and most of it is structural — a reinstall, a broken
-network, a second device — but C2 is not structural and is the one worth coming
-back for.
+**NOTHING FAILED.** Nine passes, one finding found and closed, five steps the
+method cannot reach, eight not attempted. **The not-walkable five are a tooling
+ceiling and the eight not-run are choices** — and separating them is the difference
+between a record that says what is owed and one that reads as a longer list of
+neglect than it is.
