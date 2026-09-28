@@ -28,6 +28,11 @@ export const PROTOCOL_SHEET_COPY = {
   // COPY: draft, not from guidelines doc - pending Kyle
   dismiss: 'Back to Today',
   // COPY: draft, not from guidelines doc - pending Kyle
+  // The accessibility hint on the Today card's entry, which is the sheet's only
+  // way in. The label reads the heading and the action and the role says
+  // "button"; this is what says what the button DOES. Never shown on screen.
+  entryHint: "Opens today's action in full",
+  // COPY: draft, not from guidelines doc - pending Kyle
   // Shown IN PLACE OF the completion control once this device knows the day's
   // plan has moved on from the protocol the sheet is showing. Says what
   // happened and where to go, and nothing about why: the reason is a phase

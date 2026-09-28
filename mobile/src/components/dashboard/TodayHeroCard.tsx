@@ -36,6 +36,7 @@ import { resolveWeekEnd } from '../../utils/weekStart';
 import { weekdayNameForIso } from '../../utils/weekdayLabels';
 import { CardHeading } from './CardHeading';
 import { COMPLETION_COPY, CompletionDoneRow } from './TodayCompletion';
+import { PROTOCOL_SHEET_COPY } from './protocolSheet.copy';
 
 // The completion strings, the quieting rule and the done row live in
 // TodayCompletion since slice 9.1b, shared with the protocol sheet. Their full
@@ -189,8 +190,9 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
           accessibilityRole="button"
           accessibilityState={{ disabled: entryDisabled }}
           // What a sighted user reads in this area, in the order they read it.
-          // No new string: the role is what announces that it opens something.
           accessibilityLabel={`${TODAY_COPY.actionHeading} ${protocol.dailyAction}`}
+          // The label names what is here; the hint names what a tap does.
+          accessibilityHint={PROTOCOL_SHEET_COPY.entryHint}
           testID="home-today-open-detail"
         >
           <View style={styles.entryContent}>{content}</View>

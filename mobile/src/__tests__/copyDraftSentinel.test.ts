@@ -809,7 +809,14 @@ import * as path from 'path';
 // sheet could share it rather than restate it; its one sentinel (`saveFailed`,
 // pending Jen) moved house with it and is still counted once. A second copy
 // would have been a second sentinel that a sign-off on the first leaves behind.
-const EXPECTED_SENTINELS = 155;
+//
+// 156 SINCE THE 9.1b WALK (2026-09-28): +1, pending KYLE as UI owner. The
+// accessibility hint on the Today card's entry into the protocol sheet, "Opens
+// today's action in full", in the same protocolSheet.copy.ts. The walk found
+// the entry announced its heading, its action and "button" without saying what
+// a tap does; Kyle ruled the gap closed in this slice rather than deferred,
+// because the entry is the only way into a brand-new surface.
+const EXPECTED_SENTINELS = 156;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');

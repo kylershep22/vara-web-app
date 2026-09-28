@@ -14,6 +14,7 @@ import { fireEvent, render } from '@testing-library/react-native';
 
 import { TodayHeroCard } from '../TodayHeroCard';
 import { PROTOCOL_MATRIX } from '../../../protocolEngine';
+import { PROTOCOL_SHEET_COPY } from '../protocolSheet.copy';
 
 const PROTOCOL = { ...PROTOCOL_MATRIX.remove.normal[0], quickWinActive: false };
 
@@ -47,6 +48,13 @@ test('with it, the content area is a button that opens the sheet', () => {
   expect(screen.getByTestId('home-today-action')).toBeTruthy();
   fireEvent.press(entry);
   expect(onOpenDetail).toHaveBeenCalledTimes(1);
+});
+
+test('the entry says what it opens, for VoiceOver', () => {
+  const screen = renderCard({ onOpenDetail: jest.fn() });
+  const entry = screen.getByTestId('home-today-open-detail');
+  expect(entry.props.accessibilityHint).toBe(PROTOCOL_SHEET_COPY.entryHint);
+  expect(PROTOCOL_SHEET_COPY.entryHint).toBe("Opens today's action in full");
 });
 
 test('the CTA is still the one action and still completes, not opens', () => {
