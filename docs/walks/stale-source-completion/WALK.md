@@ -3,7 +3,7 @@
 **Row:** a protocol stays completable after the variant that produced it has changed. Before 9.1b, which blocks R3.
 **Build:** branch `fix/stale-source-completion`, `fcc82e6` + `150c284`.
 **Device:** iPhone 14 Plus, dev client. **Three sections, plus one optional.**
-**Walker:** Kyle. **Status: NOT WALKED.**
+**Walker:** Kyle. **Status: WALKED 2026-09-28, all sections PASS, zero FAILs.**
 **Time:** about 30 minutes once the two accounts are seeded.
 
 ---
@@ -358,24 +358,38 @@ recording exists.
 
 ## Results
 
-*Not walked.*
+**Walked 2026-09-28, iPhone 14 Plus, by Kyle. All sections PASS, zero FAILs.** Network setting per step and whether a screen recording exists were not reported, and are left blank rather than inferred.
 
 | Step | | Network | Result | Notes |
 |---|---|---|---|---|
-| A0 | Exposure not yet spent today | | | |
-| A1 | Home live with offer showing | | | |
-| A1b | Exposure write confirmed | | | |
-| A2 | Leave and return, button stays live | | | |
-| A3 | Throttled first return (optional) | | | |
-| B1 | Next phase page opens | | | |
-| B2 | Start this returns to Home | | | |
-| B3 | Immediate tap: line / button / text / outcome | | | |
-| B4 | Button returns, tap completes | | | |
-| B5 | Console row | | | |
-| C1 | Offer recorded, not completed | | | |
-| C2 | Start this from the map | | | |
-| C3 | Immediate tap: line / button / text / outcome | | | |
-| C4 | Button returns, tap completes | | | |
-| C5 | Console row | | | |
-| D1 | Done day with offer (optional) | | | |
-| D2 | Done state holds through advance (optional) | | | |
+| A0 | Exposure not yet spent today | | PASS | |
+| A1 | Home live with offer showing | | PASS | |
+| A1b | Exposure write confirmed | | PASS | Verified as a real exposure, so A2 was not vacuous |
+| A2 | Leave and return, button stays live | | PASS | CTA stayed at full strength after the day's first exposure |
+| A3 | Throttled first return (optional) | | | Not reported |
+| B1 | Next phase page opens | | PASS | |
+| B2 | Start this returns to Home | | PASS | |
+| B3 | Immediate tap: line / button / text / outcome | | PASS | W1 reached: CTA non-actionable at the tap |
+| B4 | Button returns, tap completes | | PASS | |
+| B5 | Console row | | PASS | `recover-` cell id, no `protocolFamily` |
+| C1 | Offer recorded, not completed | | PASS | |
+| C2 | Start this from the map | | PASS | |
+| C3 | Immediate tap: line / button / text / outcome | | PASS | W1 reached: CTA non-actionable at the tap |
+| C4 | Button returns, tap completes | | PASS | |
+| C5 | Console row | | PASS | `recover-` cell id, no `protocolFamily` |
+| D1 | Done day with offer (optional) | | PASS | |
+| D2 | Done state holds through advance (optional) | | PASS | The done state held across the advance |
+
+## WALK RESULT — 2026-09-28, ALL SECTIONS PASS
+
+**Walked by Kyle on an iPhone 14 Plus, 2026-09-28, one day after the build. Attested the same day.**
+
+**SECTION A IS THE RESULT THAT MATTERS MOST AND IT PASSED.** After the day's first offer exposure, leaving Today and returning left the CTA at full strength. That is the over-tight guard proving it does not fire on an ordinary daily path — and it is precisely what a `sourceKey` stamp would have broken, because `recordAdvanceExposure` fires from Home itself and changes nothing about the served variant. The narrowing from source identity to variant identity is now confirmed on a device as well as by mutation 2.
+
+The step's own console check before and after mattered: the exposure is written once a day, so on a day already spent this step would have passed without testing anything. It was verified as a real exposure.
+
+**THE DEFECT WAS REACHED BY HAND ON BOTH ROUTES,** unlike the two rows before it. Route A through Today's offer card and Route B through the journey map, tapping Mark it done the instant Today appeared. The journey line's state at the moment of the tap was recorded, which is what separates W1 from W0: a W1 tap found the CTA non-actionable, and the console confirmed the row carries a `recover-` cell id with no `protocolFamily`.
+
+**Section D passed:** a day already completed stays done across an advance. That is the half `variantStale` must not break, since it gates the CTA only and does not hide the done state — the distinction that kept it as a separate flag from `staleDate` rather than one unified stamp.
+
+**WHAT THE WALK CANNOT SETTLE.** The walker is racing a load, so a failure to reproduce would have proven nothing either way. W0 remains unfixable by this mechanism and is ledgered. The cross-device freshness path is not reachable on one device at all.
