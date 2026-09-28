@@ -793,7 +793,30 @@ import * as path from 'path';
 // prominence - its contract has no promotion case - so the risk is recorded
 // here and flagged to Kyle rather than silently absorbed. Two of them, the
 // all-caps section labels, are also the shape standards 5.4 bans.
-const EXPECTED_SENTINELS = 150;
+//
+// 155 SINCE SLICE 9.1b (2026-09-28): +5, NO DECREMENT. Five new drafted
+// strings, all in components/dashboard/protocolSheet.copy.ts, the chrome of the
+// protocol sheet - the first surface to render a protocol's `whyItWorks`.
+// FOUR ARE PENDING KYLE as UI owner: the sheet title "Today's action", the
+// heading over the daily action "What to do", the dismiss label "Back to
+// Today", and the divergence line "Your plan for today has updated. Head back
+// to Today to see what's next." ONE IS PENDING JEN, by Kyle's ruling: the
+// heading over `whyItWorks`, "Why it can help", because it frames a clinical
+// rationale and says what kind of claim follows.
+//
+// THE COMPLETION STRINGS DID NOT MOVE THE COUNT, and that is deliberate.
+// COMPLETION_COPY was extracted from TodayHeroCard into TodayCompletion so the
+// sheet could share it rather than restate it; its one sentinel (`saveFailed`,
+// pending Jen) moved house with it and is still counted once. A second copy
+// would have been a second sentinel that a sign-off on the first leaves behind.
+//
+// 156 SINCE THE 9.1b WALK (2026-09-28): +1, pending KYLE as UI owner. The
+// accessibility hint on the Today card's entry into the protocol sheet, "Opens
+// today's action in full", in the same protocolSheet.copy.ts. The walk found
+// the entry announced its heading, its action and "button" without saying what
+// a tap does; Kyle ruled the gap closed in this slice rather than deferred,
+// because the entry is the only way into a brand-new surface.
+const EXPECTED_SENTINELS = 156;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');

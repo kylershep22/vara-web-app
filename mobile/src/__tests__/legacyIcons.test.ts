@@ -2,7 +2,7 @@
  * Legacy icon-set guard - tree-wide.
  *
  * UI STANDARDS 7. The house icon set is MaterialCommunityIcons, in 178 files.
- * Lucide (11 files) and Ionicons (17 files) are legacy, and section 7's rule is
+ * Lucide (10 files) and Ionicons (17 files) are legacy, and section 7's rule is
  * that the allowlist "shrinks as screens are redesigned, never grows". This
  * suite is the machine that holds it.
  *
@@ -67,9 +67,12 @@ const VECTOR_ICONS = '@expo/vector-icons';
  * suite exists to prevent.
  */
 const ALLOWLIST: Record<string, string> = {
-  // --- Lucide: 11 files ---------------------------------------------------
-  'src/components/dashboard/TodayHeroCard.tsx':
-    'Lucide. R3, Today becomes an immersive surface - the card is rebuilt there and the import goes with it.',
+  // --- Lucide: 10 files ---------------------------------------------------
+  // TodayHeroCard LEFT THIS LIST IN SLICE 9.1b, ahead of the R3 rebuild its
+  // waiver named. Its done row moved to TodayCompletion.tsx to be shared with
+  // the protocol sheet, and a new file cannot carry a waiver, so the check went
+  // onto the house set; the card's new chevron was drawn from it too. With no
+  // Lucide import left the entry had to go, which is the shrink this list is for.
   'src/components/onboarding/OnboardingScaffold.tsx':
     'Lucide. R6+ onboarding redesign; section 7 names the onboarding surface as where most of Lucide retires. Shared scaffold, so it retires with the first onboarding sub-row, not the last.',
   'src/components/onboarding/SelectionRow.tsx':
@@ -266,8 +269,8 @@ describe('Legacy icon sets - allowlist', () => {
 
   it('sees the legacy sets it is meant to see (guards against a broken detector passing vacuously)', () => {
     const offenders = files.filter((f) => legacyIconSetsIn(readRel(f)).length > 0);
-    // 11 Lucide + 17 Ionicons, zero overlap, re-counted at HEAD.
-    expect(offenders.length).toBe(28);
+    // 10 Lucide + 17 Ionicons, zero overlap, re-counted at slice 9.1b.
+    expect(offenders.length).toBe(27);
   });
 
   // ASSERTION 1. A non-allowlisted file importing a legacy set fails.
