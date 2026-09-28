@@ -23,7 +23,7 @@
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Text from '../shared/Text';
-import { Check } from 'lucide-react-native';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
 import { Colors, Layout, SizeTokens, Spacing, Typography } from '../../constants';
 import type { CapacityTier, ResolvedProtocolVariant } from '../../protocolEngine';
@@ -35,62 +35,11 @@ import type { DestinationKey, WeeklyCycle } from '../../types/models';
 import { resolveWeekEnd } from '../../utils/weekStart';
 import { weekdayNameForIso } from '../../utils/weekdayLabels';
 import { CardHeading } from './CardHeading';
+import { COMPLETION_COPY, CompletionDoneRow } from './TodayCompletion';
 
-/**
- * Consistent days after which the done-state stops using the variant's own
- * acknowledgment and falls back to the plain line.
- *
- * FIVE, and it is a volume control rather than a milestone. Nothing marks the
- * crossing and nothing is shown for reaching it.
- *
- * RECORDED, NOT FIXED (slice 7m): this rule is a NO-OP for twelve of the
- * twenty-one authored protocols. Recover's nine and Refocus's three carry no
- * `acknowledgment`, so both branches of the conditional below resolve to
- * COMPLETION_COPY.done and there is nothing to quiet. Jen declined twelve
- * per-protocol acknowledgments on 2026-09-12, so that is now the INTENDED
- * state rather than a gap - but it stays written down rather than quietly
- * absorbed, because "the rule never engages here" is still true and a later
- * reader should not rediscover it. 7m changed the fallback string and moved
- * this neither way.
- */
-const ACKNOWLEDGMENT_QUIET_AFTER_DAYS = 5;
-const CHECK_SIZE = 22;
-
-// TODAY_COPY has no completion strings because the weekly Today screen has no
-// completion control yet (it is listed there as deliberately absent).
-//
-// `markDone` is APPROVED COPY from guidelines §1.5 and carries no marker.
-//
-// `done` CARRIES NO MARKER EITHER AS OF SLICE 7m, and its warrant is a
-// different kind from markDone's. The string is NOT printed in §1.5. Jen signed
-// off on this exact wording on 2026-09-12 (roadmap row 7m) and she owns the
-// guidelines doc, so the authority here is the owner's sign-off rather than a
-// citation to a line in the document. Those are not the same warrant and a
-// later reader should not be able to mistake one for the other.
-//
-// WHY §1.5's TWO EFFORT TIERS DO NOT MAKE THIS WRONG. §1.5 supplies "Nice. You
-// made the time." and "Solid work. You stayed with it." plus five extensions.
-// Those are PER-EFFORT acknowledgments and they belong to the OTHER branch of
-// the done-state below: the per-variant `protocol.acknowledgment`, which is
-// Remove's nine and which 7m leaves untouched. This slot is the branch where no
-// tier is determinable. It serves the twelve Recover and Refocus variants that
-// carry no acknowledgment at either effort size, and it serves the post-quieting
-// state for all twenty-one, where the entire intent is to STOP acknowledging at
-// the tier's volume. A tiered line here would be the scoreboard the quieting
-// rule exists to prevent. One flat line is the right shape for this slot, not a
-// collapse of §1.5 into one string.
-//
-// JEN DECLINED THE ALTERNATIVE, which was twelve per-protocol acknowledgments
-// matching Remove's shape: too much surface for too little value, and
-// protocol-specific praise risks over-celebrating routine completion.
-//
-// `saveFailed` is still a placeholder.
-const COMPLETION_COPY = {
-  markDone: 'Mark it done',
-  done: 'Done for today.',
-  // COPY: draft, not from guidelines doc - pending Jen
-  saveFailed: 'That did not save. Try again.',
-} as const;
+// The completion strings, the quieting rule and the done row live in
+// TodayCompletion since slice 9.1b, shared with the protocol sheet. Their full
+// provenance notes moved with them.
 
 export interface TodayHeroCardProps {
   /**
@@ -182,6 +131,25 @@ export interface TodayHeroCardProps {
    */
   variantStale?: boolean;
   onMarkDone: () => void;
+  /**
+   * Opens the protocol sheet (slice 9.1b). When present, the card's CONTENT
+   * AREA, the heading and the day's action, becomes the entry point, with a
+   * quiet chevron as its disclosure affordance. When absent the card renders
+   * exactly as it did before, which is every non-Remove protocol: row 9 is
+   * Remove-only by Kyle's ruling of 2026-09-19.
+   *
+   * NOT A SECOND CTA. The completion control below stays the one action; this
+   * is a way into more detail about the same action, styled as content rather
+   * than as a button.
+   *
+   * THE ENTRY IS DISABLED WHILE EITHER FLAG IS TRUE, by the same `disabled`
+   * idiom the completion control uses. A sheet pins what it opens on, and only
+   * a currently valid protocol may be pinned: opening during the window would
+   * snapshot a protocol the hook already knows is transitional. DashboardScreen
+   * refuses the open on the same flags, so a tap already dispatched still
+   * cannot pin a stale protocol.
+   */
+  onOpenDetail?: () => void;
 }
 
 export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
@@ -197,25 +165,54 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
   staleDate = false,
   variantStale = false,
   onMarkDone,
-}) => (
-  <View style={styles.card} testID="home-today-hero">
-    <CardHeading icon="white-balance-sunny" title={TODAY_COPY.actionHeading} />
+  onOpenDetail,
+}) => {
+  const content = (
+    <>
+      <CardHeading icon="white-balance-sunny" title={TODAY_COPY.actionHeading} />
 
-    <Text style={styles.dailyAction} testID="home-today-action">
-      {protocol.dailyAction}
-    </Text>
+      <Text style={styles.dailyAction} testID="home-today-action">
+        {protocol.dailyAction}
+      </Text>
+    </>
+  );
+  const entryDisabled = staleDate || variantStale;
 
-    {/* Week-1 quick win (spec 6.3): a MANDATORY same-session practice, read
+  return (
+    <View style={styles.card} testID="home-today-hero">
+      {onOpenDetail ? (
+        <TouchableOpacity
+          style={styles.entry}
+          onPress={onOpenDetail}
+          disabled={entryDisabled}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: entryDisabled }}
+          // What a sighted user reads in this area, in the order they read it.
+          // No new string: the role is what announces that it opens something.
+          accessibilityLabel={`${TODAY_COPY.actionHeading} ${protocol.dailyAction}`}
+          testID="home-today-open-detail"
+        >
+          <View style={styles.entryContent}>{content}</View>
+          <View style={[styles.entryChevron, entryDisabled && styles.entryDisabled]}>
+            <Icon name="chevron-right" size={20} color={Colors.mutedSageGray} />
+          </View>
+        </TouchableOpacity>
+      ) : (
+        content
+      )}
+
+      {/* Week-1 quick win (spec 6.3): a MANDATORY same-session practice, read
         from quickWinActive and never from supportingPracticeIds, which means
         optional extras. */}
-    {protocol.quickWinActive && (
-      <View style={styles.quickWin} testID="home-today-quickwin">
-        <Text style={styles.quickWinHeading}>{TODAY_COPY.quickWinHeading}</Text>
-        <Text style={styles.quickWinBody}>{TODAY_COPY.quickWinPractice}</Text>
-      </View>
-    )}
+      {protocol.quickWinActive && (
+        <View style={styles.quickWin} testID="home-today-quickwin">
+          <Text style={styles.quickWinHeading}>{TODAY_COPY.quickWinHeading}</Text>
+          <Text style={styles.quickWinBody}>{TODAY_COPY.quickWinPractice}</Text>
+        </View>
+      )}
 
-    {/* The one action. Forward-only: once done there is nothing to un-tap, so
+      {/* The one action. Forward-only: once done there is nothing to un-tap, so
         the control becomes a state rather than staying a button.
 
         `staleDate` SUPPRESSES THE DONE BRANCH TOO. Until the new day's load
@@ -226,48 +223,34 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
 
         `variantStale` IS DELIBERATELY ABSENT FROM THIS CONDITION. It joins the
         control's disabled state below and nothing else; see its prop note. */}
-    {completed && !staleDate ? (
-      <View style={styles.doneRow} testID="home-today-done">
-        <View style={styles.doneCheck}>
-          <Check size={14} strokeWidth={2.5} color={Colors.white} />
-        </View>
-        {/* THE ACKNOWLEDGMENT QUIETS AS CONSISTENCY BUILDS, and never says so.
-            Early on the line matches what the user actually did, which is the
-            whole point of it being per variant. Past the threshold it drops to
-            the plain line: praise that keeps arriving at the same volume stops
-            reading as acknowledgment and starts reading as a scoreboard.
+      {completed && !staleDate ? (
+        <CompletionDoneRow
+          protocol={protocol}
+          consistentDays={consistentDays}
+          testID="home-today-done"
+        />
+      ) : (
+        <TouchableOpacity
+          style={[styles.cta, (saving || staleDate || variantStale) && styles.ctaDisabled]}
+          onPress={onMarkDone}
+          disabled={saving || staleDate || variantStale}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: saving || staleDate || variantStale }}
+          accessibilityLabel={COMPLETION_COPY.markDone}
+          testID="home-today-complete"
+        >
+          <Text style={styles.ctaLabel}>{COMPLETION_COPY.markDone}</Text>
+        </TouchableOpacity>
+      )}
 
-            No number is rendered in either state, and the transition is
-            deliberately unannounced. A user must never be able to tell they
-            crossed a threshold, because that is a counter by another name. */}
-        <Text style={styles.doneLabel}>
-          {consistentDays >= ACKNOWLEDGMENT_QUIET_AFTER_DAYS
-            ? COMPLETION_COPY.done
-            : (protocol.acknowledgment ?? COMPLETION_COPY.done)}
+      {saveFailed && (
+        <Text style={styles.error} testID="home-today-error">
+          {COMPLETION_COPY.saveFailed}
         </Text>
-      </View>
-    ) : (
-      <TouchableOpacity
-        style={[styles.cta, (saving || staleDate || variantStale) && styles.ctaDisabled]}
-        onPress={onMarkDone}
-        disabled={saving || staleDate || variantStale}
-        activeOpacity={0.8}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: saving || staleDate || variantStale }}
-        accessibilityLabel={COMPLETION_COPY.markDone}
-        testID="home-today-complete"
-      >
-        <Text style={styles.ctaLabel}>{COMPLETION_COPY.markDone}</Text>
-      </TouchableOpacity>
-    )}
+      )}
 
-    {saveFailed && (
-      <Text style={styles.error} testID="home-today-error">
-        {COMPLETION_COPY.saveFailed}
-      </Text>
-    )}
-
-    {/* Context below the action: what this week is, and when it runs to. Never
+      {/* Context below the action: what this week is, and when it runs to. Never
         a second CTA.
 
         The boundary clause is APPENDED to this existing line rather than given
@@ -298,7 +281,7 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
         The cycle's own tier stays wrong for the original 3b-i reason and is
         still not read: capacity is a daily answer, and the week's copy of it is
         not what the day was derived at. */}
-    {/* THE FRAME LABEL, from whichever axis this account actually has.
+      {/* THE FRAME LABEL, from whichever axis this account actually has.
         Slice 4b, and the branch order is the rule:
 
           1. `cycle.outcome`, for every pre-4b week. Reads OUTCOME_LABELS,
@@ -312,32 +295,45 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
              opens on the capacity. Not "Unknown", not a default outcome.
              Substituting a value here is the bug this slice removed from the
              rollover, and it would be no better on a render path. */}
-    {!!cycle && (
-      <Text style={styles.weekSummary} testID="home-today-summary">
-        {cycle.outcome
-          ? `${OUTCOME_LABELS[cycle.outcome]} / `
-          : destination
-            ? `${DESTINATION_SUMMARY_LABELS[destination]} / `
-            : ''}
-        {CAPACITY_LABELS[dayCapacity ?? protocol.capacity]}
-        {!!cycle.weekEnd &&
-          ` · ${TODAY_COPY.runsThrough.replace('{day}', weekdayNameForIso(resolveWeekEnd(cycle.weekStart, cycle.weekEnd)))}`}
-      </Text>
-    )}
-    <Text style={styles.protocolName}>{protocol.name}</Text>
+      {!!cycle && (
+        <Text style={styles.weekSummary} testID="home-today-summary">
+          {cycle.outcome
+            ? `${OUTCOME_LABELS[cycle.outcome]} / `
+            : destination
+              ? `${DESTINATION_SUMMARY_LABELS[destination]} / `
+              : ''}
+          {CAPACITY_LABELS[dayCapacity ?? protocol.capacity]}
+          {!!cycle.weekEnd &&
+            ` · ${TODAY_COPY.runsThrough.replace('{day}', weekdayNameForIso(resolveWeekEnd(cycle.weekStart, cycle.weekEnd)))}`}
+        </Text>
+      )}
+      <Text style={styles.protocolName}>{protocol.name}</Text>
 
-    {/* Floor, on slammed weeks only. The user's own words, never rendered back
+      {/* Floor, on slammed weeks only. The user's own words, never rendered back
         as a target or a score. */}
-    {!!floorCommitment && (
-      <View style={styles.floor} testID="home-today-floor">
-        <Text style={styles.floorHeading}>{TODAY_COPY.floorHeading}</Text>
-        <Text style={styles.floorBody}>{floorCommitment}</Text>
-      </View>
-    )}
-  </View>
-);
+      {!!floorCommitment && (
+        <View style={styles.floor} testID="home-today-floor">
+          <Text style={styles.floorHeading}>{TODAY_COPY.floorHeading}</Text>
+          <Text style={styles.floorBody}>{floorCommitment}</Text>
+        </View>
+      )}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
+  // The entry row: the content takes the width, the chevron sits at the right,
+  // top-aligned with the heading so it reads as belonging to the whole area.
+  entry: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  // The same dim as the disabled control, on the chevron ONLY: dimming the
+  // day's action itself would make the text harder to read in the one frame a
+  // user might be reading it, for a window that lasts a round trip.
+  entryDisabled: { opacity: 0.4 },
+  entryContent: { flex: 1 },
+  entryChevron: { marginLeft: Spacing.sm, marginTop: 2 },
   card: {
     backgroundColor: Colors.surface,
     borderRadius: Layout.borderRadius.lg,
@@ -381,25 +377,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.white,
-  },
-  doneRow: {
-    minHeight: SizeTokens.touchTargetMin,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  doneCheck: {
-    width: CHECK_SIZE,
-    height: CHECK_SIZE,
-    borderRadius: CHECK_SIZE / 2,
-    backgroundColor: Colors.evergreenTeal,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  doneLabel: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.evergreenTeal,
   },
   error: {
     marginTop: Spacing.sm,

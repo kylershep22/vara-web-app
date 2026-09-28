@@ -38,6 +38,7 @@ const homeHeader = require('../../assets/images/homeHeader.webp');
 // — matches Focus/Energy so the overlap reads identically across heroes.
 const CARD_OVERLAP = Spacing.xl;
 import { TodayHeroCard } from '../components/dashboard/TodayHeroCard';
+import { ProtocolSheet } from '../components/dashboard/ProtocolSheet';
 import { SetTodayCard } from '../components/dashboard/SetTodayCard';
 import { DailyPickerSheet } from '../components/dashboard/DailyPickerSheet';
 import { CloseWeekEntry } from '../components/dashboard/CloseWeekEntry';
@@ -58,6 +59,7 @@ import { logEvent } from '../services/firebase/analyticsEvents.service';
 import { useDashboard } from '../hooks/useDashboard';
 import { useJourneyLanding } from '../hooks/useJourneyLanding';
 import { cycleSource, phaseSource, useTodayCard } from '../hooks/useTodayCard';
+import { usePinnedProtocol } from '../hooks/usePinnedProtocol';
 import { useWeeklyCloseEntry } from '../hooks/useWeeklyCloseEntry';
 import { ROUTES } from '../navigation/routes';
 import { useAuth } from '../context/AuthContext';
@@ -156,6 +158,12 @@ const DashboardScreen: React.FC = () => {
       ? phaseSource(weeklyLanding.phase)
       : cycleSource(weeklyLanding.cycle);
   const todayCard = useTodayCard(user?.uid, todaySource);
+
+  // The protocol sheet's pin (slice 9.1b). Reads THIS card and never a second
+  // useTodayCard: a second instance would load on its own schedule and leave
+  // the card underneath stale. The sheet shows the pin, not the card; see
+  // usePinnedProtocol's header for why the two must be allowed to differ.
+  const pinnedProtocol = usePinnedProtocol(user?.uid, todayCard);
 
   // Good moments (journey slice 8). Deliberately NOT derived from any of the
   // journey state above: the row is the same on every account, on every day,
@@ -585,7 +593,6 @@ const DashboardScreen: React.FC = () => {
                          names what the USER said. */
                       dayCapacity={todayCard.dayCapacity}
                       floorCommitment={todayCard.floorCommitment}
-                      completed={todayCard.completed}
                       saving={todayCard.saving}
                       saveFailed={todayCard.saveFailed}
                       /* Rollover safety. True while the card still holds the
@@ -603,7 +610,23 @@ const DashboardScreen: React.FC = () => {
                          ONLY; unlike staleDate it leaves a done day showing
                          done. The hook refuses the write on the same flag. */
                       variantStale={todayCard.variantStale}
+                      /* Slice 9.1b. A completion made from the protocol sheet
+                         for TODAY shows here at once, without waiting for a
+                         reload. Keyed on the live date, so a completion the
+                         sheet made for a day that has since ended can never
+                         mark this day done. */
+                      completed={
+                        todayCard.completed ||
+                        pinnedProtocol.completedIso === todayCard.todayIso
+                      }
                       onMarkDone={todayCard.markDone}
+                      /* The sheet's entry, on REMOVE protocols only: row 9 is
+                         Remove-only by Kyle's ruling of 2026-09-19. */
+                      onOpenDetail={
+                        todayCard.protocol.phase === 'remove'
+                          ? pinnedProtocol.open
+                          : undefined
+                      }
                       /* Never rendered. Decides whether the done state shows
                          the variant's own acknowledgment or the plain line. */
                       consistentDays={todayCard.consistentDays}
@@ -725,6 +748,24 @@ const DashboardScreen: React.FC = () => {
                       /* Slice 4b, same reason as the hero above. */
                       destination={weeklyLanding.phase?.destination}
                       onPress={openClose}
+                    />
+                  )}
+
+                  {/* The protocol sheet (slice 9.1b). A SIBLING HERE, NOT INSIDE
+                      THE PICKED BRANCH ABOVE, and that placement is the fix for
+                      a real failure: a new day is normally unpicked, so at
+                      midnight the hero swaps to the prompt, and a sheet mounted
+                      inside it would vanish under a user who was reading it. The
+                      pin outlives the day; so must the mount. */}
+                  {pinnedProtocol.snapshot && (
+                    <ProtocolSheet
+                      snapshot={pinnedProtocol.snapshot}
+                      done={pinnedProtocol.done}
+                      diverged={pinnedProtocol.diverged}
+                      completable={pinnedProtocol.completable}
+                      saveFailed={pinnedProtocol.saveFailed}
+                      onMarkDone={pinnedProtocol.complete}
+                      onDismiss={pinnedProtocol.close}
                     />
                   )}
 

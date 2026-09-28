@@ -793,7 +793,23 @@ import * as path from 'path';
 // prominence - its contract has no promotion case - so the risk is recorded
 // here and flagged to Kyle rather than silently absorbed. Two of them, the
 // all-caps section labels, are also the shape standards 5.4 bans.
-const EXPECTED_SENTINELS = 150;
+//
+// 155 SINCE SLICE 9.1b (2026-09-28): +5, NO DECREMENT. Five new drafted
+// strings, all in components/dashboard/protocolSheet.copy.ts, the chrome of the
+// protocol sheet - the first surface to render a protocol's `whyItWorks`.
+// FOUR ARE PENDING KYLE as UI owner: the sheet title "Today's action", the
+// heading over the daily action "What to do", the dismiss label "Back to
+// Today", and the divergence line "Your plan for today has updated. Head back
+// to Today to see what's next." ONE IS PENDING JEN, by Kyle's ruling: the
+// heading over `whyItWorks`, "Why it can help", because it frames a clinical
+// rationale and says what kind of claim follows.
+//
+// THE COMPLETION STRINGS DID NOT MOVE THE COUNT, and that is deliberate.
+// COMPLETION_COPY was extracted from TodayHeroCard into TodayCompletion so the
+// sheet could share it rather than restate it; its one sentinel (`saveFailed`,
+// pending Jen) moved house with it and is still counted once. A second copy
+// would have been a second sentinel that a sign-off on the first leaves behind.
+const EXPECTED_SENTINELS = 155;
 
 const mobileRoot = path.resolve(__dirname, '../..');
 const srcRoot = path.join(mobileRoot, 'src');
