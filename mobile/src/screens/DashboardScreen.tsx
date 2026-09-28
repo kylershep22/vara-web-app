@@ -596,6 +596,13 @@ const DashboardScreen: React.FC = () => {
                          a stale done-state; the hook refuses the write on the
                          same flag. */
                       staleDate={todayCard.staleDate}
+                      /* STALE-SOURCE-COMPLETION. True while the card still
+                         holds a variant the current journey would not serve:
+                         JourneyLine above has already moved to the new phase
+                         and the new load has not committed. Dims the control
+                         ONLY; unlike staleDate it leaves a done day showing
+                         done. The hook refuses the write on the same flag. */
+                      variantStale={todayCard.variantStale}
                       onMarkDone={todayCard.markDone}
                       /* Never rendered. Decides whether the done state shows
                          the variant's own acknowledgment or the plain line. */

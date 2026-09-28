@@ -163,6 +163,24 @@ export interface TodayHeroCardProps {
    * OPTIONAL so every existing call site and fixture is unaffected.
    */
   staleDate?: boolean;
+  /**
+   * The card holds a variant the current journey would no longer serve
+   * (STALE-SOURCE-COMPLETION): a phase advance, a capture or an adjustment has
+   * reached Home and the load resolved for it has not committed.
+   *
+   * GATES THE COMPLETION CONTROL AND NOTHING ELSE. Same dimmed, disabled
+   * treatment as `staleDate`, deliberately NOT the done-branch suppression.
+   * `staleDate` hides the done state because a date change makes `completed`
+   * untrue. A variant change does not: completion is keyed to the date alone,
+   * so a day done before an advance is still done after it, and hiding the
+   * check would show a finished day as a dimmed "Mark done".
+   *
+   * `protocol.dailyAction` still renders the previous variant's text while this
+   * is true, for the reason recorded on `staleDate` above.
+   *
+   * OPTIONAL so every existing call site and fixture is unaffected.
+   */
+  variantStale?: boolean;
   onMarkDone: () => void;
 }
 
@@ -177,6 +195,7 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
   saving,
   saveFailed,
   staleDate = false,
+  variantStale = false,
   onMarkDone,
 }) => (
   <View style={styles.card} testID="home-today-hero">
@@ -203,7 +222,10 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
         commits, `completed` is the PREVIOUS day's answer, so this branch would
         render a check and an acknowledgment for a day nobody has completed.
         Falling through to the disabled control shows a state that is merely
-        not-yet-known, which is true, instead of one that is wrong. */}
+        not-yet-known, which is true, instead of one that is wrong.
+
+        `variantStale` IS DELIBERATELY ABSENT FROM THIS CONDITION. It joins the
+        control's disabled state below and nothing else; see its prop note. */}
     {completed && !staleDate ? (
       <View style={styles.doneRow} testID="home-today-done">
         <View style={styles.doneCheck}>
@@ -226,12 +248,12 @@ export const TodayHeroCard: React.FC<TodayHeroCardProps> = ({
       </View>
     ) : (
       <TouchableOpacity
-        style={[styles.cta, (saving || staleDate) && styles.ctaDisabled]}
+        style={[styles.cta, (saving || staleDate || variantStale) && styles.ctaDisabled]}
         onPress={onMarkDone}
-        disabled={saving || staleDate}
+        disabled={saving || staleDate || variantStale}
         activeOpacity={0.8}
         accessibilityRole="button"
-        accessibilityState={{ disabled: saving || staleDate }}
+        accessibilityState={{ disabled: saving || staleDate || variantStale }}
         accessibilityLabel={COMPLETION_COPY.markDone}
         testID="home-today-complete"
       >
