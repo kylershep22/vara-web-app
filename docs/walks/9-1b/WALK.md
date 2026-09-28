@@ -1,9 +1,9 @@
 # 9.1b - the Remove protocol sheet - device walk
 
 **Row:** 9.1b, the Remove behavioural screen. **The last row blocking R3.**
-**Build:** branch `journey/slice-9-1b-behavioural-sheet` (commit hash in the build log).
+**Build:** branch `journey/slice-9-1b-behavioural-sheet`, `fa865a9` + `bb4e33c` (the VoiceOver hint, added after the walk by Kyle's ruling).
 **Device:** iPhone 14 Plus, dev client. **Seven sections.**
-**Walker:** Kyle. **Status: NOT WALKED.**
+**Walker:** Kyle. **Status: WALKED 2026-09-28. Sections A, B, C, E, F and G PASS. Section D NOT WALKABLE IN THIS SETUP (OFFLINE-PATHS-UNWALKABLE). Zero FAILs.**
 **Time:** about 30 minutes with a seeded Remove account.
 
 ---
@@ -99,6 +99,13 @@ protocol name before you start.
 
 ### D. A failed write does not leave a false "done"
 
+> **NOT WALKABLE IN THIS SETUP, 2026-09-28. Not "not run".** A dev client loads its JS
+> bundle from Metro and cannot launch without a network, so Airplane Mode takes the app
+> down rather than the write. This is board row OFFLINE-PATHS-UNWALKABLE, a standing
+> limitation of the walking method. The failed-write path ships device-unobserved, carried
+> by its automated coverage: the revert is asserted in `usePinnedProtocol.operation.test.ts`
+> and, through the rendered screen, in `DashboardScreen.protocolSheet.test.tsx`.
+
 **Use a second Remove account, or tomorrow's day on this one.** The same day
 cannot be un-completed.
 
@@ -182,10 +189,24 @@ These are covered by tests against the real Today hook
 
 | Section | Result | Notes |
 |---|---|---|
-| A. Entry affordance | | |
-| B. Sheet content | | whyItWorks read in full? |
-| C. Completion reflects on card | | |
-| D. Failed write | | (i) or (ii)? |
-| E. 130% text | | |
-| F. VoiceOver | | exact entry phrasing; hint needed? |
-| G. Backgrounding | | |
+| A. Entry affordance | PASS | reads as secondary; chevron level with the heading |
+| B. Sheet content | PASS | the first `whyItWorks` ever rendered |
+| C. Completion reflects on card | PASS | no refresh needed |
+| D. Failed write | NOT WALKABLE IN THIS SETUP | OFFLINE-PATHS-UNWALKABLE |
+| E. 130% text | PASS | |
+| F. VoiceOver | PASS | hint ruled in and added at `bb4e33c`: "Opens today's action in full" |
+| G. Backgrounding | PASS | |
+
+## WALK RESULT — 2026-09-28
+
+**Walked by Kyle on an iPhone 14 Plus, 2026-09-28. Six sections PASS, one NOT WALKABLE IN THIS SETUP, zero FAILs. Attested 2026-09-28: tsc 139 · jest 4156 of 252 plus the hint test (4157 of 252) · lint 994 errors, 1364 warnings · sentinel 156.**
+
+**SECTION B IS THE RESULT THIS SLICE EXISTED FOR.** Jen's nine `whyItWorks` strings were authored and clinically reviewed in slice 3a on 2026-09-02 and rendered by nothing for twenty-six days. `protocolEngine/types.ts` said so in as many words — "rendered on none of them yet: the slice 9 behavioral screen is the surface these are held for. Unrendered is not unowned; do not sweep them as dead." The sheet renders one. The promise made by slice 3a's §13 entry and repeated in nine call-site comments is discharged for Remove's nine; Recover's and Refocus's twelve stay held.
+
+**SECTION C CONFIRMS THE ARCHITECTURE RULING ON A DEVICE.** A completion made in the sheet shows on the card underneath without a refresh. That is what a second `useTodayCard` instance would have broken, and it is why `usePinnedProtocol` reads the one instance `DashboardScreen` already owns rather than mounting its own.
+
+**SECTION A: the entry reads as secondary.** The chevron sits in the card header, level with the heading, and does not compete with the CTA.
+
+**TWO THINGS KYLE RULED AT THE WALK.** The done-row check icon changed from Lucide to MaterialCommunityIcons `check-bold` as a side effect of extracting the done row into a shared file — new files cannot use Lucide, and `TodayHeroCard`'s allowlist entry went with it, the legacy-icon count dropping 28 to 27. Accepted as shipped and RECORDED FOR R3 to reconcile when it restyles that card, rather than reverting an extraction to preserve a glyph outline. And the VoiceOver hint was added in this slice rather than deferred, because an accessibility gap on a brand-new surface should not wait for an unscheduled follow-up.
+
+**WHAT THE WALK COULD NOT SHOW:** the failed write, per OFFLINE-PATHS-UNWALKABLE; the midnight case without a clock change; the variant divergence without racing a focus refresh; and anything cross-device, which is CROSS-CLIENT-STATE-FRESHNESS. All four are carried by the 45 tests and the eight mutations.
