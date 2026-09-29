@@ -8,6 +8,7 @@ import React from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import Text from './shared/Text';
 import { Colors, Spacing } from '../constants';
+import { SurfaceTier } from './shared/SurfaceTier';
 
 interface LoadingSpinnerProps {
   message?: string;
@@ -15,9 +16,11 @@ interface LoadingSpinnerProps {
   fullScreen?: boolean;
   /**
    * Full-screen only. Drops the Mist White fill so the spinner sits over
-   * whatever the caller has already painted behind it. Added for Today (R3a),
-   * whose environmental background must not be covered by an opaque ground on
-   * the cold-load path. Every other caller omits it and keeps the fill.
+   * whatever the caller has already painted behind it, and puts the wordmark
+   * and message on the immersive surface tier so they are never raw on it.
+   * Added for Today (R3a), whose environmental background must not be covered
+   * by an opaque ground on the cold-load path. Every other caller omits it and
+   * renders exactly as before.
    */
   transparentGround?: boolean;
 }
@@ -28,14 +31,8 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   fullScreen = true,
   transparentGround = false,
 }) => {
-  return (
-    <View
-      style={[
-        styles.container,
-        fullScreen && styles.fullScreen,
-        fullScreen && transparentGround && styles.transparentGround,
-      ]}
-    >
+  const content = (
+    <>
       {fullScreen && (
         <Text style={styles.brandText}>vara</Text>
       )}
@@ -48,6 +45,27 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         <Text style={styles.message}>
           {message}
         </Text>
+      )}
+    </>
+  );
+
+  return (
+    <View
+      style={[
+        styles.container,
+        fullScreen && styles.fullScreen,
+        fullScreen && transparentGround && styles.transparentGround,
+      ]}
+    >
+      {/* With no fill of its own, the spinner's text would sit raw on whatever
+          is behind it. On Today that is artwork, so the text takes the
+          immersive surface tier (standards 2.8). */}
+      {fullScreen && transparentGround ? (
+        <SurfaceTier style={styles.loadingSurface} testID="loading-surface">
+          {content}
+        </SurfaceTier>
+      ) : (
+        content
       )}
     </View>
   );
@@ -65,6 +83,10 @@ const styles = StyleSheet.create({
   },
   transparentGround: {
     backgroundColor: 'transparent',
+  },
+  loadingSurface: {
+    alignItems: 'center',
+    padding: Spacing.lg,
   },
   brandText: {
     fontSize: 32,

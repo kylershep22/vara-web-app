@@ -31,6 +31,7 @@
  */
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { surfaceTierStyle } from '../shared/SurfaceTier';
 import Text from '../shared/Text';
 
 import { Colors, Spacing, TextStyles, Typography } from '../../constants';
@@ -101,6 +102,10 @@ export const JourneyLine: React.FC<JourneyLineProps> = ({
 
 const styles = StyleSheet.create({
   row: {
+    // THE IMMERSIVE SURFACE TIER (R3a). Carried inside the line rather than
+    // wrapped around it at the call site, because the line can render nothing
+    // (above) and a wrapper would leave an empty surface on the artwork.
+    ...surfaceTierStyle,
     marginBottom: Spacing.md,
   },
   // Lifted from JourneyPhaseScreen's `state` style rather than approximated, so

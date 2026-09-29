@@ -97,6 +97,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
@@ -125,6 +126,13 @@ export interface StartHereRowProps {
   userId: string | null | undefined;
   /** The one line under the label. Rendered only while expanded. */
   gloss: string;
+  /**
+   * Applied to the row's outer container, and only when the row renders. Today
+   * passes the immersive surface tier (R3a): the row sits on artwork there and
+   * must carry its own surface, and a wrapper would leave an empty one on the
+   * art on every day the row renders nothing. The journey map passes nothing.
+   */
+  containerStyle?: StyleProp<ViewStyle>;
   testID?: string;
 }
 
@@ -132,6 +140,7 @@ export const StartHereRow: React.FC<StartHereRowProps> = ({
   surface,
   userId,
   gloss,
+  containerStyle,
   testID = 'start-here-row',
 }) => {
   const path = START_HERE_PATHS[surface];
@@ -194,7 +203,7 @@ export const StartHereRow: React.FC<StartHereRowProps> = ({
     : `${START_HERE_LABEL}. ${gloss}`;
 
   return (
-    <View testID={`${testID}-container`}>
+    <View style={containerStyle} testID={`${testID}-container`}>
       <TouchableOpacity
         style={[styles.row, collapsed && styles.rowCollapsed]}
         onPress={handlePress}

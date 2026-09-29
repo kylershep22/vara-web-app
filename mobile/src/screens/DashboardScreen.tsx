@@ -27,6 +27,7 @@ import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
 import { Image } from 'expo-image';
 import { GuidePill } from '../components/ai/GuidePill';
+import { SurfaceTier, surfaceTierStyle } from '../components/shared/SurfaceTier';
 import { DASHBOARD_SUPPRESS, JOURNEY_IA } from '../constants/dashboardConfig';
 import { PHASE_ORDER } from '../constants/journey';
 
@@ -527,8 +528,15 @@ const DashboardScreen: React.FC = () => {
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View style={styles.headerTextContainer}>
+              {/* THE GREETING IS RAW ON THE ARTWORK, AND IT IS THE ONLY TEXT
+                  THAT IS (standards 2.8). The exception holds only while walk
+                  assertion 18(g) passes against the shipped asset, and the
+                  result is provisional until R3b moves it to displayLg. The
+                  date line is not covered by the exception: it takes the tier. */}
               <Text style={styles.greeting}>{greeting}</Text>
-              <Text style={styles.dateText}>{formattedDate}</Text>
+              <SurfaceTier style={styles.dateSurface} testID="home-date-surface">
+                <Text style={styles.dateText}>{formattedDate}</Text>
+              </SurfaceTier>
             </View>
             <View style={styles.headerActions}>
               {/* Docked Guide pill, left of Settings. Unconditional: the
@@ -550,7 +558,7 @@ const DashboardScreen: React.FC = () => {
 
         {/* Error banner — non-blocking, shows which data failed */}
         {dataErrors.length > 0 && (
-          <View style={styles.errorBanner}>
+          <View style={styles.errorBanner} testID="home-error-banner">
             <Icon name="alert-circle-outline" size={18} color={Colors.error} />
             <Text style={styles.errorBannerText}>
               Could not load {dataErrors.join(', ')}. Pull to refresh.
@@ -755,6 +763,7 @@ const DashboardScreen: React.FC = () => {
                     surface="today"
                     userId={user?.uid}
                     gloss={TODAY_START_HERE_GLOSS}
+                    containerStyle={surfaceTierStyle}
                     testID="home-start-here"
                   />
 
@@ -767,14 +776,20 @@ const DashboardScreen: React.FC = () => {
                       render for a user who has a phase and no live week. There
                       is nothing to close in that state, so the entry is absent
                       rather than pointing at a week that does not exist. */}
+                  {/* On the surface tier in BOTH states (R3a): the closed note is
+                      text, and the open state is an outlined button with no
+                      fill. The tier is the thing to sit on; the button's own
+                      styling is R3b's. */}
                   {!!weeklyLanding.cycle && (
-                    <CloseWeekEntry
-                      closed={!!weeklyLanding.cycle.closeCompletedAt}
-                      cycle={weeklyLanding.cycle}
-                      /* Slice 4b, same reason as the hero above. */
-                      destination={weeklyLanding.phase?.destination}
-                      onPress={openClose}
-                    />
+                    <SurfaceTier testID="home-close-surface">
+                      <CloseWeekEntry
+                        closed={!!weeklyLanding.cycle.closeCompletedAt}
+                        cycle={weeklyLanding.cycle}
+                        /* Slice 4b, same reason as the hero above. */
+                        destination={weeklyLanding.phase?.destination}
+                        onPress={openClose}
+                      />
+                    </SurfaceTier>
                   )}
 
                   {/* The protocol sheet (slice 9.1b). A SIBLING HERE, NOT INSIDE
@@ -884,7 +899,9 @@ const DashboardScreen: React.FC = () => {
                   supposed to be. It is also what makes the walk meaningful:
                   the row can be confirmed on an account with no journey at
                   all. */}
-              <GoodMomentRow onPress={goodMoment.openSheet} />
+              <SurfaceTier style={styles.rowSurface} testID="home-good-moment-surface">
+                <GoodMomentRow onPress={goodMoment.openSheet} />
+              </SurfaceTier>
 
               {/* Surviving system prompts (live-gated), after the content. */}
               {(['notifOptIn', 'eventCode'] as const).map((id) => (
@@ -895,7 +912,9 @@ const DashboardScreen: React.FC = () => {
                   row at the very bottom, below the routine card. Insights leaves
                   the tab IA under the four-pillar migration; this keeps it
                   reachable without a stats hero. */}
-              <InsightsLookbackCard />
+              <SurfaceTier style={styles.rowSurface} testID="home-lookback-surface">
+                <InsightsLookbackCard />
+              </SurfaceTier>
             </View>
           </>
         )}
@@ -996,10 +1015,24 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: Typography.fontSize.sm,
   },
+  // The date's tier hugs the text rather than spanning the header row.
+  dateSurface: {
+    alignSelf: 'flex-start',
+    paddingVertical: Spacing.xs,
+  },
+  // Rows in the calm remainder: separated from the card above, and from each
+  // other, by the same gap.
+  rowSurface: {
+    marginTop: Spacing.sm,
+  },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(217,122,110,0.1)',
+    // THE IMMERSIVE SURFACE TIER (R3a). The coral wash that stood here was a
+    // tint of the page and read as no surface at all over artwork. The icon and
+    // text keep their coral unchanged; 4.3 names a coral border or icon, not
+    // coral text, and the text colour is a styling question, not the tier's.
+    backgroundColor: Colors.surfaceImmersive,
     borderRadius: 8,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,

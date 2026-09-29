@@ -32,12 +32,16 @@
 //      completed. A useMemo, useCallback or React.memo comparator that omits
 //      any other input, in the card or in Home, passes here. Also
 //      TODAYCARD-EXTRACTION's.
-//   3. CONTRACT (d), SURFACES READ THE TOKEN, IS NOT HERE YET. It lands with
-//      the token, which is held on the standards 3.3 ownership question.
+//   3. CONTRACT (d) CANNOT TELL A LITERAL FROM THE TOKEN AT RUNTIME. A
+//      hard-coded 'rgba(255,255,255,0.72)' flattens to the same string. The
+//      source guard in (d) is what closes that; the runtime half only proves
+//      the elements that render carry the value.
 
 const mockUseFocusEffect = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useFocusEffect: (cb: () => void) => mockUseFocusEffect(cb),
+  // InsightsLookbackCard renders for real here, for contract (d).
+  useNavigation: () => ({ navigate: jest.fn() }),
 }));
 jest.mock('react-native-safe-area-context', () => ({
   // FORWARDS style AND edges, unlike the sibling suites. Contract (b) reads
@@ -97,9 +101,6 @@ jest.mock('../../components/dashboard/RoutineCard', () => ({ RoutineCard: () => 
 jest.mock('../../components/dashboard/WeeklyHabitGrid', () => ({
   WeeklyHabitGrid: () => null,
 }));
-jest.mock('../../components/dashboard/InsightsLookbackCard', () => ({
-  InsightsLookbackCard: () => null,
-}));
 jest.mock('../../components/dashboard/FirstShiftFooter', () => ({
   FirstShiftFooter: () => null,
 }));
@@ -126,11 +127,12 @@ jest.mock('../../components/dashboard/TodayHeroCard', () => {
 
 const mockNavigate = jest.fn();
 let mockDataLoading = false;
+let mockDataErrors: string[] = [];
 jest.mock('../../hooks/useDashboard', () => ({
   useDashboard: () => ({
     navigation: { navigate: mockNavigate },
     dataLoading: mockDataLoading,
-    dataErrors: [],
+    dataErrors: mockDataErrors,
     refreshing: false,
     greeting: 'Good morning',
     formattedDate: 'Monday 3 August',
@@ -219,6 +221,7 @@ import DashboardScreen from '../DashboardScreen';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { PROTOCOL_MATRIX } from '../../protocolEngine';
 import { Colors } from '../../constants';
+import { ColorTokens } from '../../constants/designTokens';
 
 const SOURCE = fs.readFileSync(path.join(__dirname, '..', 'DashboardScreen.tsx'), 'utf8');
 
@@ -288,6 +291,7 @@ function primeHome() {
   mockHeroRenders.length = 0;
   mockCurrentHook = null;
   mockDataLoading = false;
+  mockDataErrors = [];
   mockUseFocusEffect.mockImplementation(() => {});
   mockTodayCard.mockReturnValue(todayCard());
   mockGetFloor.mockResolvedValue('Ten minutes of quiet');
@@ -390,6 +394,75 @@ describe('LoadingSpinner keeps its fill for every caller that does not opt out',
   test('transparentGround: no fill', () => {
     const tree: any = render(<LoadingSpinner message="x" transparentGround />).toJSON();
     expect(StyleSheet.flatten(tree.props.style).backgroundColor).toBe('transparent');
+  });
+});
+
+describe('(d) every surface on the ground reads the token', () => {
+  beforeEach(primeHome);
+
+  const fill = (el: any) => StyleSheet.flatten(el.props.style)?.backgroundColor;
+
+  test('the date line, journey line, close entry and remainder rows carry it', async () => {
+    const screen = await renderToday();
+    for (const id of [
+      'home-date-surface',
+      'home-journey-line',
+      'home-close-surface',
+      'home-good-moment-surface',
+      'home-lookback-surface',
+    ]) {
+      expect([id, fill(screen.getByTestId(id))]).toEqual([id, Colors.surfaceImmersive]);
+    }
+  });
+
+  test('the error banner carries it', async () => {
+    mockDataErrors = ['habits'];
+    const screen = await renderToday();
+    expect(fill(screen.getByTestId('home-error-banner'))).toBe(Colors.surfaceImmersive);
+  });
+
+  test('the loading text carries it, on the spinner Today renders', () => {
+    const screen = render(<LoadingSpinner message="x" transparentGround />);
+    expect(fill(screen.getByTestId('loading-surface'))).toBe(Colors.surfaceImmersive);
+  });
+
+  test('StartHereRow is handed the tier, for the day it renders', () => {
+    // It renders nothing today (a null path), so there is no element to read.
+    // The contract is that Today hands it the tier; the row applies it only
+    // when it renders.
+    expect(SOURCE).toMatch(/<StartHereRow[\s\S]*?containerStyle=\{surfaceTierStyle\}/);
+  });
+
+  const ALLOWLIST: Record<string, string> = {
+    'components/insights/HeroSummaryCard.tsx':
+      'A TEXT colour, not a surface, on the Insights hero; predates the token and is not on Today. Same numbers by coincidence.',
+  };
+
+  test('SOURCE GUARD: the value is written once, in colors.ts, and nowhere else in src/', () => {
+    // A literal equal to the token is indistinguishable from the token at
+    // runtime, so the runtime assertions above cannot catch one. This can.
+    const root = path.join(__dirname, '..', '..');
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.(ts|tsx)$/.test(entry.name) && !/\.test\.(ts|tsx)$/.test(entry.name)) {
+          const text = fs.readFileSync(full, 'utf8');
+          if (/rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*0?\.72\s*\)/.test(text)) {
+            offenders.push(path.relative(root, full).split(path.sep).join('/'));
+          }
+        }
+      }
+    };
+    walk(root);
+    // brandCompliance's contract: every waiver carries its reason, and a
+    // waiver naming a file that no longer exists fails, so none can rot.
+    for (const file of Object.keys(ALLOWLIST)) {
+      expect([file, fs.existsSync(path.join(root, file))]).toEqual([file, true]);
+    }
+    expect(offenders.filter((f) => !(f in ALLOWLIST))).toEqual(['constants/colors.ts']);
+    expect(ColorTokens.surfaceImmersive).toBe(Colors.surfaceImmersive);
   });
 });
 
