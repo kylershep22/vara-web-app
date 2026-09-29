@@ -4529,7 +4529,7 @@ NOTHING IN `mobile/src/`**; wiring it in is R3's job, so a correct asset on disk
 what this closes.
 
 > **AMENDED 2026-09-29 (Kyle's ruling, per §12.1). THIS ENTRY'S HABITS DISPOSITION IS
-> SUPERSEDED.** The paragraph above is left unedited. Its ruling, that habits are no longer an
+> SUPERSEDED.** The THREE SUBJECTS WENT MOOT paragraph above is left unedited. Its ruling, that habits are no longer an
 > accessible part of the app and will not be present at launch, stands and is reaffirmed. Its
 > disposition, that the Today habits card comes out in a later version and is deliberately not
 > rowed, is superseded by Ruling 2 of the V1 launch scope block of 2026-09-29 at the end of §5:
