@@ -287,6 +287,22 @@ gates → commit on branch → device walk (`--tunnel`) on any slice with runtim
 merge with two `-m` flags, no backticks in messages. `npm test` in `functions/` before any functions
 deploy. Deploy state lives on Kyle's checklist.
 
+> **ADDED 2026-09-29. THE EVIDENCE RULE, WRITTEN FOR THE FIRST TIME.** Until this block the
+> rule below existed only as practice: row markers and §13 entries say "suites attested" and
+> "walked and attested before the merge", but no sentence anywhere required it. **It records
+> existing practice in one respect and changes it in another.**
+>
+> - **DEVICE WALKS REQUIRE AN EXPLICIT HUMAN ATTESTATION.** The human observation is the
+>   primary evidence, and there is no underlying command output to cite in its place.
+>   **Existing practice, recorded unchanged.**
+> - **AUTOMATED SUITE RESULTS ARE RECORDED AS ATTRIBUTED COMMAND EVIDENCE** from the runner
+>   that executed them, naming the branch, the commit and the observed results, dated as
+>   observed. **This supersedes the prior practice of recording suite results as a human
+>   attestation.**
+> - **GOING FORWARD ONLY.** Historical entries stand as written and are not rewritten; a
+>   "suites attested" marker written before this date keeps meaning what it meant when it was
+>   written.
+
 | # | Slice | Scope fence | Gates | Walk |
 |---|---|---|---|---|
 | 0 | **[DONE 2026-09-01]** Prep: split and rescue *(marker corrected 2026-09-06: the row still carried **[Next]** long after §13's Sept 1 entry recorded slices 0-2 merged, main at `ff8939e`)* | Move `dailyLogDocId`, `upsertDailyLog`, `getDailyLog`, `hasPickedToday`, `DailyLogInput` from `weeklyCycle.service.ts` into `dailyLog.service.ts`. Move `CAPACITY_LABELS/GLOSSES`, `TIME_LABELS/GLOSSES`, `PICKER_COPY` from `screens/weekly/copy.ts` into `components/dashboard/dailyPicker.copy.ts`. Update imports. **Zero behavior change.** | jest green; import graph shows no daily→weekly edge | No (no runtime change) |
@@ -1392,6 +1408,13 @@ deploy. Deploy state lives on Kyle's checklist.
 >   corridor that actually renders), and **the script is the deliverable, run once on the new
 >   asset**. Running it on the committed placeholder measures a file that will not ship.
 >
+> > **RESOLVED 2026-09-29, per §12.1: THE SCRIPT OBLIGATION IS CLOSED.** The script was written
+> > and committed at `faff3b2` as `mobile/scripts/asset-warm-fraction.js`, and run once against
+> > the pinned asset, `mobile/assets/images/todayBackground.webp` at SHA-256
+> > `c949bf1bebf09a68a3e9ffc7d9bf7d7037a448d6a6010c5b16cf40ead53c8b64`. The method above is
+> > used exactly as written and is not reopened. Figures, verdicts and what the definition
+> > excludes are in the §13 entry of 2026-09-29.
+>
 > **RULING 4. THE WALK CELL ABOVE IS SUPERSEDED FOR R1a.** It reads *"Yes, but narrow: Learn
 > and one already-restyled primitive on one device."* That was written when R1 was token
 > substitution with no visual change. **R1a renders a different typeface across the entire app
@@ -2331,6 +2354,19 @@ Start-day edit surface · Coach 500 fix · B2B2C coach channel.
   vocabulary, the journey as method not pitch), Messaging Pillars (weights unchanged; pillars are
   acquisition vocabulary, phases are in-app), CLAUDE.md precedence ladder (this doc enters above
   the Today/IA v2 roadmap).
+
+### 12.1 The dated-append convention (added 2026-09-29)
+
+**A superseded or corrected statement is never edited in place.** The original text stands
+unedited, and a dated block is appended recording the amendment or the resolution. The block
+says what changed, when, and on whose ruling; the reader sees both what was believed and what
+replaced it.
+
+**THIS RECORDS PRACTICE ALREADY FOLLOWED THROUGHOUT THE LOG; IT DOES NOT INTRODUCE IT.** Until
+this section the convention was written nowhere as a rule. It was cited by precedent instead:
+the log calls it "the §3.4 style" and "the §3.4 append convention", after its first instance,
+the AMENDED 2026-09-04 block under §3.4. Those citations stand as written; from this date the
+rule is cited as §12.1.
 
 ---
 
@@ -3591,6 +3627,90 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the map route still offers it. **Record the result in this entry when observed. Until then
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
+
+### 2026-09-29 - Asset warm-fraction validation: the Today background passes 4.2 on the ruling's classifier, and the record says what the classifier excludes (branch `journey/asset-warm-fraction`, `faff3b2` the script, this entry the docs; no walk, no device surface)
+
+**A STANDALONE PREREQUISITE TO R3a.** By ruling, the asset is accepted on this measurement
+before any alpha or luminance measurement begins. It discharges Ruling 3's script obligation
+(§5, the R1 AMENDED block), which carries a RESOLVED block of the same date.
+
+**THE ASSET, PINNED.** `mobile/assets/images/todayBackground.webp`, SHA-256
+`c949bf1bebf09a68a3e9ffc7d9bf7d7037a448d6a6010c5b16cf40ead53c8b64`, git blob
+`6b715aa8597f8073577cc1bb4e9b58353499e0a2`, 178,856 bytes, 1290 x 2796 RGB with no alpha
+channel. Last touched at `9a35082`.
+
+**THE METHOD.** Ruling 3's predetermined classifier: hue 20 to 55 degrees, saturation at or
+above 0.25, 0.25 <= L <= 0.85, every bound inclusive, computed as standard hexcone HSL over
+gamma-encoded 8-bit sRGB values with no linearisation. The corridor is rows 251 to 2544
+inclusive, 2294 of 2796 rows: the 9% is rounded down, so the corridor is at least 82% of the
+frame. **Both choices err toward counting a pixel as warm rather than excluding one.** The
+lightness bounds are unreachable by 8-bit pixels (they need channel sums of 127.5 and 433.5),
+so their inclusivity cannot move the figure. The colour space, the inclusivity and the
+corridor rows were not settled by this document and were decided at the build; all three are
+pinned in `mobile/scripts/__tests__/asset-warm-fraction.test.ts`.
+
+**THE FIGURES, EXACT.**
+
+| Measure | Pixels | Fraction |
+|---|---|---|
+| Classifier-warm, whole frame | 7,684 of 3,606,840 | 0.21% |
+| Classifier-warm, 82% corridor | 7,683 of 2,959,260 | 0.26% |
+| Classifier-warm outside the corridor | 1 | - |
+| Above the lightness cap, whole frame | 528,371 | 14.65% |
+| Above the lightness cap, corridor | 498,381 | 16.84% |
+
+"Above the lightness cap" means hue and saturation are met and L exceeds 0.85.
+
+**EVERY CLASSIFIER-QUALIFIED WARM PIXEL BUT ONE FALLS INSIDE THE SAFE CORRIDOR**, so the warm
+content survives cover-fit cropping on every device, the SE included.
+
+**§4.2 VERDICT: PASS, AGAINST RULING 3's PREDETERMINED CLASSIFIER, INCLUDING THE L <= 0.85
+CAP.** Both regions fall under the 10% floor of the 10 to 15% band: 0.21% of the whole frame,
+the large end's visual field, and 0.26% of the corridor, the small end's.
+
+**THE PASS IS CONDITIONAL ON THE CAP, AND THAT IS PART OF THE VERDICT, NOT A FOOTNOTE TO IT.**
+An additional 14.65% of the whole frame and 16.84% of the corridor meet the hue and saturation
+criteria while exceeding the lightness cap. Counting every pixel that meets hue and saturation
+at any lightness gives roughly 14.86% of the whole frame and 17.10% of the corridor, which
+would place the whole frame inside the 10 to 15% band near its top and the corridor above the
+band. **The 0.21% figure is a classifier result. It is not the artwork's total perceptual
+warmth**, and nothing in this entry says otherwise.
+
+**RULING 3 IS NOT REOPENED.** The definition preceded the measurement and stands. This record
+documents what the definition excludes rather than fitting the definition to the result.
+
+**§2.2 VERDICT, KYLE'S, VERBATIM:**
+
+> "YES. The artwork reads as having one deliberate warm focal point: a soft warm glow
+> concentrated around the right-of-center horizon/sky and its reflection, while the rest of the
+> image remains predominantly cool and the lighter warm notes do not read as separate competing
+> warm areas."
+
+**PROVENANCE.** The working-tree copy was verified byte-identical to the committed blob by
+SHA-256 and git blob hash, decoded losslessly, and inspected at full resolution. **The verdict
+is a human compositional judgment made independently of the classifier**, which is why it is
+recorded separately from the §4.2 verdict rather than derived from it.
+
+**CORROBORATION, AFTER THE FACT, AND NOT THE BASIS OF THE VERDICT.** Above-cap warm pixels sit
+at roughly 16.8% inside the corridor against roughly 4.6% outside it (29,990 of 647,580),
+consistent with a single horizon-band concentration.
+
+**VERIFICATION, AS ATTRIBUTED COMMAND EVIDENCE under §5's evidence rule of 2026-09-29.** Run by
+CC on `journey/asset-warm-fraction` at `faff3b2`, observed 2026-09-28: tsc 139 with a sorted
+error list identical to main's · jest 4167 across 253 suites · lint 994 errors, 1364 warnings ·
+sentinel 156. The jest delta of +10 tests and +1 suite was predicted before the run and
+matched. The corridor test was mutation-checked in memory: shifting either crop edge by one row
+turns its corridor figure from 0 to 0.125.
+
+**WHAT THE CROSS-CHECK DOES AND DOES NOT ESTABLISH.** An independent decode with Pillow and
+numpy reproduced the figures to four decimal places. That establishes agreement between two
+implementations of the decode and the buffer handling. **It is not independent validation of
+the HSL conversion**: the cross-check computed HSL with the same hexcone formulas.
+
+**TOOLING.** `@jsquash/webp` 1.5.0 with its dependency `wasm-feature-detect` 1.9.0, both
+devDependencies only, verified absent from `src/` and `App.tsx`. The script is not wired into
+`package.json` scripts, per the `mobile/scripts/` precedent; it runs as
+`node scripts/asset-warm-fraction.js` from `mobile/`.
 
 ### 2026-09-28 - 9.1b: the behavioural sheet ships, and nine authored strings are rendered for the first time
 
