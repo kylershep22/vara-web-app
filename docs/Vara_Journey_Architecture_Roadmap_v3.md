@@ -2503,11 +2503,16 @@ rule is cited as §12.1.
 >   of what was once believed is part of their value.
 > - **A POINTER TO A FILE OR LOCATION IS NOT SUCH A STATEMENT.** A filename, path or line
 >   reference says where something is, not what anyone decided, found or verified.
-> - **THE BOUNDARY IS THE MERGE.** Once a statement is pushed it is public record, and it
+> - **THE BOUNDARY IS THE MERGE.** Once a statement is merged it is public record, and it
 >   changes only by appended block. Before that, on an unmerged branch, the author may correct
->   their own pointers in place. **First applied at R3a:** the before-state captures were
+>   their own pointers in place. **Merged, not pushed, because the record lives on `main`:** a
+>   branch pushed for backup or review is still a draft, whoever can see it. Visible and
+>   recorded are not the same thing. **First applied at R3a:** the before-state captures were
 >   renamed at `336b86e`, and the §13 entry's pointer to them, written one commit earlier on
->   the same unmerged branch, was corrected in place rather than by a block.
+>   the same unmerged branch, was corrected in place rather than by a block. **Second, the
+>   rule applying to itself:** this block first read "once a statement is pushed", which
+>   disagreed with its own "the boundary is the merge". The block was unmerged, and its author
+>   had written that word one commit earlier, so it was corrected in place at the next commit.
 > - **THIS CLARIFICATION IS ITSELF AN APPENDED BLOCK**, because refining a rule is a
 >   statement, not a pointer.
 
