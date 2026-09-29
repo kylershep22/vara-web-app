@@ -57,21 +57,11 @@ jest.mock('../../components/dashboard/NotificationOptInCard', () => ({
   __esModule: true,
   default: () => null,
 }));
-jest.mock('../../components/dashboard/InsightCard', () => ({ InsightCard: () => null }));
-jest.mock('../../components/dashboard/RoutineCard', () => ({ RoutineCard: () => null }));
-jest.mock('../../components/dashboard/WeeklyHabitGrid', () => ({
-  WeeklyHabitGrid: () => null,
-}));
-jest.mock('../../components/dashboard/InsightsLookbackCard', () => ({
-  InsightsLookbackCard: () => null,
-}));
 jest.mock('../../components/dashboard/FirstShiftFooter', () => ({
   FirstShiftFooter: () => null,
 }));
-jest.mock('../../components/habits/HabitNoteSheet', () => ({ HabitNoteSheet: () => null }));
 jest.mock('../../components/events/EventCodeCard', () => ({ EventCodeCard: () => null }));
 jest.mock('../../components/events/EventCodeSheet', () => ({ EventCodeSheet: () => null }));
-jest.mock('../Time/ActiveRoutinePlayer', () => ({ ActiveRoutinePlayer: () => null }));
 
 const mockNavigate = jest.fn();
 jest.mock('../../hooks/useDashboard', () => ({
@@ -91,21 +81,6 @@ jest.mock('../../hooks/useDashboard', () => ({
     setEventCodeSheetVisible: jest.fn(),
     handleEventCodeDismiss: jest.fn(),
     handleEventCodeSuccess: jest.fn(),
-    dashboardRoutines: [],
-    routineCompletions: {},
-    activePlayerRoutine: null,
-    routinePlayerVisible: false,
-    handleBeginRoutine: jest.fn(),
-    handleCloseRoutinePlayer: jest.fn(),
-    handleRoutineComplete: jest.fn(),
-    habits: [],
-    allCompletions: {},
-    weeklyCompletions: {},
-    processingHabits: {},
-    handleHabitToggle: jest.fn(),
-    noteTarget: null,
-    saveNote: jest.fn(),
-    dismissNote: jest.fn(),
   }),
 }));
 

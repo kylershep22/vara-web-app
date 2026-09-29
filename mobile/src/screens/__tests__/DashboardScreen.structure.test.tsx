@@ -40,7 +40,8 @@
 const mockUseFocusEffect = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useFocusEffect: (cb: () => void) => mockUseFocusEffect(cb),
-  // InsightsLookbackCard renders for real here, for contract (d).
+  // Nothing on the surviving Today tree reads it: its one reader here was
+  // InsightsLookbackCard, which left Today in TODAY-LEGACY-REMOVAL.
   useNavigation: () => ({ navigate: jest.fn() }),
 }));
 jest.mock('react-native-safe-area-context', () => ({
@@ -96,18 +97,11 @@ jest.mock('../../components/dashboard/NotificationOptInCard', () => ({
   __esModule: true,
   default: () => null,
 }));
-jest.mock('../../components/dashboard/InsightCard', () => ({ InsightCard: () => null }));
-jest.mock('../../components/dashboard/RoutineCard', () => ({ RoutineCard: () => null }));
-jest.mock('../../components/dashboard/WeeklyHabitGrid', () => ({
-  WeeklyHabitGrid: () => null,
-}));
 jest.mock('../../components/dashboard/FirstShiftFooter', () => ({
   FirstShiftFooter: () => null,
 }));
-jest.mock('../../components/habits/HabitNoteSheet', () => ({ HabitNoteSheet: () => null }));
 jest.mock('../../components/events/EventCodeCard', () => ({ EventCodeCard: () => null }));
 jest.mock('../../components/events/EventCodeSheet', () => ({ EventCodeSheet: () => null }));
-jest.mock('../Time/ActiveRoutinePlayer', () => ({ ActiveRoutinePlayer: () => null }));
 
 // Every render of the hero, with the hook state Home read on that same render.
 // The card itself renders for real underneath the recorder.
@@ -145,21 +139,6 @@ jest.mock('../../hooks/useDashboard', () => ({
     setEventCodeSheetVisible: jest.fn(),
     handleEventCodeDismiss: jest.fn(),
     handleEventCodeSuccess: jest.fn(),
-    dashboardRoutines: [],
-    routineCompletions: {},
-    activePlayerRoutine: null,
-    routinePlayerVisible: false,
-    handleBeginRoutine: jest.fn(),
-    handleCloseRoutinePlayer: jest.fn(),
-    handleRoutineComplete: jest.fn(),
-    habits: [],
-    allCompletions: {},
-    weeklyCompletions: {},
-    processingHabits: {},
-    handleHabitToggle: jest.fn(),
-    noteTarget: null,
-    saveNote: jest.fn(),
-    dismissNote: jest.fn(),
   }),
 }));
 
@@ -409,14 +388,13 @@ describe('(d) every surface on the ground reads the token', () => {
       'home-journey-line',
       'home-close-surface',
       'home-good-moment-surface',
-      'home-lookback-surface',
     ]) {
       expect([id, fill(screen.getByTestId(id))]).toEqual([id, Colors.surfaceImmersive]);
     }
   });
 
   test('the error banner carries it', async () => {
-    mockDataErrors = ['habits'];
+    mockDataErrors = ['journal'];
     const screen = await renderToday();
     expect(fill(screen.getByTestId('home-error-banner'))).toBe(Colors.surfaceImmersive);
   });
@@ -491,7 +469,6 @@ describe('secondary text on the ground is Soft Charcoal, never Muted Sage Gray',
       'home-date-surface',
       'home-journey-line',
       'home-close-surface',
-      'home-lookback-surface',
     ]) {
       const colours = textColours(screen.getByTestId(id));
       expect(colours.length).toBeGreaterThan(0);
@@ -531,7 +508,7 @@ describe('Reduce Transparency makes the surfaces opaque', () => {
 
   test('read at mount: on, the tier is opaque White', async () => {
     swap('isReduceTransparencyEnabled', () => Promise.resolve(true));
-    mockDataErrors = ['habits'];
+    mockDataErrors = ['journal'];
     const screen = await renderToday();
     await waitFor(() => expect(fill(screen.getByTestId('home-date-surface'))).toBe(Colors.white));
     for (const id of SURFACES) expect([id, fill(screen.getByTestId(id))]).toEqual([id, Colors.white]);
@@ -546,7 +523,7 @@ describe('Reduce Transparency makes the surfaces opaque', () => {
       if (event === 'reduceTransparencyChanged') listeners.push(handler);
       return { remove: jest.fn() };
     });
-    mockDataErrors = ['habits'];
+    mockDataErrors = ['journal'];
     const screen = await renderToday();
     for (const id of SURFACES) {
       expect([id, fill(screen.getByTestId(id))]).toEqual([id, Colors.surfaceImmersive]);
