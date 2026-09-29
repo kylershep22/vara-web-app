@@ -155,7 +155,7 @@ These are recorded known gaps, not passes.
 
 ### Results, recorded 2026-09-29 as Kyle gave them
 
-**Before-state captures:** `IMG_6001 (1).png`, `IMG_6002 (1).png`, `IMG_6003 (1).png`, in this directory, added with this record.
+**Before-state evidence, taken at `1c2567d`:** `before-top.png` (top of Today), `before-mid.png` (mid-scroll) and `before-bottom.png` (bottom), in this directory.
 
 **B. No doubled artwork (18(b))**
 - **B1 PASS.**
