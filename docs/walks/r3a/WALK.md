@@ -3,7 +3,7 @@
 **Row:** R3a, the immersive ground, the surface tier and the opacity token.
 **Build:** branch `journey/r3a-immersive-ground`, `c04e5e0` (the ground) + `b4ae125` (the token and the surfaces) + the commit that carries this file (secondary text, Reduce Transparency).
 **Device:** iPhone 14 Plus, dev client.
-**Walker:** Kyle. **Status: NOT YET WALKED.**
+**Walker:** Kyle. **Status: WALKED, results recorded 2026-09-29 in Part 6. Zero FAILs. Increase Contrast ON (G1 to G4), E1, F1, F2, BAR2 and A3 NOT RUN; the Increase Contrast and Reduce Transparency deferrals are Kyle's ruling. Three items NOT WALKABLE IN THIS SETUP.**
 **Time:** about 40 minutes. You need a journey account whose day is picked and not yet done, and whose week is open.
 
 **Before-state captures.** Kyle's three before-state screenshots, taken at `1c2567d` (before any R3a code), go in this directory as immutable evidence. Nothing under `src/` changed between `1c2567d` and the start of this branch, so they are valid as the before state. **After-state evidence is added alongside them, never over them.**
@@ -152,3 +152,65 @@ These are recorded known gaps, not passes.
 ## Part 6 - Results
 
 *To be filled in at the walk. One line per step: the step number, PASS / FAIL / NOT RUN / NOT WALKABLE IN THIS SETUP, and what was seen. Increase Contrast OFF and ON recorded separately for G1 to G4.*
+
+### Results, recorded 2026-09-29 as Kyle gave them
+
+**Before-state captures:** `IMG_6001 (1).png`, `IMG_6002 (1).png`, `IMG_6003 (1).png`, in this directory, added with this record.
+
+**B. No doubled artwork (18(b))**
+- **B1 PASS.**
+- **B2 PASS.**
+
+**A. One treatment (18(a))**
+- **A1 PASS.**
+- **A2 PASS.** The painting was present on the initial load screen, with the spinner and text on an off-white surface. No full pale screen.
+- **A3 NOT RUN, no migrating account.** No seedable migrating account. Kyle's assessment is that no real user will have this experience.
+
+**C. Safe areas at the top (18(c))**
+- **C1 PASS.**
+- **C2 PASS.**
+- **C3 PASS.**
+
+**D. Bottom clearance (18(d))**
+- **D1 PASS.**
+
+**G. Text contrast against the painting (18(g)), Increase Contrast OFF**
+- **G1 PASS.** Provisional until R3b's `displayLg` greeting, as the step says.
+- **G2, first half (lowest point fully above the bar): PASS.**
+- **G2, second half (under the bar at the bottom-left): OBSERVATION.** Text passing under the nav bar is not readable. That is expected, and it is why this half is recorded as an observation rather than a pass.
+- **G3 PASS.**
+- **G4 PASS.**
+
+**G. Increase Contrast ON**
+- **G1 to G4 NOT RUN, deferred by Kyle's ruling.** His reason: these settings are not a launch-blocking concern at this stage. Recorded as a deferral, not as a failure and not as a pass.
+
+**E. Reduce Motion (18(e))**
+- **E1 NOT RUN.** As Kyle stated it; no reason given.
+
+**F. Reduce Transparency (18(f))**
+- **F1 NOT RUN, deferred by Kyle's ruling.**
+- **F2 NOT RUN, deferred by Kyle's ruling.**
+- His reason for both: these settings are not a launch-blocking concern at this stage. Recorded as deferrals, not as failures and not as passes. The Reduce Transparency branch is covered by tests only (`DashboardScreen.structure.test.tsx`, at mount and on a live toggle).
+
+**BAR. The floating bar over the painting (A0b re-walk)**
+- **BAR1 PASS.**
+- **BAR2 NOT RUN.** It requires Reduce Transparency on, which falls under the F deferral.
+
+**GUIDE. The Guide pill**
+- **GUIDE 1 PASS.**
+- **GUIDE 2 PASS.**
+- **GUIDE 3 PASS.**
+- **GUIDE 4 PASS.**
+
+**Extra checks, beyond the script**
+- **Journey and Learn show no painting: PASS.**
+- **The Start here row on Journey: NOT OBSERVABLE, not passed.** It renders nothing there, because no path resolves to content.
+
+**J. Kyle's judgements (not pass or fail)**
+- **J1:** yes, the treatment reads as translucent.
+- **J2:** yes, secondary text still reads as secondary.
+
+**Not walkable in this setup (Part 5), recorded as gaps, not passes**
+- The SE half of the matrix.
+- The @2x half of 18(g).
+- 18(d) at 667pt.
