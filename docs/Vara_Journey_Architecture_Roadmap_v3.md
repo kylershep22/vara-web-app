@@ -2495,6 +2495,22 @@ the log calls it "the §3.4 style" and "the §3.4 append convention", after its 
 the AMENDED 2026-09-04 block under §3.4. Those citations stand as written; from this date the
 rule is cited as §12.1.
 
+> **CLARIFIED 2026-09-29 (Kyle's ruling, at R3a's capture rename). WHAT THE RULE COVERS, AND
+> WHERE ITS BOUNDARY IS.** The rule above is left unedited.
+>
+> - **IT COVERS STATEMENTS OF DECISION, FINDING AND VERIFICATION.** What was ruled, what was
+>   found, and what was observed or run. Those are what a later reader acts on, and the record
+>   of what was once believed is part of their value.
+> - **A POINTER TO A FILE OR LOCATION IS NOT SUCH A STATEMENT.** A filename, path or line
+>   reference says where something is, not what anyone decided, found or verified.
+> - **THE BOUNDARY IS THE MERGE.** Once a statement is pushed it is public record, and it
+>   changes only by appended block. Before that, on an unmerged branch, the author may correct
+>   their own pointers in place. **First applied at R3a:** the before-state captures were
+>   renamed at `336b86e`, and the §13 entry's pointer to them, written one commit earlier on
+>   the same unmerged branch, was corrected in place rather than by a block.
+> - **THIS CLARIFICATION IS ITSELF AN APPENDED BLOCK**, because refining a rule is a
+>   statement, not a pointer.
+
 ---
 
 ## 13. Build log (amendments as slices close)
@@ -3835,7 +3851,7 @@ omits any other input, in the card or in Home, passes. **Both belong to TODAYCAR
 whose row owns the card's internals, and not to R3a.
 
 **THE WALK, KYLE'S, RECORDED 2026-09-29 AS HE GAVE IT.** iPhone 14 Plus, dev client.
-Before-state captures `IMG_6001 (1).png`, `IMG_6002 (1).png` and `IMG_6003 (1).png` are in
+Before-state captures `before-top.png`, `before-mid.png` and `before-bottom.png` are in
 `docs/walks/r3a/`, taken at `1c2567d`.
 
 - **PASS:** B1, B2 · A1 · A2 (the painting was present on the initial load screen, with the
