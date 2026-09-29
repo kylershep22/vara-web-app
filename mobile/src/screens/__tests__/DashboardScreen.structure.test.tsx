@@ -201,6 +201,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import { PROTOCOL_MATRIX } from '../../protocolEngine';
 import { Colors } from '../../constants';
 import { ColorTokens } from '../../constants/designTokens';
+import { DASHBOARD_SUPPRESS } from '../../constants/dashboardConfig';
 
 const SOURCE = fs.readFileSync(path.join(__dirname, '..', 'DashboardScreen.tsx'), 'utf8');
 
@@ -294,8 +295,9 @@ function flatten(node: any, out: any[] = []): any[] {
 }
 
 const contains = (node: any, pred: (n: any) => boolean) => flatten(node).some(pred);
-const isButton = (n: any) => n.props?.accessibilityRole === 'button';
 const hasTestId = (id: string) => (n: any) => n.props?.testID === id;
+/** A rendered JSON node, as far as contracts (f) and (g) read it. */
+type TreeNode = { type?: string; props?: Record<string, unknown>; children?: unknown[] | null };
 
 async function renderToday() {
   const screen = render(<DashboardScreen />);
@@ -457,7 +459,7 @@ describe('secondary text on the ground is Soft Charcoal, never Muted Sage Gray',
       .filter((n: any) => n.type === 'Text')
       .map((n: any) => StyleSheet.flatten(n.props.style)?.color);
 
-  test('the date line, journey line, closed week note and look-back row', async () => {
+  test('the date line, journey line and closed week note', async () => {
     mockGetLatestCycle.mockResolvedValue({ ...liveCycle, closeCompletedAt: { seconds: 1 } });
     const screen = await renderToday();
     await waitFor(() => expect(screen.getByTestId('home-week-closed')).toBeTruthy());
@@ -629,43 +631,165 @@ describe('(e) render-time semantics survive the redesign', () => {
   });
 });
 
+/**
+ * The worst case the screen can produce today: hero, journey-action card and an
+ * open close entry all at once. Shared by (f) and (g).
+ */
+async function renderWorstCase() {
+  mockResolveJourney.mockResolvedValue({
+    target: 'today',
+    phase: { ...PHASE, hasRemoveCapture: false },
+  });
+  const screen = await renderToday();
+  await waitFor(() => expect(screen.getByTestId('home-remove-capture')).toBeTruthy());
+  expect(screen.getByTestId('home-close-entry')).toBeTruthy();
+  return screen;
+}
+
 describe('(f) the three-surface rule, as ORDER not position', () => {
   beforeEach(primeHome);
 
-  // N = 3 ACTIONABLE BLOCKS, counted before the ANCHOR: the calm-remainder
-  // block, the first top-level block that holds the good-moment row. The fold
-  // is the walk's; what is falsifiable here is that no fourth actionable block
-  // is added above the remainder. The header row (the Guide pill and Settings)
-  // is persistent chrome, not a surface competing for the day, and is excluded
-  // by name. The fixture is the WORST CASE the screen can produce today: hero,
-  // journey-action card and an open close entry all at once.
+  // N = 3 ACTIONABLE SURFACES before the ANCHOR, the good-moment row.
+  //
+  // WHAT IT COUNTS (TODAY-LEGACY-REMOVAL, closing R3A-CONTRACT-F-MOCK-BLIND).
+  // The path from the ScrollView's content container down to the anchor is
+  // walked, and at EVERY level the siblings that come before the path node and
+  // contain an actionable element are counted. The R3a version counted only
+  // top-level blocks, so an action rendered inside the anchor's own block, ahead
+  // of the anchor, was invisible to it. The removed habit and routine cards sat
+  // exactly there, and were also mocked to null.
+  //
+  // ACTIONABLE means accessibilityRole button or link, OR a function onClick. A
+  // TouchableOpacity with no role exposes onClick on its host view, not onPress,
+  // so the second clause is what catches a role-less pressable.
+  //
+  // CHROME is exactly two elements, excluded by identity and asserted present:
+  // the Guide pill (testID home-guide) and the Settings cog (accessibilityLabel
+  // Settings). They are excluded as elements, not as blocks, so an action added
+  // beside them in the header row is still counted.
+  //
+  // WHAT IS MOCKED, AND WHY NONE OF IT CAN HIDE A SURFACE. Every component mock
+  // in this file is for something that does not render in the content
+  // container: LoadingSpinner (the loading path only), ScreenHeader (not
+  // imported, contract (c)), EventCodeSheet (a sibling of the ScrollView), and
+  // NotificationOptInCard, FirstShiftFooter and EventCodeCard, which are
+  // suppressed by the three flags asserted below. The one stand-in inside the
+  // content container is the Guide pill, which is chrome: it keeps its testID
+  // and its button role, and its presence is asserted. TodayHeroCard renders for
+  // real under its recorder.
+  //
+  // The fold is the walk's; what is falsifiable here is the order.
   const N = 3;
   const ANCHOR = 'good-moment-row';
 
-  test('at most three actionable blocks precede the calm remainder', async () => {
-    mockResolveJourney.mockResolvedValue({
-      target: 'today',
-      phase: { ...PHASE, hasRemoveCapture: false },
-    });
-    const screen = await renderToday();
-    await waitFor(() => expect(screen.getByTestId('home-remove-capture')).toBeTruthy());
-    expect(screen.getByTestId('home-close-entry')).toBeTruthy();
+  const isActionable = (n: TreeNode) =>
+    n.props?.accessibilityRole === 'button' ||
+    n.props?.accessibilityRole === 'link' ||
+    typeof n.props?.onClick === 'function';
+  const isGuide = hasTestId('home-guide');
+  const isSettings = (n: TreeNode) => n.props?.accessibilityLabel === 'Settings';
+  const isChrome = (n: TreeNode) => isGuide(n) || isSettings(n);
 
-    const scroll = flatten(screen.toJSON()).find((n) => n.type === 'RCTScrollView');
+  /** The chain of nodes from `node` down to the first node matching `pred`. */
+  function pathTo(node: unknown, pred: (n: TreeNode) => boolean): TreeNode[] | null {
+    if (!node || typeof node !== 'object') return null;
+    const n = node as TreeNode;
+    if (pred(n)) return [n];
+    for (const child of n.children ?? []) {
+      const rest = pathTo(child, pred);
+      if (rest) return [n, ...rest];
+    }
+    return null;
+  }
+
+  test('at most three actionable surfaces precede the calm remainder', async () => {
+    // The suppressed cards behind the remaining mocks are still suppressed. If
+    // a flag flips, its card renders in the content container and its mock
+    // would hide it, so this goes red first and the mock goes with the flag.
+    expect(DASHBOARD_SUPPRESS.notifOptIn).toBe(true);
+    expect(DASHBOARD_SUPPRESS.firstShiftFooter).toBe(true);
+    expect(DASHBOARD_SUPPRESS.eventCode).toBe(true);
+
+    const screen = await renderWorstCase();
+    const tree = screen.toJSON();
+
+    // Both chrome elements are present and actionable, so a rename cannot
+    // silently turn the exclusion into a hiding place.
+    const all = flatten(tree);
+    const guide = all.filter(isGuide);
+    const settings = all.filter(isSettings);
+    expect(guide).toHaveLength(1);
+    expect(settings).toHaveLength(1);
+    expect(isActionable(guide[0])).toBe(true);
+    expect(isActionable(settings[0])).toBe(true);
+
+    const scroll = all.find((n) => n.type === 'RCTScrollView');
     // The ScrollView's children are the RefreshControl and the content
-    // container; the content container's children are the top-level blocks.
-    const content = scroll.children.find((c: any) => c.type === 'View');
-    const blocks: any[] = content.children;
-    const anchorAt = blocks.findIndex((b) => contains(b, hasTestId(ANCHOR)));
-    expect(anchorAt).toBeGreaterThan(-1);
+    // container.
+    const content = (scroll.children as TreeNode[]).find((c) => c.type === 'View');
+    const path = pathTo(content, hasTestId(ANCHOR));
+    expect(path).not.toBeNull();
 
-    const chrome = (b: any) => contains(b, hasTestId('home-guide'));
-    const actionable = blocks
-      .slice(0, anchorAt)
-      .filter((b) => !chrome(b) && contains(b, isButton));
+    const surfaces: unknown[] = [];
+    for (let i = 0; i < path!.length - 1; i++) {
+      const siblings: unknown[] = path![i].children ?? [];
+      const at = siblings.indexOf(path![i + 1]);
+      for (const sibling of siblings.slice(0, at)) {
+        if (contains(sibling, (n) => isActionable(n) && !isChrome(n))) surfaces.push(sibling);
+      }
+    }
 
     // Non-vacuous: the worst case really does reach the ceiling.
-    expect(actionable.length).toBe(N);
-    expect(actionable.length).toBeLessThanOrEqual(N);
+    expect(surfaces.length).toBe(N);
+    expect(surfaces.length).toBeLessThanOrEqual(N);
+  });
+});
+
+describe('(g) the legacy block is gone from Today', () => {
+  beforeEach(primeHome);
+
+  // Scope: Today's surviving tree and DashboardScreen.tsx only, not the app.
+  // PlanScreen, HabitDetail, Insights and the notifications belong to
+  // V1-LEGACY-RETIREMENT.
+  const REMOVED_TEST_IDS = [
+    'dashboard-insight',
+    'weekly-habit-grid',
+    'weekly-habit-grid-empty',
+    'weekly-habit-grid-title',
+    'weekly-habit-grid-add',
+    'dashboard-routine',
+    'dashboard-routine-empty',
+    'dashboard-routine-create',
+    'dashboard-routine-begin',
+    'dashboard-routine-check-habits',
+    'insights-lookback-card',
+    'home-lookback-surface',
+  ];
+
+  test('none of the removed testIDs renders, in the worst case', async () => {
+    const screen = await renderWorstCase();
+    const ids = new Set(flatten(screen.toJSON()).map((n: TreeNode) => n.props?.testID));
+    expect(REMOVED_TEST_IDS.filter((id) => ids.has(id))).toEqual([]);
+  });
+
+  test('SOURCE GUARD: Home imports none of it and names no route into it', () => {
+    // Matches imports, JSX and route usage, never prose: a journey label such
+    // as the hero's Routines phase comes from data and is not a route.
+    const MODULES = [
+      'InsightCard',
+      'WeeklyHabitGrid',
+      'RoutineCard',
+      'InsightsLookbackCard',
+      'ActiveRoutinePlayer',
+      'HabitNoteSheet',
+      'navTargets',
+    ];
+    for (const m of MODULES) {
+      expect([m, new RegExp(`from\\s+['"][^'"]*/${m}['"]`).test(SOURCE)]).toEqual([m, false]);
+      expect([m, new RegExp(`<${m}\\b`).test(SOURCE)]).toEqual([m, false]);
+    }
+    expect(SOURCE).not.toMatch(/['"]HabitDetail['"]|ROUTES\.HabitDetail\b/);
+    expect(SOURCE).not.toMatch(/['"]Insights['"]|ROUTES\.Insights\b/);
+    expect(SOURCE).not.toMatch(/NAV_TARGETS|ROUTES\.(PillarTime|Rhythms)\b|['"](PillarTime|Rhythms)['"]/);
   });
 });
