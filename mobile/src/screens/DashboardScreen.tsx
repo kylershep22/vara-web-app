@@ -25,18 +25,15 @@ import { FirstShiftFooter } from '../components/dashboard/FirstShiftFooter';
 import { EventCodeCard } from '../components/events/EventCodeCard';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
-import { ScreenHeader, BAND_STRONG_SCRIM } from '../components/shared/ScreenHeader';
+import { Image } from 'expo-image';
 import { GuidePill } from '../components/ai/GuidePill';
 import { DASHBOARD_SUPPRESS, JOURNEY_IA } from '../constants/dashboardConfig';
 import { PHASE_ORDER } from '../constants/journey';
 
-// The one illustration on Home: a watercolor header band. Raster asset (WebP)
-// rendered via ScreenHeader's expo-image layer, never an SVG icon.
-const homeHeader = require('../../assets/images/homeHeader.webp');
-
-// How far the first content block rides up onto the header's bottom (mist) seam
-// — matches Focus/Energy so the overlap reads identically across heroes.
-const CARD_OVERLAP = Spacing.xl;
+// Today's environmental background (standards 2.8 IMMERSIVE, 8.1). The one
+// piece of art on this screen: there is no hero band, because an environmental
+// background and a band never share a viewport (8.2, walk assertion 18(b)).
+const todayBackground = require('../../assets/images/todayBackground.webp');
 import { TodayHeroCard } from '../components/dashboard/TodayHeroCard';
 import { ProtocolSheet } from '../components/dashboard/ProtocolSheet';
 import { SetTodayCard } from '../components/dashboard/SetTodayCard';
@@ -66,6 +63,34 @@ import { useAuth } from '../context/AuthContext';
 import { db } from '../config/firebase';
 import { doc, onSnapshot, type Timestamp } from 'firebase/firestore';
 import { subscribeMergedUserData } from '../services/firebase/userMigrationRead';
+
+/**
+ * The immersive ground (R3a). The artwork is fixed and the content scrolls over
+ * it, so the layer lives at the SCREEN ROOT, as a sibling BEFORE the content,
+ * and never inside the SafeAreaView. That placement is the design, not a
+ * detail: inside a padded SafeAreaView, where an absolutely positioned child
+ * lands depends on how the parent's box resolves, and the art must run under
+ * the status bar (13) while the content must not. Here the content still clips
+ * at the safe-area line and the art fills the notch strip.
+ *
+ * NO LOAD GATE, DELIBERATELY. Nothing here waits for the image: children mount
+ * on the first frame whether or not it has decoded. The root's Mist White sits
+ * UNDER the layer, so the frame before the decode reads as the old ground
+ * rather than the navigator's grey; it paints over nothing.
+ */
+const TodayGround: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <View style={styles.root}>
+    <Image
+      source={todayBackground}
+      style={StyleSheet.absoluteFill}
+      contentFit="cover"
+      transition={0}
+      accessible={false}
+      testID="today-ground"
+    />
+    {children}
+  </View>
+);
 
 const DashboardScreen: React.FC = () => {
   // Bottom clearance for the floating tab bar (12.2). Not a constant; see
@@ -444,8 +469,14 @@ const DashboardScreen: React.FC = () => {
       navigate: (s: string, p?: object) => void;
     }).navigate(screen, params);
 
+  // The cold-load path sits on the ground too (R3a). An opaque spinner here
+  // would paint a full Mist White screen before the artwork, on every launch.
   if (dataLoading) {
-    return <LoadingSpinner message="Loading your wellness dashboard..." />;
+    return (
+      <TodayGround>
+        <LoadingSpinner message="Loading your wellness dashboard..." transparentGround />
+      </TodayGround>
+    );
   }
 
   /**
@@ -466,6 +497,14 @@ const DashboardScreen: React.FC = () => {
    * set only on the resolve that creates journeyStates; every later launch
    * takes rung (a) and reports null. The local dismissal below only covers the
    * rest of this session.
+   *
+   * NOT ON THE IMMERSIVE GROUND, AND THAT IS A RECORDED DEVIATION (R3a). This
+   * renders at the `Home` route, which 2.8 marks IMMERSIVE, but it is a FOCUS
+   * surface on OnboardingScaffold's Mist White ground. Kyle's ruling: a
+   * temporary 2.8 deviation for a one-launch interstitial, EXPIRING AT R5, which
+   * migrates this screen onto the shared journey presentation. The scaffold is
+   * shared by 21 onboarding screens and is deliberately not made transparent
+   * for it; the deviation is documented, not engineered around.
    */
   if (weeklyLanding.migratedFrom && weeklyLanding.phase && !routeExplainerDismissed) {
     return (
@@ -478,6 +517,7 @@ const DashboardScreen: React.FC = () => {
   }
 
   return (
+    <TodayGround>
     <SafeAreaView style={styles.container} edges={['top']}>
       <Animated.ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarInset }]}
@@ -507,20 +547,6 @@ const DashboardScreen: React.FC = () => {
             </View>
           </View>
         </View>
-
-        {/* Hero band (reuses Focus/Energy's ScreenHeader + BAND_STRONG_SCRIM).
-            Full-bleed; the in-code mist scrim fades both seams into the page so
-            there is no hard image edge. contentPosition="center" frames this
-            asset's panoramic subject (sun + mountain range + valley), which is
-            spread across the frame rather than lower-third like Focus. The
-            first content block below overlaps the bottom seam (marginBottom). */}
-        <ScreenHeader
-          source={homeHeader}
-          mode="band"
-          scrimLocations={BAND_STRONG_SCRIM}
-          contentPosition="center"
-          style={styles.headerBand}
-        />
 
         {/* Error banner — non-blocking, shows which data failed */}
         {dataErrors.length > 0 && (
@@ -919,13 +945,20 @@ const DashboardScreen: React.FC = () => {
         />
       )}
     </SafeAreaView>
+    </TodayGround>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
+    // UNDER the layer, never over it: the frame before the image decodes.
     backgroundColor: Colors.background.default,
+  },
+  container: {
+    // NO FILL (R3a). The environmental layer sits behind this view at the
+    // screen root, and a background here would paint over it.
+    flex: 1,
   },
   scrollContent: {
     paddingHorizontal: Spacing.base,
@@ -938,20 +971,7 @@ const styles = StyleSheet.create({
     // The Guide is a top-right pill, so there is no bottom-FAB clearance.
   },
   header: {
-    // Tight gap so the greeting and the header band read as one unit
-    // (matches Focus/Energy).
     marginBottom: Spacing.xs,
-  },
-  headerBand: {
-    // Full-bleed: cancel the ScrollView's horizontal padding on BOTH edges so
-    // the band runs edge to edge with no right-edge clip. NOTE: this screen's
-    // scrollContent uses Spacing.base (16), NOT Spacing.lg like Focus/Energy —
-    // the negative margin MUST match the parent padding or the band overshoots.
-    marginHorizontal: -Spacing.base,
-    // Let the first content block below ride up onto the header's bottom (mist)
-    // seam at the shared overlap depth. Content paints after the band (later
-    // sibling), so it sits above the seam.
-    marginBottom: -CARD_OVERLAP,
   },
   headerTop: {
     flexDirection: 'row',

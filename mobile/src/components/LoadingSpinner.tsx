@@ -13,15 +13,29 @@ interface LoadingSpinnerProps {
   message?: string;
   size?: 'small' | 'large';
   fullScreen?: boolean;
+  /**
+   * Full-screen only. Drops the Mist White fill so the spinner sits over
+   * whatever the caller has already painted behind it. Added for Today (R3a),
+   * whose environmental background must not be covered by an opaque ground on
+   * the cold-load path. Every other caller omits it and keeps the fill.
+   */
+  transparentGround?: boolean;
 }
 
 const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   message,
   size = 'large',
   fullScreen = true,
+  transparentGround = false,
 }) => {
   return (
-    <View style={[styles.container, fullScreen && styles.fullScreen]}>
+    <View
+      style={[
+        styles.container,
+        fullScreen && styles.fullScreen,
+        fullScreen && transparentGround && styles.transparentGround,
+      ]}
+    >
       {fullScreen && (
         <Text style={styles.brandText}>vara</Text>
       )}
@@ -48,6 +62,9 @@ const styles = StyleSheet.create({
   fullScreen: {
     flex: 1,
     backgroundColor: Colors.background.default,
+  },
+  transparentGround: {
+    backgroundColor: 'transparent',
   },
   brandText: {
     fontSize: 32,
