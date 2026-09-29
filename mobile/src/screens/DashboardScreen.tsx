@@ -27,7 +27,12 @@ import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
 import { Image } from 'expo-image';
 import { GuidePill } from '../components/ai/GuidePill';
-import { SurfaceTier, surfaceTierStyle } from '../components/shared/SurfaceTier';
+import {
+  ImmersiveSurfaceContext,
+  SurfaceTier,
+  surfaceTierStyle,
+  useSurfaceFill,
+} from '../components/shared/SurfaceTier';
 import { DASHBOARD_SUPPRESS, JOURNEY_IA } from '../constants/dashboardConfig';
 import { PHASE_ORDER } from '../constants/journey';
 
@@ -78,8 +83,12 @@ import { subscribeMergedUserData } from '../services/firebase/userMigrationRead'
  * on the first frame whether or not it has decoded. The root's Mist White sits
  * UNDER the layer, so the frame before the decode reads as the old ground
  * rather than the navigator's grey; it paints over nothing.
+ *
+ * IT PROVIDES THE IMMERSIVE CONTEXT, so shared components rendered on it
+ * switch their secondary text to Soft Charcoal here and nowhere else.
  */
 const TodayGround: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <ImmersiveSurfaceContext.Provider value>
   <View style={styles.root}>
     <Image
       source={todayBackground}
@@ -91,12 +100,16 @@ const TodayGround: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     />
     {children}
   </View>
+  </ImmersiveSurfaceContext.Provider>
 );
 
 const DashboardScreen: React.FC = () => {
   // Bottom clearance for the floating tab bar (12.2). Not a constant; see
   // hooks/useTabBarInset.ts for why the raw React Navigation value is short.
   const tabBarInset = useTabBarInset();
+  // The surface tier's fill, opaque White under Reduce Transparency (R3a). For
+  // the two places that carry the tier without the SurfaceTier wrapper.
+  const surfaceFill = useSurfaceFill();
   const { user } = useAuth();
   const {
     navigation,
@@ -535,7 +548,7 @@ const DashboardScreen: React.FC = () => {
                   date line is not covered by the exception: it takes the tier. */}
               <Text style={styles.greeting}>{greeting}</Text>
               <SurfaceTier style={styles.dateSurface} testID="home-date-surface">
-                <Text style={styles.dateText}>{formattedDate}</Text>
+                <Text style={styles.dateText} testID="home-date">{formattedDate}</Text>
               </SurfaceTier>
             </View>
             <View style={styles.headerActions}>
@@ -558,7 +571,10 @@ const DashboardScreen: React.FC = () => {
 
         {/* Error banner — non-blocking, shows which data failed */}
         {dataErrors.length > 0 && (
-          <View style={styles.errorBanner} testID="home-error-banner">
+          <View
+            style={[styles.errorBanner, { backgroundColor: surfaceFill }]}
+            testID="home-error-banner"
+          >
             <Icon name="alert-circle-outline" size={18} color={Colors.error} />
             <Text style={styles.errorBannerText}>
               Could not load {dataErrors.join(', ')}. Pull to refresh.
@@ -763,7 +779,7 @@ const DashboardScreen: React.FC = () => {
                     surface="today"
                     userId={user?.uid}
                     gloss={TODAY_START_HERE_GLOSS}
-                    containerStyle={surfaceTierStyle}
+                    containerStyle={[surfaceTierStyle, { backgroundColor: surfaceFill }]}
                     testID="home-start-here"
                   />
 
@@ -1012,7 +1028,9 @@ const styles = StyleSheet.create({
     fontSize: 26,
   },
   dateText: {
-    color: Colors.textSecondary,
+    // Soft Charcoal, not Muted Sage Gray (R3a): on the surface tier over the
+    // darkest art, sage reaches only 3.75 to 4.24:1.
+    color: Colors.softCharcoal,
     fontSize: Typography.fontSize.sm,
   },
   // The date's tier hugs the text rather than spanning the header row.
@@ -1028,11 +1046,11 @@ const styles = StyleSheet.create({
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    // THE IMMERSIVE SURFACE TIER (R3a). The coral wash that stood here was a
-    // tint of the page and read as no surface at all over artwork. The icon and
-    // text keep their coral unchanged; 4.3 names a coral border or icon, not
-    // coral text, and the text colour is a styling question, not the tier's.
-    backgroundColor: Colors.surfaceImmersive,
+    // THE IMMERSIVE SURFACE TIER (R3a), applied inline from useSurfaceFill so
+    // Reduce Transparency reaches it. The coral wash that stood here was a tint
+    // of the page and read as no surface at all over artwork. The icon and text
+    // keep their coral unchanged; 4.3 names a coral border or icon, not coral
+    // text, and the text colour is a styling question, not the tier's.
     borderRadius: 8,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,

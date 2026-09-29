@@ -214,8 +214,8 @@ jest.mock('../../services/firebase/analyticsEvents.service', () => ({
 import React from 'react';
 import fs from 'fs';
 import path from 'path';
-import { StyleSheet } from 'react-native';
-import { render, waitFor } from '@testing-library/react-native';
+import { AccessibilityInfo, StyleSheet } from 'react-native';
+import { act, render, waitFor } from '@testing-library/react-native';
 
 import DashboardScreen from '../DashboardScreen';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -430,7 +430,7 @@ describe('(d) every surface on the ground reads the token', () => {
     // It renders nothing today (a null path), so there is no element to read.
     // The contract is that Today hands it the tier; the row applies it only
     // when it renders.
-    expect(SOURCE).toMatch(/<StartHereRow[\s\S]*?containerStyle=\{surfaceTierStyle\}/);
+    expect(SOURCE).toMatch(/<StartHereRow[\s\S]*?containerStyle=\{\[surfaceTierStyle, \{ backgroundColor: surfaceFill \}\]\}/);
   });
 
   const ALLOWLIST: Record<string, string> = {
@@ -463,6 +463,101 @@ describe('(d) every surface on the ground reads the token', () => {
     }
     expect(offenders.filter((f) => !(f in ALLOWLIST))).toEqual(['constants/colors.ts']);
     expect(ColorTokens.surfaceImmersive).toBe(Colors.surfaceImmersive);
+  });
+});
+
+describe('secondary text on the ground is Soft Charcoal, never Muted Sage Gray', () => {
+  beforeEach(primeHome);
+
+  // Ruled 2026-09-29: sage reaches only 3.75 to 4.24:1 on the surface token over
+  // the darkest art, and the fix is the colour, not the token. Pinned so a
+  // restyle cannot quietly put sage back. Teal stays allowed: it is the label
+  // and action colour, with its own measured floor.
+  const ALLOWED = [Colors.softCharcoal, Colors.evergreenTeal];
+  const textColours = (el: any) =>
+    flatten(el.children)
+      .filter((n: any) => n.type === 'Text')
+      .map((n: any) => StyleSheet.flatten(n.props.style)?.color);
+
+  test('the date line, journey line, closed week note and look-back row', async () => {
+    mockGetLatestCycle.mockResolvedValue({ ...liveCycle, closeCompletedAt: { seconds: 1 } });
+    const screen = await renderToday();
+    await waitFor(() => expect(screen.getByTestId('home-week-closed')).toBeTruthy());
+
+    expect(StyleSheet.flatten(screen.getByTestId('home-date').props.style).color).toBe(
+      Colors.softCharcoal
+    );
+    for (const id of [
+      'home-date-surface',
+      'home-journey-line',
+      'home-close-surface',
+      'home-lookback-surface',
+    ]) {
+      const colours = textColours(screen.getByTestId(id));
+      expect(colours.length).toBeGreaterThan(0);
+      for (const c of colours) expect([id, ALLOWED.includes(c)]).toEqual([id, true]);
+    }
+  });
+
+  test('the loading message, on the ground and only there', () => {
+    const colourOf = (el: React.ReactElement) =>
+      StyleSheet.flatten(render(el).getByText('x').props.style).color;
+    expect(colourOf(<LoadingSpinner message="x" transparentGround />)).toBe(Colors.softCharcoal);
+    // Every other caller keeps its sage message.
+    expect(colourOf(<LoadingSpinner message="x" />)).toBe(Colors.textSecondary);
+  });
+});
+
+describe('Reduce Transparency makes the surfaces opaque', () => {
+  // SWAPPED BY ASSIGNMENT AND PUT BACK, NOT SPIED. React Native's jest preset
+  // already makes these jest.fn()s, and jest.spyOn on an existing mock returns
+  // that same mock: mockRestore then strips the preset's implementation and
+  // every later render in this file throws. Found by exactly that failure.
+  const restores: Array<() => void> = [];
+  const swap = <K extends keyof typeof AccessibilityInfo>(key: K, value: any) => {
+    const original = AccessibilityInfo[key];
+    (AccessibilityInfo as any)[key] = value;
+    restores.push(() => {
+      (AccessibilityInfo as any)[key] = original;
+    });
+  };
+  beforeEach(primeHome);
+  afterEach(() => {
+    restores.splice(0).forEach((restore) => restore());
+  });
+
+  const fill = (el: any) => StyleSheet.flatten(el.props.style)?.backgroundColor;
+  const SURFACES = ['home-date-surface', 'home-journey-line', 'home-error-banner'];
+
+  test('read at mount: on, the tier is opaque White', async () => {
+    swap('isReduceTransparencyEnabled', () => Promise.resolve(true));
+    mockDataErrors = ['habits'];
+    const screen = await renderToday();
+    await waitFor(() => expect(fill(screen.getByTestId('home-date-surface'))).toBe(Colors.white));
+    for (const id of SURFACES) expect([id, fill(screen.getByTestId(id))]).toEqual([id, Colors.white]);
+  });
+
+  test('toggled with the screen open: the tier follows without a remount', async () => {
+    // Every subscriber, as iOS notifies every listener: each surface reads the
+    // setting through its own hook instance.
+    const listeners: Array<(enabled: boolean) => void> = [];
+    const onChange = (enabled: boolean) => listeners.forEach((l) => l(enabled));
+    swap('addEventListener', (event: string, handler: (enabled: boolean) => void) => {
+      if (event === 'reduceTransparencyChanged') listeners.push(handler);
+      return { remove: jest.fn() };
+    });
+    mockDataErrors = ['habits'];
+    const screen = await renderToday();
+    for (const id of SURFACES) {
+      expect([id, fill(screen.getByTestId(id))]).toEqual([id, Colors.surfaceImmersive]);
+    }
+
+    expect(listeners.length).toBeGreaterThan(0);
+    act(() => onChange(true));
+    for (const id of SURFACES) expect([id, fill(screen.getByTestId(id))]).toEqual([id, Colors.white]);
+
+    act(() => onChange(false));
+    expect(fill(screen.getByTestId('home-date-surface'))).toBe(Colors.surfaceImmersive);
   });
 });
 

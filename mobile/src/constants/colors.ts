@@ -105,8 +105,11 @@ export const Colors = {
   // primary window. 0.72 is the CONSERVATIVE end, so the value does not rest on
   // one window choice. The governing region is the bottom-left corner, x 0-16pt
   // and y 842-915pt, inside the bottom 9% bleed band and behind the floating
-  // bar at rest; excluding that band would give 0.666 at 48 px. Re-measure
-  // before changing it, and re-measure if the asset changes.
+  // bar at rest; excluding that band would give 0.666 at 48 px. Bounded to
+  // where text can sit (asset x 24-406pt), teal body needs 0.709. Muted Sage
+  // Gray does NOT clear 4.5:1 on this token (3.75 to 4.24:1), so secondary
+  // text on the immersive ground is Soft Charcoal; the token was not raised.
+  // Re-measure before changing it, and re-measure if the asset changes.
   surfaceImmersive: 'rgba(255,255,255,0.72)',
 
   // Accent Colors

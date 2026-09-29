@@ -42,7 +42,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         style={styles.spinner}
       />
       {message && (
-        <Text style={styles.message}>
+        <Text style={[styles.message, transparentGround && styles.messageOnGround]}>
           {message}
         </Text>
       )}
@@ -101,6 +101,11 @@ const styles = StyleSheet.create({
   message: {
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  // On an environmental ground the message sits on the surface tier, where
+  // Muted Sage Gray misses 4.5:1 over the darkest art (R3a).
+  messageOnGround: {
+    color: Colors.softCharcoal,
   },
 });
 

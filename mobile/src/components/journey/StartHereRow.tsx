@@ -109,6 +109,7 @@ import {
   type StartHereSurface,
 } from '../../constants/startHere';
 import { useVideoSource } from '../../hooks/useVideoSource';
+import { useImmersiveSurface } from '../shared/SurfaceTier';
 import {
   readStartHereMarker,
   writeStartHereMarker,
@@ -144,6 +145,9 @@ export const StartHereRow: React.FC<StartHereRowProps> = ({
   testID = 'start-here-row',
 }) => {
   const path = START_HERE_PATHS[surface];
+  // Soft Charcoal gloss on Today's environmental ground (R3a); sage on the
+  // journey map, which is not immersive. Read before any early return.
+  const onGround = useImmersiveSurface() && styles.onImmersive;
 
   // Resolved here rather than left to the modal, because the row's EXISTENCE
   // depends on the answer. The modal resolves the same path again when it
@@ -230,7 +234,7 @@ export const StartHereRow: React.FC<StartHereRowProps> = ({
           </Text>
           {collapsed ? null : (
             <Text
-              style={styles.gloss}
+              style={[styles.gloss, onGround]}
               maxFontSizeMultiplier={Typography.maxFontScale}
               testID={`${testID}-gloss`}
             >
@@ -290,6 +294,9 @@ const styles = StyleSheet.create({
     ...TextStyles.bodySmall,
     color: Colors.mutedSageGray,
     marginTop: 2,
+  },
+  onImmersive: {
+    color: Colors.softCharcoal,
   },
 });
 
