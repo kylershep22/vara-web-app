@@ -31,6 +31,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Text from '../shared/Text';
 
 import { Colors, Layout, SizeTokens, Spacing, Typography } from '../../constants';
+import { useImmersiveSurface } from '../shared/SurfaceTier';
 import { OUTCOME_LABELS } from '../../screens/weekly/copy';
 import { DESTINATION_SUMMARY_LABELS } from '../../constants/journeyCopy';
 import { TODAY_COPY } from './dailyPicker.copy';
@@ -60,10 +61,14 @@ export const CloseWeekEntry: React.FC<CloseWeekEntryProps> = ({
   cycle,
   destination,
   onPress,
-}) =>
-  closed ? (
+}) => {
+  // On Today's environmental ground the closed note's sage text becomes Soft
+  // Charcoal (R3a): sage misses 4.5:1 over the darkest art at the surface
+  // token. Off the ground, unchanged.
+  const onGround = useImmersiveSurface() && styles.onImmersive;
+  return closed ? (
     <View style={styles.closedNote} testID="home-week-closed">
-      <Text style={styles.closedLabel}>{TODAY_COPY.weekClosed}</Text>
+      <Text style={[styles.closedLabel, onGround]}>{TODAY_COPY.weekClosed}</Text>
 
       {/* What the week WAS, so the acknowledgment names the thing being closed
           rather than closing an anonymous seven days.
@@ -76,11 +81,11 @@ export const CloseWeekEntry: React.FC<CloseWeekEntryProps> = ({
           above still stands on its own, and an anonymous seven days is a better
           thing to close than a week labelled with a value nobody chose. */}
       {cycle.outcome ? (
-        <Text style={styles.closedDetail} testID="home-week-closed-outcome">
+        <Text style={[styles.closedDetail, onGround]} testID="home-week-closed-outcome">
           {OUTCOME_LABELS[cycle.outcome]}
         </Text>
       ) : destination ? (
-        <Text style={styles.closedDetail} testID="home-week-closed-outcome">
+        <Text style={[styles.closedDetail, onGround]} testID="home-week-closed-outcome">
           {DESTINATION_SUMMARY_LABELS[destination]}
         </Text>
       ) : null}
@@ -92,7 +97,7 @@ export const CloseWeekEntry: React.FC<CloseWeekEntryProps> = ({
           the day before its own anchor recurs, and a stub ends the day before
           the first one. */}
       {!!cycle.weekEnd && (
-        <Text style={styles.closedDetail} testID="home-week-closed-next">
+        <Text style={[styles.closedDetail, onGround]} testID="home-week-closed-next">
           {TODAY_COPY.nextWeekStarts.replace(
             '{day}',
             weekdayNameForIso(addDaysIso(resolveWeekEnd(cycle.weekStart, cycle.weekEnd), 1))
@@ -111,8 +116,12 @@ export const CloseWeekEntry: React.FC<CloseWeekEntryProps> = ({
       <Text style={styles.label}>{TODAY_COPY.closeEntry}</Text>
     </TouchableOpacity>
   );
+};
 
 const styles = StyleSheet.create({
+  onImmersive: {
+    color: Colors.softCharcoal,
+  },
   button: {
     minHeight: SizeTokens.touchTargetMin,
     borderRadius: Layout.borderRadius.lg,

@@ -46,6 +46,7 @@ const COLOR_ALIASES: Array<[keyof typeof ColorTokens, string, string]> = [
   ['primaryLight', 'Colors.tealLight', Colors.tealLight],
   ['disabled', 'Colors.textDisabled', Colors.textDisabled],
   ['tabBarTranslucent', 'Colors.tabBarTranslucent', Colors.tabBarTranslucent],
+  ['surfaceImmersive', 'Colors.surfaceImmersive', Colors.surfaceImmersive],
 ];
 
 // Every aliased TypographyTokens key, and the canonical it points at.
@@ -232,6 +233,24 @@ describe('the floating bar translucent fill (R2)', () => {
     // Same mechanism as Muted Sage Gray above: one declaration, referenced.
     const src = fs.readFileSync(path.join(__dirname, '..', 'colors.ts'), 'utf-8');
     const literals = src.match(/rgba\(250,250,246,0\.35\)/g) ?? [];
+    expect(literals).toHaveLength(1);
+  });
+});
+
+describe('the immersive surface tier (R3a)', () => {
+  /**
+   * A DECLARATION IN `colors.ts`, ALIASED INTO `designTokens.ts`, on the
+   * tabBarTranslucent precedent. The value is MEASURED against the shipped
+   * asset (scripts/asset-surface-alpha.js; the basis is on the declaration and
+   * in standards 3.3), so a change here without a re-measurement goes red.
+   */
+  it('is White at 0.72, the conservative end of the measured range', () => {
+    expect(Colors.surfaceImmersive).toBe('rgba(255,255,255,0.72)');
+  });
+
+  it('`colors.ts` holds it exactly once as a literal', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'colors.ts'), 'utf-8');
+    const literals = src.match(/rgba\(255,255,255,0\.72\)/g) ?? [];
     expect(literals).toHaveLength(1);
   });
 });

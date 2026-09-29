@@ -1,11 +1,11 @@
 /**
  * What occupies Today's ONE journey-action slot (slice 7a decision 3).
  *
- * ONE SLOT, ONE FUNCTION, AND THE FUNCTION IS PURE. Section 8 gives Today a
- * three-card ceiling: hero, the journey-action card, and the close entry. The
- * Start here row and the journey line do not count against it, deliberately -
- * they are rows, not cards, and StartHereRow.tsx's header records why the
- * distinction is load bearing rather than cosmetic.
+ * ONE SLOT, ONE FUNCTION, AND THE FUNCTION IS PURE. How much may compete for
+ * attention above Today's fold is a product rule, and it lives in one place:
+ * the journey roadmap's section 8, the three-surface rule of 2026-09-29. It is
+ * cited here, not restated, because this header's old list of it disagreed
+ * with section 8's own.
  *
  * REMOVE CAPTURE COUNTS AGAINST THE CEILING (decision 3). It shipped in 3c-i as
  * an unconditional sibling of whatever else was below the hero, at a moment when

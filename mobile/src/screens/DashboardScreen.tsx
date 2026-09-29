@@ -25,18 +25,21 @@ import { FirstShiftFooter } from '../components/dashboard/FirstShiftFooter';
 import { EventCodeCard } from '../components/events/EventCodeCard';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
 import { Colors, Spacing, Typography } from '../constants';
-import { ScreenHeader, BAND_STRONG_SCRIM } from '../components/shared/ScreenHeader';
+import { Image } from 'expo-image';
 import { GuidePill } from '../components/ai/GuidePill';
+import {
+  ImmersiveSurfaceContext,
+  SurfaceTier,
+  surfaceTierStyle,
+  useSurfaceFill,
+} from '../components/shared/SurfaceTier';
 import { DASHBOARD_SUPPRESS, JOURNEY_IA } from '../constants/dashboardConfig';
 import { PHASE_ORDER } from '../constants/journey';
 
-// The one illustration on Home: a watercolor header band. Raster asset (WebP)
-// rendered via ScreenHeader's expo-image layer, never an SVG icon.
-const homeHeader = require('../../assets/images/homeHeader.webp');
-
-// How far the first content block rides up onto the header's bottom (mist) seam
-// — matches Focus/Energy so the overlap reads identically across heroes.
-const CARD_OVERLAP = Spacing.xl;
+// Today's environmental background (standards 2.8 IMMERSIVE, 8.1). The one
+// piece of art on this screen: there is no hero band, because an environmental
+// background and a band never share a viewport (8.2, walk assertion 18(b)).
+const todayBackground = require('../../assets/images/todayBackground.webp');
 import { TodayHeroCard } from '../components/dashboard/TodayHeroCard';
 import { ProtocolSheet } from '../components/dashboard/ProtocolSheet';
 import { SetTodayCard } from '../components/dashboard/SetTodayCard';
@@ -67,10 +70,46 @@ import { db } from '../config/firebase';
 import { doc, onSnapshot, type Timestamp } from 'firebase/firestore';
 import { subscribeMergedUserData } from '../services/firebase/userMigrationRead';
 
+/**
+ * The immersive ground (R3a). The artwork is fixed and the content scrolls over
+ * it, so the layer lives at the SCREEN ROOT, as a sibling BEFORE the content,
+ * and never inside the SafeAreaView. That placement is the design, not a
+ * detail: inside a padded SafeAreaView, where an absolutely positioned child
+ * lands depends on how the parent's box resolves, and the art must run under
+ * the status bar (13) while the content must not. Here the content still clips
+ * at the safe-area line and the art fills the notch strip.
+ *
+ * NO LOAD GATE, DELIBERATELY. Nothing here waits for the image: children mount
+ * on the first frame whether or not it has decoded. The root's Mist White sits
+ * UNDER the layer, so the frame before the decode reads as the old ground
+ * rather than the navigator's grey; it paints over nothing.
+ *
+ * IT PROVIDES THE IMMERSIVE CONTEXT, so shared components rendered on it
+ * switch their secondary text to Soft Charcoal here and nowhere else.
+ */
+const TodayGround: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <ImmersiveSurfaceContext.Provider value>
+  <View style={styles.root}>
+    <Image
+      source={todayBackground}
+      style={StyleSheet.absoluteFill}
+      contentFit="cover"
+      transition={0}
+      accessible={false}
+      testID="today-ground"
+    />
+    {children}
+  </View>
+  </ImmersiveSurfaceContext.Provider>
+);
+
 const DashboardScreen: React.FC = () => {
   // Bottom clearance for the floating tab bar (12.2). Not a constant; see
   // hooks/useTabBarInset.ts for why the raw React Navigation value is short.
   const tabBarInset = useTabBarInset();
+  // The surface tier's fill, opaque White under Reduce Transparency (R3a). For
+  // the two places that carry the tier without the SurfaceTier wrapper.
+  const surfaceFill = useSurfaceFill();
   const { user } = useAuth();
   const {
     navigation,
@@ -444,8 +483,14 @@ const DashboardScreen: React.FC = () => {
       navigate: (s: string, p?: object) => void;
     }).navigate(screen, params);
 
+  // The cold-load path sits on the ground too (R3a). An opaque spinner here
+  // would paint a full Mist White screen before the artwork, on every launch.
   if (dataLoading) {
-    return <LoadingSpinner message="Loading your wellness dashboard..." />;
+    return (
+      <TodayGround>
+        <LoadingSpinner message="Loading your wellness dashboard..." transparentGround />
+      </TodayGround>
+    );
   }
 
   /**
@@ -466,6 +511,14 @@ const DashboardScreen: React.FC = () => {
    * set only on the resolve that creates journeyStates; every later launch
    * takes rung (a) and reports null. The local dismissal below only covers the
    * rest of this session.
+   *
+   * NOT ON THE IMMERSIVE GROUND, AND THAT IS A RECORDED DEVIATION (R3a). This
+   * renders at the `Home` route, which 2.8 marks IMMERSIVE, but it is a FOCUS
+   * surface on OnboardingScaffold's Mist White ground. Kyle's ruling: a
+   * temporary 2.8 deviation for a one-launch interstitial, EXPIRING AT R5, which
+   * migrates this screen onto the shared journey presentation. The scaffold is
+   * shared by 21 onboarding screens and is deliberately not made transparent
+   * for it; the deviation is documented, not engineered around.
    */
   if (weeklyLanding.migratedFrom && weeklyLanding.phase && !routeExplainerDismissed) {
     return (
@@ -478,6 +531,7 @@ const DashboardScreen: React.FC = () => {
   }
 
   return (
+    <TodayGround>
     <SafeAreaView style={styles.container} edges={['top']}>
       <Animated.ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarInset }]}
@@ -487,8 +541,15 @@ const DashboardScreen: React.FC = () => {
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View style={styles.headerTextContainer}>
+              {/* THE GREETING IS RAW ON THE ARTWORK, AND IT IS THE ONLY TEXT
+                  THAT IS (standards 2.8). The exception holds only while walk
+                  assertion 18(g) passes against the shipped asset, and the
+                  result is provisional until R3b moves it to displayLg. The
+                  date line is not covered by the exception: it takes the tier. */}
               <Text style={styles.greeting}>{greeting}</Text>
-              <Text style={styles.dateText}>{formattedDate}</Text>
+              <SurfaceTier style={styles.dateSurface} testID="home-date-surface">
+                <Text style={styles.dateText} testID="home-date">{formattedDate}</Text>
+              </SurfaceTier>
             </View>
             <View style={styles.headerActions}>
               {/* Docked Guide pill, left of Settings. Unconditional: the
@@ -508,23 +569,12 @@ const DashboardScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Hero band (reuses Focus/Energy's ScreenHeader + BAND_STRONG_SCRIM).
-            Full-bleed; the in-code mist scrim fades both seams into the page so
-            there is no hard image edge. contentPosition="center" frames this
-            asset's panoramic subject (sun + mountain range + valley), which is
-            spread across the frame rather than lower-third like Focus. The
-            first content block below overlaps the bottom seam (marginBottom). */}
-        <ScreenHeader
-          source={homeHeader}
-          mode="band"
-          scrimLocations={BAND_STRONG_SCRIM}
-          contentPosition="center"
-          style={styles.headerBand}
-        />
-
         {/* Error banner — non-blocking, shows which data failed */}
         {dataErrors.length > 0 && (
-          <View style={styles.errorBanner}>
+          <View
+            style={[styles.errorBanner, { backgroundColor: surfaceFill }]}
+            testID="home-error-banner"
+          >
             <Icon name="alert-circle-outline" size={18} color={Colors.error} />
             <Text style={styles.errorBannerText}>
               Could not load {dataErrors.join(', ')}. Pull to refresh.
@@ -729,6 +779,7 @@ const DashboardScreen: React.FC = () => {
                     surface="today"
                     userId={user?.uid}
                     gloss={TODAY_START_HERE_GLOSS}
+                    containerStyle={[surfaceTierStyle, { backgroundColor: surfaceFill }]}
                     testID="home-start-here"
                   />
 
@@ -741,14 +792,20 @@ const DashboardScreen: React.FC = () => {
                       render for a user who has a phase and no live week. There
                       is nothing to close in that state, so the entry is absent
                       rather than pointing at a week that does not exist. */}
+                  {/* On the surface tier in BOTH states (R3a): the closed note is
+                      text, and the open state is an outlined button with no
+                      fill. The tier is the thing to sit on; the button's own
+                      styling is R3b's. */}
                   {!!weeklyLanding.cycle && (
-                    <CloseWeekEntry
-                      closed={!!weeklyLanding.cycle.closeCompletedAt}
-                      cycle={weeklyLanding.cycle}
-                      /* Slice 4b, same reason as the hero above. */
-                      destination={weeklyLanding.phase?.destination}
-                      onPress={openClose}
-                    />
+                    <SurfaceTier testID="home-close-surface">
+                      <CloseWeekEntry
+                        closed={!!weeklyLanding.cycle.closeCompletedAt}
+                        cycle={weeklyLanding.cycle}
+                        /* Slice 4b, same reason as the hero above. */
+                        destination={weeklyLanding.phase?.destination}
+                        onPress={openClose}
+                      />
+                    </SurfaceTier>
                   )}
 
                   {/* The protocol sheet (slice 9.1b). A SIBLING HERE, NOT INSIDE
@@ -858,7 +915,9 @@ const DashboardScreen: React.FC = () => {
                   supposed to be. It is also what makes the walk meaningful:
                   the row can be confirmed on an account with no journey at
                   all. */}
-              <GoodMomentRow onPress={goodMoment.openSheet} />
+              <SurfaceTier style={styles.rowSurface} testID="home-good-moment-surface">
+                <GoodMomentRow onPress={goodMoment.openSheet} />
+              </SurfaceTier>
 
               {/* Surviving system prompts (live-gated), after the content. */}
               {(['notifOptIn', 'eventCode'] as const).map((id) => (
@@ -869,7 +928,9 @@ const DashboardScreen: React.FC = () => {
                   row at the very bottom, below the routine card. Insights leaves
                   the tab IA under the four-pillar migration; this keeps it
                   reachable without a stats hero. */}
-              <InsightsLookbackCard />
+              <SurfaceTier style={styles.rowSurface} testID="home-lookback-surface">
+                <InsightsLookbackCard />
+              </SurfaceTier>
             </View>
           </>
         )}
@@ -919,13 +980,20 @@ const DashboardScreen: React.FC = () => {
         />
       )}
     </SafeAreaView>
+    </TodayGround>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
+    // UNDER the layer, never over it: the frame before the image decodes.
     backgroundColor: Colors.background.default,
+  },
+  container: {
+    // NO FILL (R3a). The environmental layer sits behind this view at the
+    // screen root, and a background here would paint over it.
+    flex: 1,
   },
   scrollContent: {
     paddingHorizontal: Spacing.base,
@@ -938,20 +1006,7 @@ const styles = StyleSheet.create({
     // The Guide is a top-right pill, so there is no bottom-FAB clearance.
   },
   header: {
-    // Tight gap so the greeting and the header band read as one unit
-    // (matches Focus/Energy).
     marginBottom: Spacing.xs,
-  },
-  headerBand: {
-    // Full-bleed: cancel the ScrollView's horizontal padding on BOTH edges so
-    // the band runs edge to edge with no right-edge clip. NOTE: this screen's
-    // scrollContent uses Spacing.base (16), NOT Spacing.lg like Focus/Energy —
-    // the negative margin MUST match the parent padding or the band overshoots.
-    marginHorizontal: -Spacing.base,
-    // Let the first content block below ride up onto the header's bottom (mist)
-    // seam at the shared overlap depth. Content paints after the band (later
-    // sibling), so it sits above the seam.
-    marginBottom: -CARD_OVERLAP,
   },
   headerTop: {
     flexDirection: 'row',
@@ -973,13 +1028,29 @@ const styles = StyleSheet.create({
     fontSize: 26,
   },
   dateText: {
-    color: Colors.textSecondary,
+    // Soft Charcoal, not Muted Sage Gray (R3a): on the surface tier over the
+    // darkest art, sage reaches only 3.75 to 4.24:1.
+    color: Colors.softCharcoal,
     fontSize: Typography.fontSize.sm,
+  },
+  // The date's tier hugs the text rather than spanning the header row.
+  dateSurface: {
+    alignSelf: 'flex-start',
+    paddingVertical: Spacing.xs,
+  },
+  // Rows in the calm remainder: separated from the card above, and from each
+  // other, by the same gap.
+  rowSurface: {
+    marginTop: Spacing.sm,
   },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(217,122,110,0.1)',
+    // THE IMMERSIVE SURFACE TIER (R3a), applied inline from useSurfaceFill so
+    // Reduce Transparency reaches it. The coral wash that stood here was a tint
+    // of the page and read as no surface at all over artwork. The icon and text
+    // keep their coral unchanged; 4.3 names a coral border or icon, not coral
+    // text, and the text colour is a styling question, not the tier's.
     borderRadius: 8,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,

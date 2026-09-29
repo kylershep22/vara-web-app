@@ -78,8 +78,9 @@ export const Colors = {
   // alias: this file carries Mist White at full alpha and at zero
   // (`mistWhiteTransparent`) and at no value between. Same RGB as `mistWhite`,
   // so the translucency is purely in alpha and there is no hue shift against
-  // the ground it sits on. Translucency belongs to this bar and nowhere else
-  // (12.2): content surfaces stay opaque.
+  // the ground it sits on. Translucency belongs to this bar (12.2) and to one
+  // other place: `surfaceImmersive` below, the surface tier on Today's
+  // environmental ground (10.2). Every other content surface stays opaque.
   //
   // THE WHITE-AT-0.5 FOLLOW-UP IS CLOSED AS UNNEEDED (A0b, 2026-09-14). A fourth
   // lever was prepared and held back - this token moving from Mist White to
@@ -90,6 +91,26 @@ export const Colors = {
   // work: no hue shift against the ground, and nothing to re-check when R3
   // changes what the ground is.
   tabBarTranslucent: 'rgba(250,250,246,0.35)',
+
+  // THE IMMERSIVE SURFACE TIER (R3a; standards 2.8, 10.2). White at 0.72: the
+  // fill under every text-bearing element on Today's environmental ground.
+  // A DECLARATION, NOT AN ALIAS: nothing in this file is White at a partial
+  // alpha, so there is nothing to point at.
+  //
+  // MEASURED, NOT CHOSEN. 10.2 requires the composite of this fill over the
+  // darkest region any surface can scroll across to clear Evergreen Teal body
+  // text's floor, composite luminance 0.576. scripts/asset-surface-alpha.js
+  // measured the shipped todayBackground.webp: the alpha needed runs 0.646 to
+  // 0.719 across glyph-scale windows of 12 to 144 px, and 0.688 at the 48 px
+  // primary window. 0.72 is the CONSERVATIVE end, so the value does not rest on
+  // one window choice. The governing region is the bottom-left corner, x 0-16pt
+  // and y 842-915pt, inside the bottom 9% bleed band and behind the floating
+  // bar at rest; excluding that band would give 0.666 at 48 px. Bounded to
+  // where text can sit (asset x 24-406pt), teal body needs 0.709. Muted Sage
+  // Gray does NOT clear 4.5:1 on this token (3.75 to 4.24:1), so secondary
+  // text on the immersive ground is Soft Charcoal; the token was not raised.
+  // Re-measure before changing it, and re-measure if the asset changes.
+  surfaceImmersive: 'rgba(255,255,255,0.72)',
 
   // Accent Colors
   dewSage: '#D5E3D1',

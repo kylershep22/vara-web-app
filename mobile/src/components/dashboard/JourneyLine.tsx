@@ -31,6 +31,7 @@
  */
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { surfaceTierStyle, useSurfaceFill } from '../shared/SurfaceTier';
 import Text from '../shared/Text';
 
 import { Colors, Spacing, TextStyles, Typography } from '../../constants';
@@ -70,6 +71,8 @@ export const JourneyLine: React.FC<JourneyLineProps> = ({
   // "where am I", and there is no honest answer to that from a document nobody
   // can read. Its absence is a state Today already has - every legacy-path user
   // sees exactly this - so the layout below it is unchanged.
+  // Opaque White under Reduce Transparency (R3a). Read before the early return.
+  const fill = useSurfaceFill();
   const cell = PHASE_DISPLAY[phaseKey]?.[destination];
   if (!cell) return null;
 
@@ -79,7 +82,7 @@ export const JourneyLine: React.FC<JourneyLineProps> = ({
     // confusion the label exists to prevent. Read together they are one
     // statement about where the user is.
     <View
-      style={styles.row}
+      style={[styles.row, { backgroundColor: fill }]}
       accessible
       accessibilityRole="text"
       accessibilityLabel={`${label}. ${cell.short}`}
@@ -101,6 +104,10 @@ export const JourneyLine: React.FC<JourneyLineProps> = ({
 
 const styles = StyleSheet.create({
   row: {
+    // THE IMMERSIVE SURFACE TIER (R3a). Carried inside the line rather than
+    // wrapped around it at the call site, because the line can render nothing
+    // (above) and a wrapper would leave an empty surface on the artwork.
+    ...surfaceTierStyle,
     marginBottom: Spacing.md,
   },
   // Lifted from JourneyPhaseScreen's `state` style rather than approximated, so

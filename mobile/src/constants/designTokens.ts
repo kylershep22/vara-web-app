@@ -61,6 +61,7 @@ export const ColorTokens = {
   primaryLight: Colors.tealLight,        // Teal tint backgrounds for selected states
   disabled: Colors.textDisabled,         // Disabled elements
   tabBarTranslucent: Colors.tabBarTranslucent, // Floating tab bar's warm overlay (R2; 12.2)
+  surfaceImmersive: Colors.surfaceImmersive, // Surface tier on Today's environmental ground (R3a; 10.2)
 
   // NOT AN ALIAS, AND THE ONLY ONE IN THIS OBJECT.
   // Silver Sage at 0.25. `colors.ts` carries Silver Sage at 0.3, 0.4, 0.5, 0.6

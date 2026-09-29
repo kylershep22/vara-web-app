@@ -4,6 +4,7 @@ import Text from '../shared/Text';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography } from '../../constants';
+import { useImmersiveSurface } from '../shared/SurfaceTier';
 
 /**
  * InsightsLookbackCard — Insights' quiet launch home on the dashboard (B-3d.6).
@@ -23,6 +24,8 @@ import { Colors, Spacing, Typography } from '../../constants';
  */
 export function InsightsLookbackCard() {
   const navigation = useNavigation<any>();
+  // Soft Charcoal on Today's environmental ground (R3a); sage elsewhere.
+  const onGround = useImmersiveSurface() && styles.onImmersive;
 
   return (
     <TouchableOpacity
@@ -36,7 +39,7 @@ export function InsightsLookbackCard() {
       <Icon name="history" size={20} color={Colors.mutedSageGray} />
       <View style={styles.text}>
         <Text style={styles.title}>Look back</Text>
-        <Text style={styles.subtitle}>A gentle look at your patterns over time.</Text>
+        <Text style={[styles.subtitle, onGround]}>A gentle look at your patterns over time.</Text>
       </View>
       <Icon name="chevron-right" size={20} color={Colors.silverSage} />
     </TouchableOpacity>
@@ -44,6 +47,9 @@ export function InsightsLookbackCard() {
 }
 
 const styles = StyleSheet.create({
+  onImmersive: {
+    color: Colors.softCharcoal,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

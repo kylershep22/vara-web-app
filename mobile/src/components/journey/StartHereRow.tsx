@@ -97,6 +97,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import Text from '../shared/Text';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
@@ -108,6 +109,7 @@ import {
   type StartHereSurface,
 } from '../../constants/startHere';
 import { useVideoSource } from '../../hooks/useVideoSource';
+import { useImmersiveSurface } from '../shared/SurfaceTier';
 import {
   readStartHereMarker,
   writeStartHereMarker,
@@ -125,6 +127,13 @@ export interface StartHereRowProps {
   userId: string | null | undefined;
   /** The one line under the label. Rendered only while expanded. */
   gloss: string;
+  /**
+   * Applied to the row's outer container, and only when the row renders. Today
+   * passes the immersive surface tier (R3a): the row sits on artwork there and
+   * must carry its own surface, and a wrapper would leave an empty one on the
+   * art on every day the row renders nothing. The journey map passes nothing.
+   */
+  containerStyle?: StyleProp<ViewStyle>;
   testID?: string;
 }
 
@@ -132,9 +141,13 @@ export const StartHereRow: React.FC<StartHereRowProps> = ({
   surface,
   userId,
   gloss,
+  containerStyle,
   testID = 'start-here-row',
 }) => {
   const path = START_HERE_PATHS[surface];
+  // Soft Charcoal gloss on Today's environmental ground (R3a); sage on the
+  // journey map, which is not immersive. Read before any early return.
+  const onGround = useImmersiveSurface() && styles.onImmersive;
 
   // Resolved here rather than left to the modal, because the row's EXISTENCE
   // depends on the answer. The modal resolves the same path again when it
@@ -194,7 +207,7 @@ export const StartHereRow: React.FC<StartHereRowProps> = ({
     : `${START_HERE_LABEL}. ${gloss}`;
 
   return (
-    <View testID={`${testID}-container`}>
+    <View style={containerStyle} testID={`${testID}-container`}>
       <TouchableOpacity
         style={[styles.row, collapsed && styles.rowCollapsed]}
         onPress={handlePress}
@@ -221,7 +234,7 @@ export const StartHereRow: React.FC<StartHereRowProps> = ({
           </Text>
           {collapsed ? null : (
             <Text
-              style={styles.gloss}
+              style={[styles.gloss, onGround]}
               maxFontSizeMultiplier={Typography.maxFontScale}
               testID={`${testID}-gloss`}
             >
@@ -281,6 +294,9 @@ const styles = StyleSheet.create({
     ...TextStyles.bodySmall,
     color: Colors.mutedSageGray,
     marginTop: 2,
+  },
+  onImmersive: {
+    color: Colors.softCharcoal,
   },
 });
 
