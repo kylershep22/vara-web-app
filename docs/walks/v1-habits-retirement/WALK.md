@@ -3,7 +3,7 @@
 **Row:** V1-HABITS-RETIREMENT. Habits leave V1, and PlanScreen becomes routines only. Habit reminders stop being scheduled, and the feature-discovery unlock toasts are switched off.
 **Build:** branch `journey/v1-habits-retirement`, made of `da24261` (before-state captures), `f0d339c` (the retirement), `da57386` (the guard suite) and the commit that carries this file.
 **Device:** iPhone 14 Plus, dev client.
-**Walker:** Kyle.
+**Walker:** Kyle. **Status: WALKED 2026-09-29, ZERO FAILs, results as Kyle gave them in Part 4. G NOT RUN. 1.3 times Dynamic Type NOT RUN.**
 **Time:** about 15 minutes. Use the account from the before-state captures.
 
 **Acceptance invariant** (Kyle, 2026-09-29):
@@ -108,4 +108,32 @@ Walk at **default Dynamic Type only**.
 
 ## Part 4 - Results
 
-*To be recorded as Kyle gives them, with the date of the sitting as Kyle gives it.*
+### Results, recorded 2026-09-29 as Kyle gave them
+
+**After-state evidence, taken during the walk at `8046d1f`:** `after/01-planscreen.png` (10:33) and `after/02-paywall.png` (10:27), described in `after/README.md`. The `before/` captures are unchanged.
+
+**On the evidence.** Kyle first sent the before captures by mistake. The after captures replaced them in the record before any result was written.
+
+- A. Pass
+- B. Pass
+- c. Pass
+- D. Pass
+- E. Pass
+- F. Pass
+- G. I saw no reminders
+
+**Classification.**
+- **A to F: PASS.** Kyle's lower-case "c" is recorded as he gave it; it is step C.
+- **G: NOT RUN, no stale habit reminder occurred.**
+- **1.3 times Dynamic Type: NOT RUN**, under Kyle's approved accessibility-settings deferral of 2026-09-29.
+
+**On B.** `after/01-planscreen.png` shows the subtitle "Routines you've built", no tab switch, and the Morning, Evening, Sunday and Custom chips.
+
+**On D.** `after/02-paywall.png` shows the bullet "Create routines and capture reflections".
+
+### Observations, not step results
+
+- **The paywall advertises Insights.** It also shows "A gentle look back at your patterns", while Insights is unreachable. This is ledger row **PAYWALL-INSIGHTS-CLAIM**.
+- **The paywall underlines three links:** "Terms of Use", "Privacy Policy" and "Have a code?". This is ledger row **PAYWALL-UNDERLINES**.
+
+Both are visible in `after/02-paywall.png`.
