@@ -3,7 +3,7 @@
 **Row:** TODAY-LEGACY-REMOVAL. InsightCard, WeeklyHabitGrid, RoutineCard and InsightsLookbackCard leave Today, with their loading, error and caller coupling.
 **Build:** branch `journey/today-legacy-removal`, `177125e` (before-state captures) + `4b7662c` (the removal) + `db4386c` (the contracts) + the commit that carries this file.
 **Device:** iPhone 14 Plus, dev client.
-**Walker:** Kyle. **Status: NOT YET WALKED.**
+**Walker:** Kyle. **Status: WALKED 2026-09-29, ZERO FAILs, results as Kyle gave them in Part 4. D NOT WALKABLE IN THIS SETUP.**
 **Time:** about 15 minutes. Any account that reaches Today works; the one used for the before-state captures is best, because it showed all four cards.
 
 **Before-state captures.** Kyle's three screenshots in `before/`, taken 2026-09-29 on `main` at `33847ca`: `01-top.png`, `02-mid.png` and `03-bottom.png`, described in `before/README.md`. They are unchanging evidence. **After-state evidence is added alongside them, never over them.**
@@ -74,4 +74,24 @@ The day's card shows a **Routines** phase label from the journey (for example "R
 
 ## Part 4 - Results
 
-*To be filled in at the walk, as Kyle gives them. One line per step: the step, PASS / FAIL / NOT RUN / NOT WALKABLE IN THIS SETUP, and what was seen. Every NOT RUN and every NOT WALKABLE entry gives its reason.*
+### Results, recorded 2026-09-29 as Kyle gave them
+
+**After-state evidence, taken during the walk at `bf10508`:** `after/01-top.png` and `after/02-scrolled.png`, described in `after/README.md`. The `before/` captures are unchanged.
+
+- A. Pass - loading screen was just the blank off white with the spinning wheel and text, no background image
+- B. Pass - only 4 cards there now
+- C. Pass
+- D. Not walkable
+- E. Pass - every tapable button worked as expected
+- F. Pass - see screenshots from the last message (committed as after/01-top.png and after/02-scrolled.png)
+
+**On B's count.** The four-card count is Kyle's own. The after captures show, below the greeting: Where you are, the day's card, the draining card, Close out this week and Add a good moment.
+
+**On D.** NOT WALKABLE IN THIS SETUP, under OFFLINE-PATHS-UNWALKABLE, as the step states.
+
+### Observations
+
+Neither item is a step result.
+
+1. **Step A's loading screen had no environmental ground.** Before this slice, Today's own cold-load state, which waited on habits, showed R3a's transparent spinner over the painting. That state can no longer fire from `useDashboard`, so the loading screen now seen is the plain off-white one. Recorded in ledger row TODAY-COLD-LOAD-GROUND.
+2. **The day's card shows "Routines / Normal · runs through Monday"**, visible in `after/01-top.png` and `after/02-scrolled.png`. This is the journey's phase label, not a routine entry point.
