@@ -220,7 +220,7 @@ import React from 'react';
 import fs from 'fs';
 import path from 'path';
 import { AccessibilityInfo, StyleSheet } from 'react-native';
-import { act, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import DashboardScreen from '../DashboardScreen';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -228,6 +228,7 @@ import { PROTOCOL_MATRIX } from '../../protocolEngine';
 import { Colors } from '../../constants';
 import { ColorTokens } from '../../constants/designTokens';
 import { DASHBOARD_SUPPRESS } from '../../constants/dashboardConfig';
+import { NAV_TARGETS } from '../../navigation/navTargets';
 
 const SOURCE = fs.readFileSync(path.join(__dirname, '..', 'DashboardScreen.tsx'), 'utf8');
 
@@ -249,6 +250,14 @@ const liveCycle = {
   capacityInitial: 'normal',
   capacityCurrent: 'normal',
   protocolId: 'focus-normal',
+};
+
+/** One active routine for the routine card (ROUTINES-RESTORE). */
+const ROUTINE = {
+  id: 'r1',
+  name: 'The Essentials',
+  activities: [{ id: 1, name: 'Hydration', duration: 1, icon: 'water', order: 0 }],
+  active: true,
 };
 
 const PHASE = {
@@ -419,6 +428,9 @@ describe('(d) every surface on the ground reads the token', () => {
       'home-journey-line',
       'home-close-surface',
       'home-good-moment-surface',
+      // The routine card carries the tier itself (ROUTINES-RESTORE); primeHome
+      // gives it no routines, so it renders its known-empty state.
+      'dashboard-routine-empty',
     ]) {
       expect([id, fill(screen.getByTestId(id))]).toEqual([id, Colors.surfaceImmersive]);
     }
@@ -507,6 +519,25 @@ describe('secondary text on the ground is Soft Charcoal, never Muted Sage Gray',
     }
   });
 
+  test('the routine card, in each of its three states', async () => {
+    // ROUTINES-RESTORE, ruling C. Reads what renders, so a restyle that puts
+    // sage back on any card Text fails here, not only on a named testID.
+    const states: Array<[string, unknown[], Record<string, boolean>]> = [
+      ['dashboard-routine-empty', [], {}],
+      ['dashboard-routine', [ROUTINE], {}],
+      ['dashboard-routine', [ROUTINE], { r1: true }],
+    ];
+    for (const [id, routines, completions] of states) {
+      mockRoutines = routines;
+      mockRoutineCompletions = completions;
+      const screen = await renderToday();
+      const colours = textColours(screen.getByTestId(id));
+      expect(colours.length).toBeGreaterThan(0);
+      for (const c of colours) expect([id, c, ALLOWED.includes(c)]).toEqual([id, c, true]);
+      screen.unmount();
+    }
+  });
+
   test('the loading message, on the ground and only there', () => {
     const colourOf = (el: React.ReactElement) =>
       StyleSheet.flatten(render(el).getByText('x').props.style).color;
@@ -535,7 +566,12 @@ describe('Reduce Transparency makes the surfaces opaque', () => {
   });
 
   const fill = (el: any) => StyleSheet.flatten(el.props.style)?.backgroundColor;
-  const SURFACES = ['home-date-surface', 'home-journey-line', 'home-error-banner'];
+  const SURFACES = [
+    'home-date-surface',
+    'home-journey-line',
+    'home-error-banner',
+    'dashboard-routine-empty',
+  ];
 
   test('read at mount: on, the tier is opaque White', async () => {
     swap('isReduceTransparencyEnabled', () => Promise.resolve(true));
@@ -700,7 +736,8 @@ describe('(f) the three-surface rule, as ORDER not position', () => {
   // WHAT IS MOCKED, AND WHY NONE OF IT CAN HIDE A SURFACE. Every component mock
   // in this file is for something that does not render in the content
   // container: LoadingSpinner (the loading path only), ScreenHeader (not
-  // imported, contract (c)), EventCodeSheet (a sibling of the ScrollView), and
+  // imported, contract (c)), EventCodeSheet and ActiveRoutinePlayer (siblings
+  // of the ScrollView), and
   // NotificationOptInCard, FirstShiftFooter and EventCodeCard, which are
   // suppressed by the three flags asserted below. The one stand-in inside the
   // content container is the Guide pill, which is chrome: it keeps its testID
@@ -778,18 +815,17 @@ describe('(g) the legacy block is gone from Today', () => {
   beforeEach(primeHome);
 
   // Scope: Today's surviving tree and DashboardScreen.tsx only, not the app.
-  // PlanScreen, HabitDetail, Insights and the notifications belong to
-  // V1-LEGACY-RETIREMENT.
+  // AMENDED AT ROUTINES-RESTORE (ruling C of the V1 SCOPE REVISION block): the
+  // routine card, the routine player and the plan route are back on Today, so
+  // their testIDs and modules are allowed. Check habits stays gone, and so do
+  // the habit grid, the insight card, the Look back card, HabitNoteSheet,
+  // HabitDetail and Insights.
   const REMOVED_TEST_IDS = [
     'dashboard-insight',
     'weekly-habit-grid',
     'weekly-habit-grid-empty',
     'weekly-habit-grid-title',
     'weekly-habit-grid-add',
-    'dashboard-routine',
-    'dashboard-routine-empty',
-    'dashboard-routine-create',
-    'dashboard-routine-begin',
     'dashboard-routine-check-habits',
     'insights-lookback-card',
     'home-lookback-surface',
@@ -801,24 +837,148 @@ describe('(g) the legacy block is gone from Today', () => {
     expect(REMOVED_TEST_IDS.filter((id) => ids.has(id))).toEqual([]);
   });
 
+  test('Check habits is absent from the all-done routine card', async () => {
+    // Rendered in the one state that used to carry it, or the pin is vacuous.
+    mockRoutines = [ROUTINE];
+    mockRoutineCompletions = { r1: true };
+    const screen = await renderToday();
+    expect(screen.getByTestId('dashboard-routine')).toBeTruthy();
+    expect(screen.getByText('All done for today.')).toBeTruthy();
+    expect(screen.queryByTestId('dashboard-routine-check-habits')).toBeNull();
+    expect(screen.queryByText(/Check habits/)).toBeNull();
+  });
+
   test('SOURCE GUARD: Home imports none of it and names no route into it', () => {
     // Matches imports, JSX and route usage, never prose: a journey label such
     // as the hero's Routines phase comes from data and is not a route.
-    const MODULES = [
-      'InsightCard',
-      'WeeklyHabitGrid',
-      'RoutineCard',
-      'InsightsLookbackCard',
-      'ActiveRoutinePlayer',
-      'HabitNoteSheet',
-      'navTargets',
-    ];
+    const MODULES = ['InsightCard', 'WeeklyHabitGrid', 'InsightsLookbackCard', 'HabitNoteSheet'];
     for (const m of MODULES) {
       expect([m, new RegExp(`from\\s+['"][^'"]*/${m}['"]`).test(SOURCE)]).toEqual([m, false]);
       expect([m, new RegExp(`<${m}\\b`).test(SOURCE)]).toEqual([m, false]);
     }
     expect(SOURCE).not.toMatch(/['"]HabitDetail['"]|ROUTES\.HabitDetail\b/);
     expect(SOURCE).not.toMatch(/['"]Insights['"]|ROUTES\.Insights\b/);
-    expect(SOURCE).not.toMatch(/NAV_TARGETS|ROUTES\.(PillarTime|Rhythms)\b|['"](PillarTime|Rhythms)['"]/);
+    // The only plan route Today names is NAV_TARGETS.plan: no literal tab route
+    // name, and no other NAV_TARGETS destination.
+    expect(SOURCE).not.toMatch(/ROUTES\.(PillarTime|Rhythms)\b|['"](PillarTime|Rhythms)['"]/);
+    const targets = SOURCE.match(/NAV_TARGETS\.\w+/g) ?? [];
+    expect(targets.length).toBeGreaterThan(0);
+    expect(new Set(targets)).toEqual(new Set(['NAV_TARGETS.plan']));
+  });
+});
+
+describe('the routine card sits below the good moments, as a supporting surface', () => {
+  beforeEach(primeHome);
+
+  // ROUTINES-RESTORE, rulings B and C of the V1 SCOPE REVISION block. HIERARCHY
+  // AND TREE ORDER ONLY: the fold is the walk's.
+  const ANCHOR = 'good-moment-row';
+  const CARD_IDS = ['dashboard-routine', 'dashboard-routine-empty'];
+  const isCard = (n: TreeNode) => CARD_IDS.includes(n.props?.testID as string);
+
+  function pathTo(node: unknown, pred: (n: TreeNode) => boolean): TreeNode[] | null {
+    if (!node || typeof node !== 'object') return null;
+    const n = node as TreeNode;
+    if (pred(n)) return [n];
+    for (const child of n.children ?? []) {
+      const rest = pathTo(child, pred);
+      if (rest) return [n, ...rest];
+    }
+    return null;
+  }
+
+  test('after the anchor, sharing the wrapper View with it', async () => {
+    const screen = await renderToday();
+    const tree = screen.toJSON();
+    const all = flatten(tree);
+    const anchorAt = all.findIndex(hasTestId(ANCHOR));
+    const cardAt = all.findIndex(isCard);
+    expect(anchorAt).toBeGreaterThanOrEqual(0);
+    expect(cardAt).toBeGreaterThan(anchorAt);
+
+    // Nearest common ancestor: the wrapper View holding the good-moments tier.
+    const toAnchor = pathTo(tree, hasTestId(ANCHOR))!;
+    const toCard = pathTo(tree, isCard)!;
+    let i = 0;
+    while (i < toAnchor.length && i < toCard.length && toAnchor[i] === toCard[i]) i++;
+    const common = toAnchor[i - 1];
+    expect(common.type).toBe('View');
+    expect(toAnchor[i].props?.testID).toBe('home-good-moment-surface');
+    // The card is the wrapper's own child, not buried in another block.
+    expect(toCard[i]).toBe(toCard[toCard.length - 1]);
+  });
+
+  test('absent while the routine state is unresolved', async () => {
+    mockRoutines = null;
+    const screen = await renderToday();
+    expect(screen.getByTestId(ANCHOR)).toBeTruthy();
+    for (const id of CARD_IDS) expect(screen.queryByTestId(id)).toBeNull();
+  });
+
+  const TEAL = Colors.evergreenTeal;
+  const isActionable = (n: TreeNode) =>
+    n.props?.accessibilityRole === 'button' ||
+    n.props?.accessibilityRole === 'link' ||
+    typeof n.props?.onClick === 'function';
+
+  test('no filled primary: nothing actionable in the card, above it or inside it, is teal', async () => {
+    expect(TEAL).toBe('#1B5E57');
+    const states: Array<[unknown[], Record<string, boolean>]> = [
+      [[], {}],
+      [[ROUTINE], {}],
+      [[ROUTINE], { r1: true }],
+    ];
+    let actionables = 0;
+    for (const [routines, completions] of states) {
+      mockRoutines = routines;
+      mockRoutineCompletions = completions;
+      const screen = await renderToday();
+      const card = flatten(screen.toJSON()).find(isCard);
+      expect(card).toBeTruthy();
+      for (const node of flatten(card).filter(isActionable)) {
+        actionables++;
+        // The actionable node, every ancestor of it inside the card (the card
+        // root excepted: its fill is the surface tier, contract (d)), and
+        // everything it contains, so a fill on the label is caught too.
+        const chain = [...pathTo(card, (n) => n === node)!.slice(1), ...flatten(node).slice(1)];
+        for (const n of chain) {
+          const flat = StyleSheet.flatten(n.props?.style as never) as { backgroundColor?: unknown } | undefined;
+          expect(flat?.backgroundColor).not.toBe(TEAL);
+        }
+      }
+      screen.unmount();
+    }
+    // Non-vacuous: Create a routine and Begin were both reached.
+    expect(actionables).toBeGreaterThanOrEqual(2);
+  });
+
+  test('SOURCE GUARD: RoutineCard imports no Button', () => {
+    const card = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'components', 'dashboard', 'RoutineCard.tsx'),
+      'utf8'
+    );
+    expect(card).not.toMatch(/import[^;]*\bButton\b[^;]*from/);
+    expect(card).not.toMatch(/from\s+['"][^'"]*\/Button['"]/);
+  });
+
+  test('Begin hands the routine to the player, which mounts on Today; Edit goes to the plan route', async () => {
+    mockRoutines = [ROUTINE];
+    const screen = await renderToday();
+    fireEvent.press(screen.getByTestId('dashboard-routine-begin'));
+    expect(mockHandleBeginRoutine).toHaveBeenCalledWith(ROUTINE);
+    expect(screen.queryByTestId('routine-player-edit')).toBeNull();
+
+    // The hook owns the player state; with it set, Today mounts the player.
+    mockActivePlayerRoutine = ROUTINE;
+    screen.rerender(<DashboardScreen />);
+    fireEvent.press(screen.getByTestId('routine-player-edit'));
+    expect(mockHandleCloseRoutinePlayer).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith(NAV_TARGETS.plan, undefined);
+  });
+
+  test('Create a routine goes to the plan route', async () => {
+    const screen = await renderToday();
+    fireEvent.press(screen.getByTestId('dashboard-routine-create'));
+    expect(mockNavigate).toHaveBeenCalledWith(NAV_TARGETS.plan, undefined);
   });
 });
