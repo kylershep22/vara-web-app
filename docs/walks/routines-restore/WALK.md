@@ -3,7 +3,7 @@
 **Row:** ROUTINES-RESTORE. RoutineCard returns to Today without "Check habits", below the good moments, on R3a's immersive surface, subordinate to the day's protocol, and reading completions on the local day.
 **Build:** branch `journey/routines-restore`, made of `d074e20` (before-state captures), `b6c25cd` (the restore), `55b4205` (the contracts and the hook suite), `3959ef0` (this walk script) and the fix commit "fix(today): the routine card keeps the row gap below the good moments", which carries the finding and this Part 4 entry. **Walk the fix commit.**
 **Device:** iPhone 14 Plus, dev client.
-**Walker:** Kyle. **Status: FIRST WALK 2026-09-30 STOPPED AT STEP B, FAIL, FIXED. THE FULL WALK RE-RUNS ON THE FIX COMMIT.**
+**Walker:** Kyle. **Status: WALKED 2026-09-30. First walk: step B FAIL (overlap), fixed at `5a5485a`. Re-walk on `5a5485a`: ZERO FAILs, G NOT RUN.**
 **Time:** about 15 minutes. Use the account from the before-state captures, which has no routines.
 
 **Before-state captures.** These are Kyle's two screenshots in `before/`, taken 2026-09-30 on `main` at `6653b7c` and described in `before/README.md`:
@@ -120,3 +120,26 @@ Results are recorded here as Kyle gives them.
 **Fix.** The card takes the calm remainder's row gap, `Spacing.sm`, the same top margin the good-moments row carries. No other geometry, padding, radius, type or shadow changed. It is pinned by the structure suite's row-gap test.
 
 **No other step result from the first walk is recorded.** The full walk, A to F, re-runs on the fix commit.
+
+### Re-walk on `5a5485a`, 2026-09-30: zero FAILs
+
+Walked by Kyle on 2026-09-30, on `5a5485a`. Results in Kyle's words, verbatim:
+
+> A. Pass
+> B. Pass
+> C. Pass
+> D. Pass
+> E. Pass
+> F. Pass
+> G. Not Run
+
+- **G is NOT RUN**, covering both Reduce Transparency and 1.3 times Dynamic Type, under Kyle's approved accessibility-settings deferral of 2026-09-29.
+- **The order walked.** The account already carried a finished routine from the first walk, so the re-walk followed the order the review side gave Kyle for that case:
+  1. A
+  2. E in its existing all-done state, with the gap to Add a good moment checked
+  3. the routine deleted, to reset the account
+  4. then B, C, D, E and F, with every Begin started from the card on Today
+
+  Kyle did not report which path each step took beyond his results. Nothing more is recorded here.
+- **No after-state captures were taken on the re-walk.** The results rest on Kyle's attestation.
+- **The first walk's step B FAIL and its fix stand as recorded above.**
