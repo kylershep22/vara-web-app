@@ -110,7 +110,11 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
 
 const styles = StyleSheet.create({
   // No fill here: it is applied from useSurfaceFill at render.
+  // marginTop is the calm remainder's row gap (DashboardScreen's rowSurface).
+  // At 33847ca the card sat ABOVE the good-moments row and its marginBottom
+  // made the gap; below that row nothing did, and the two surfaces touched.
   card: {
+    marginTop: Spacing.sm,
     borderRadius: Layout.borderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.base,

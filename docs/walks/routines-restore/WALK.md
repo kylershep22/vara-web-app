@@ -1,9 +1,9 @@
 # ROUTINES-RESTORE - the routine card returns to Today - device walk
 
 **Row:** ROUTINES-RESTORE. RoutineCard returns to Today without "Check habits", below the good moments, on R3a's immersive surface, subordinate to the day's protocol, and reading completions on the local day.
-**Build:** branch `journey/routines-restore`, made of `d074e20` (before-state captures), `b6c25cd` (the restore), `55b4205` (the contracts and the hook suite) and the commit that carries this file.
+**Build:** branch `journey/routines-restore`, made of `d074e20` (before-state captures), `b6c25cd` (the restore), `55b4205` (the contracts and the hook suite), `3959ef0` (this walk script) and the fix commit "fix(today): the routine card keeps the row gap below the good moments", which carries the finding and this Part 4 entry. **Walk the fix commit.**
 **Device:** iPhone 14 Plus, dev client.
-**Walker:** Kyle. **Status: UNWALKED.**
+**Walker:** Kyle. **Status: FIRST WALK 2026-09-30 STOPPED AT STEP B, FAIL, FIXED. THE FULL WALK RE-RUNS ON THE FIX COMMIT.**
 **Time:** about 15 minutes. Use the account from the before-state captures, which has no routines.
 
 **Before-state captures.** These are Kyle's two screenshots in `before/`, taken 2026-09-30 on `main` at `6653b7c` and described in `before/README.md`:
@@ -110,3 +110,13 @@ The player offers Edit only on its completion screen, so it is walked here. Fini
 ## Part 4 - Results
 
 Results are recorded here as Kyle gives them.
+
+### First walk, 2026-09-30: step B FAIL
+
+**Step B: FAIL.** On the device, the routine card's top edge touched and overlapped the bottom edge of the Add a good moment row, with no gap between them. Evidence: `findings/01-overlap.png`, Kyle's capture.
+
+**Cause.** The card had no top margin, and nothing above it supplied one. At `33847ca` the card sat above the good-moments row, and its own bottom margin made the gap; restored below that row, the two surfaces met edge to edge. No negative margin or offset was involved.
+
+**Fix.** The card takes the calm remainder's row gap, `Spacing.sm`, the same top margin the good-moments row carries. No other geometry, padding, radius, type or shadow changed. It is pinned by the structure suite's row-gap test.
+
+**No other step result from the first walk is recorded.** The full walk, A to F, re-runs on the fix commit.

@@ -908,6 +908,25 @@ describe('the routine card sits below the good moments, as a supporting surface'
     expect(toCard[i]).toBe(toCard[toCard.length - 1]);
   });
 
+  test('keeps the row gap below the good moments, with no negative margin', async () => {
+    // Walk FAIL of 2026-09-30, step B: the card touched the row above it. The
+    // neighbouring row's own top gap is the measure, read from the render.
+    const screen = await renderToday();
+    type Box = { marginTop?: unknown; margin?: unknown; marginVertical?: unknown; top?: unknown };
+    const flat = (id: string) =>
+      StyleSheet.flatten(screen.getByTestId(id).props.style as never) as Box;
+    const row = flat('home-good-moment-surface');
+    const card = flat('dashboard-routine-empty');
+    expect(typeof row.marginTop).toBe('number');
+    expect(row.marginTop).toBeGreaterThan(0);
+    expect(card.marginTop).toBe(row.marginTop);
+    for (const key of Object.keys(card) as Array<keyof Box>) {
+      if (/^margin|^top$/.test(key) && typeof card[key] === 'number') {
+        expect([key, (card[key] as number) >= 0]).toEqual([key, true]);
+      }
+    }
+  });
+
   test('absent while the routine state is unresolved', async () => {
     mockRoutines = null;
     const screen = await renderToday();
