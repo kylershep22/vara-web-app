@@ -126,7 +126,7 @@ import { NAV_TARGETS } from '../../../navigation/navTargets';
 const Stack = createNativeStackNavigator();
 
 // Stand-in for the routine builder's host screen (PlanScreen, registered as
-// ROUTES.PillarTime). The real one pulls HabitsScreen, RoutinesTab, the routine
+// ROUTES.PillarTime). The real one pulls RoutinesTab, the routine
 // migration and the whole Firestore chain, which is the same reason FocusTimer
 // is not registered in this stack either.
 //
@@ -286,8 +286,8 @@ describe('Practices → Routines: the step-4b-i wiring', () => {
 
     // Not the same assertion as the unit test's `navigate` spy. This one proves
     // the param SURVIVES the navigator and is readable off `route.params` at the
-    // destination — the half a spy cannot see. Without it the user lands on the
-    // habits sub-tab from a card labelled Routines.
+    // destination, the half a spy cannot see. (PlanScreen is routines only
+    // since V1-HABITS-RETIREMENT, so the param now names rather than selects.)
     const stub = await waitFor(() => getByTestId('plan-stub'));
     expect(JSON.parse(stub.props.children)).toEqual({ tab: 'routines' });
   });

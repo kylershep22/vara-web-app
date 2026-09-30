@@ -29,7 +29,6 @@ import {
 } from '../services/firebase/focusSession.service';
 import { logger } from '../utils/logger';
 import { syncAllReminders } from '../services/reminderScheduler.service';
-import { isHabitCompletedToday } from '../services/firebase/habits.service';
 import { navigationRef } from '../navigation/AppNavigator';
 import { ROUTES } from '../navigation/routes';
 import { NAV_TARGETS } from '../navigation/navTargets';
@@ -96,15 +95,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Register foreground notification handler → route to toast
   useEffect(() => {
     setForegroundNotificationHandler(async (title: string, body: string, data?: Record<string, unknown>) => {
-      // Suppress habit reminders for already-completed habits
-      if (data?.type === 'habit-reminder' && data?.habitId) {
-        try {
-          const completed = await isHabitCompletedToday(data.habitId as string);
-          if (completed) return; // Suppress
-        } catch {
-          // If check fails, show the notification anyway
-        }
-      }
+      // Habit reminders left V1 (V1-HABITS-RETIREMENT, Kyle ruling 2 of
+      // 2026-09-29). A stale one scheduled by an earlier build shows nothing.
+      if (data?.type === 'habit-reminder') return;
       showNotificationToast(title, body);
     });
   }, [showNotificationToast, user?.uid]);
@@ -192,13 +185,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         params?: object
       ) => void;
 
-      // Habits and routines both live on the planning surface. This used to name
-      // ROUTES.Rhythms, which is registered ONLY on the legacy BottomTabsNavigator
-      // — a navigator that has not been mounted since FOUR_PILLAR_IA went true.
-      // Both taps were therefore already landing nowhere before this slice.
-      // NAV_TARGETS.plan resolves to the surface that is actually registered.
+      // Routines live on the planning surface. NAV_TARGETS.plan resolves to the
+      // surface that is actually registered (ROUTES.Rhythms, the legacy tab, is
+      // never mounted since FOUR_PILLAR_IA went true).
+      //
+      // A habit reminder is stale: habits left V1 (V1-HABITS-RETIREMENT, Kyle
+      // ruling 2 of 2026-09-29) and nothing schedules one any more. Its tap goes
+      // Home by the same root-ref path the weekly screens use, never to the
+      // planning surface and never to a habit destination.
       if (data.type === 'habit-reminder') {
-        navigate(NAV_TARGETS.plan);
+        navigate(ROUTES.Main, { screen: ROUTES.Home });
       } else if (data.type === 'routine-reminder') {
         navigate(NAV_TARGETS.plan, { tab: 'routines' });
       } else if (data.type === 'focus-complete') {

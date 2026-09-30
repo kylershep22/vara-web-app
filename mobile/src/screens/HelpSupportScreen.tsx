@@ -24,10 +24,6 @@ interface FAQItem {
 
 const FAQ_ITEMS: FAQItem[] = [
   {
-    question: 'How do I track my habits?',
-    answer: 'Go to the Track tab and tap the + button to add a new habit. You can then check off habits daily from your dashboard.',
-  },
-  {
     question: 'How does the AI coaching work?',
     answer: 'Vara uses AI to provide personalized wellness suggestions based on your goals, habits, and journal entries. Tap the brain icon to chat with your AI wellness coach.',
   },

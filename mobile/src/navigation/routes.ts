@@ -106,7 +106,6 @@ export const ROUTES = {
   PodcastEpisode: 'PodcastEpisode',
   HelpSupport: 'HelpSupport',
   WearableIntegration: 'WearableIntegration',
-  HabitDetail: 'HabitDetail',
   ProfileStack: 'ProfileStack',
   NotificationOptIn: 'NotificationOptIn',
   CheckInFlow: 'CheckInFlow',

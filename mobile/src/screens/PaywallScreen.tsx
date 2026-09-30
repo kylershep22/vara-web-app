@@ -47,7 +47,7 @@ const FALLBACK_ANNUAL_EQUIVALENT = `${FALLBACK_CURRENCY}${config.annualMonthlyEq
 const FEATURES = [
   'AI guidance in service of focus, energy, and time',
   'Full audio and content library',
-  'Unlimited habits, routines, and reflections',
+  'Create routines and capture reflections',
   'A gentle look back at your patterns',
   'Guidance that meets you where you arrive each day',
 ];

@@ -56,7 +56,7 @@ export const BRAIN_PILLARS: BrainPillarConfig[] = [
     description: 'Start with deep work tools, journaling, and breathing exercises to improve concentration.',
     icon: 'target',
     color: '#1B5E57', // Evergreen Teal
-    day1Features: ['focus_timer', 'journal', 'breathwork_quick', 'habits_basic', 'tasks_basic'],
+    day1Features: ['focus_timer', 'journal', 'breathwork_quick', 'tasks_basic'],
   },
   {
     id: 'energy',
@@ -65,7 +65,7 @@ export const BRAIN_PILLARS: BrainPillarConfig[] = [
     description: 'Begin with better sleep, movement, and breathing to boost your daily energy.',
     icon: 'lightning-bolt',
     color: '#E8A838', // Sunrise Amber
-    day1Features: ['sleep', 'breathwork_quick', 'movement', 'habits_basic'],
+    day1Features: ['sleep', 'breathwork_quick', 'movement'],
   },
   {
     id: 'growth',
@@ -74,7 +74,7 @@ export const BRAIN_PILLARS: BrainPillarConfig[] = [
     description: 'Focus on habits, goals, and learning to build your ideal self.',
     icon: 'sprout',
     color: '#1B5E57', // Evergreen Teal
-    day1Features: ['habits_basic', 'goals_basic', 'tasks_basic', 'journal', 'brain_readiness'],
+    day1Features: ['goals_basic', 'tasks_basic', 'journal', 'brain_readiness'],
   },
   {
     id: 'resilience',
@@ -83,7 +83,7 @@ export const BRAIN_PILLARS: BrainPillarConfig[] = [
     description: 'Start with stress management tools, journaling, and breathing exercises.',
     icon: 'shield-check',
     color: '#D5E3D1', // Dew Sage
-    day1Features: ['breathwork_quick', 'journal', 'brain_readiness', 'habits_basic'],
+    day1Features: ['breathwork_quick', 'journal', 'brain_readiness'],
   },
   {
     id: 'connection',
@@ -92,7 +92,7 @@ export const BRAIN_PILLARS: BrainPillarConfig[] = [
     description: 'Begin with community features, reflection, and gratitude practices.',
     icon: 'account-group',
     color: '#B8CDBA', // Silver Sage
-    day1Features: ['community_view', 'journal', 'habits_basic', 'goals_basic'],
+    day1Features: ['community_view', 'journal', 'goals_basic'],
   },
 ];
 
@@ -113,8 +113,8 @@ export const FEATURE_UNLOCK_TIERS = {
   ] as FeatureId[],
 
   // Day 14: Full access to all features
+  // habits_advanced left with habits (V1-HABITS-RETIREMENT).
   day14: [
-    'habits_advanced',
     'brain_dashboard',
     'journal_ai',
     'community_create',
@@ -130,9 +130,10 @@ export const FEATURE_UNLOCK_TIERS = {
 /**
  * All features - used when user unlocks everything
  */
+// habits_basic and habits_advanced left with habits (V1-HABITS-RETIREMENT): no
+// unlocked or locked list names them, so no Settings chip can. Their FeatureId
+// and FEATURE_METADATA entries stay dormant.
 export const ALL_FEATURES: FeatureId[] = [
-  'habits_basic',
-  'habits_advanced',
   'goals_basic',
   'goals_advanced',
   'tasks_basic',

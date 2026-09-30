@@ -18,7 +18,6 @@ export {
   useMasterclassProgress,
   useLibraryContent,
 } from './useLibrary';
-export { useCelebrations } from './useCelebrations';
 export { useSubscription } from './useSubscription';
 export {
   useSuggestedConnections,

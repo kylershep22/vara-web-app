@@ -80,7 +80,6 @@ import ChatScreen from '../screens/ChatScreen';
 import PaywallScreen from '../screens/PaywallScreen';
 import RedeemCodeScreen from '../screens/RedeemCodeScreen';
 import HelpSupportScreen from '../screens/HelpSupportScreen';
-import HabitDetailScreen from '../screens/HabitDetailScreen';
 import WearableIntegrationScreen from '../screens/WearableIntegrationScreen';
 // Weekly loop (spec 6, 9, 10.1). Direct file paths, not a barrel, per the
 // Metro 0.83 convention for navigation imports.
@@ -1096,24 +1095,6 @@ const MainNavigator = () => {
             animation: 'slide_from_right',
             headerShown: true,
             title: 'Connected Apps',
-            headerShadowVisible: false,
-          })}
-        />
-        {/* Habit Detail - Accessible from Plan/Track screen.
-            Plain Mist White detail header, matching every other detail screen:
-            the solid teal header with its white pill Back button was this
-            screen's alone. standardHeaderOptions already gives a mist background,
-            an Evergreen Teal back chevron, and a Soft Charcoal title.
-            No `title` here on purpose — the habit's own name is the title, and
-            the screen sets it from route params (a habit renamed in the edit
-            sheet has to retitle the header too, which a static option cannot). */}
-        <AppStack.Screen
-          name="HabitDetail"
-          component={HabitDetailScreen}
-          options={stackOpts({
-            ...standardHeaderOptions,
-            animation: 'slide_from_right',
-            headerShown: true,
             headerShadowVisible: false,
           })}
         />

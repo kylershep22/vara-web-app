@@ -163,9 +163,8 @@ const PILLARS: PillarCardConfig[] = [
     descriptor: 'The sequences your days run on.',
     // Echoes the dashboard routine card's own icon (RoutineCard.tsx:45).
     icon: 'clipboard-check-outline',
-    // The `tab` param is load-bearing: PlanScreen defaults to its habits
-    // sub-tab, so a card labelled Routines that omitted it would land the user
-    // on habits.
+    // PlanScreen is routines only since V1-HABITS-RETIREMENT and ignores the
+    // `tab` param; it is still passed so the call names what it means.
     go: (navigation) => navigation.navigate(NAV_TARGETS.plan, { tab: 'routines' }),
   },
   {
