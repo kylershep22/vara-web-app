@@ -4004,11 +4004,12 @@ stranded**: the unlock state gates nothing, and its only output is a dismiss-onl
   real pill. The real pill needs the AI consent context and the chat modal, so the suite keeps a
   pressable stand-in with the same testID and button role.
 
-**COMMITS 3 AND 4 WERE REWRITTEN ONCE, on the unmerged branch.** The first commit 3 (`e572732`)
+**COMMITS 3 AND 4 WERE REWRITTEN ONCE, on the unmerged branch.** The first version of commit 3
 added one lint error (the old `isButton` helper left unused) and seven `any` warnings in the new
 contract code, against the rule of no new lint in touched files. The fix was folded back with
 `git reset --soft` and `git commit --amend` rather than a fifth commit, and the walk script
-re-committed with the new hash. The first commit 4 was `dce6cac`. Every mutation check was re-run
+re-committed with the new hash. The first versions of commits 3 and 4 are not retained in
+history. Every mutation check was re-run
 on the fixed file with the same results.
 
 **LINT AGAINST ITS PREDICTION: 992 errors as predicted, 1369 warnings against 1374 predicted.**
