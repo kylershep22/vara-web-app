@@ -50,6 +50,7 @@ jest.mock('../../components/dashboard/FirstShiftFooter', () => ({
 }));
 jest.mock('../../components/events/EventCodeCard', () => ({ EventCodeCard: () => null }));
 jest.mock('../../components/events/EventCodeSheet', () => ({ EventCodeSheet: () => null }));
+jest.mock('../Time/ActiveRoutinePlayer', () => ({ ActiveRoutinePlayer: () => null }));
 
 // The row and the sheet are NOT mocked: they are the subject. The service
 // underneath them is, so no test here can reach Firestore.
@@ -92,6 +93,9 @@ jest.mock('../../hooks/useDashboard', () => ({
     handleNotifDismiss: jest.fn(), showEventCodeCard: false,
     eventCodeSheetVisible: false, setEventCodeSheetVisible: jest.fn(),
     handleEventCodeDismiss: jest.fn(), handleEventCodeSuccess: jest.fn(),
+    dashboardRoutines: [], routineCompletions: {}, activePlayerRoutine: null,
+    routinePlayerVisible: false, handleBeginRoutine: jest.fn(),
+    handleCloseRoutinePlayer: jest.fn(), handleRoutineComplete: jest.fn(),
   }),
 }));
 

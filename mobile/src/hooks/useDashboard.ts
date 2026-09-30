@@ -37,6 +37,12 @@ import {
 import { BrainState, BrainStateCheckIn as BrainStateCheckInType, DailyReflection as DailyReflectionType, DailyReflectionValue } from '../types';
 import { getNudgeSuggestion, NudgeSuggestion } from '../utils/getNudgeSuggestion';
 import { getDashboardCardOrder, type DashboardCardId } from '../utils/getDashboardCardOrder';
+import { toIsoDate } from '../utils/weekStart';
+import {
+  fetchUserRoutines,
+  getRoutineCompletionToday,
+  Routine,
+} from '../services/firebase/routines.service';
 
 const SMALL_SCREEN_WIDTH = 375;
 const MEDIUM_SCREEN_WIDTH = 414;
@@ -102,6 +108,21 @@ export function useDashboard() {
   const [nudgeSuggestion, setNudgeSuggestion] = useState<NudgeSuggestion | null>(null);
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [visitedFeatures] = useState<Set<string>>(() => new Set());
+
+  // Routines (the Today routine card, ROUTINES-RESTORE). ONE STATE, SO ONE
+  // UPDATE: the routines and their completions are committed together, so the
+  // card never shows a routine before its completion is known (a transient
+  // Begin on a routine already done). NULL MEANS UNRESOLVED: before the first
+  // successful load, and after a cold-load failure. The card is hidden while it
+  // is null, so the empty state renders only once there are known to be no
+  // routines. Neither dataLoading nor dataErrors reads it: Today's cold load
+  // does not wait on routines, and a routine failure is not a banner.
+  const [routineState, setRoutineState] = useState<{
+    routines: Routine[];
+    completions: Record<string, boolean>;
+  } | null>(null);
+  const [activePlayerRoutine, setActivePlayerRoutine] = useState<Routine | null>(null);
+  const [routinePlayerVisible, setRoutinePlayerVisible] = useState(false);
 
   // Responsive day count
   const daysToShow = useMemo(() => {
@@ -304,6 +325,48 @@ export function useDashboard() {
     loadWellnessData();
   }, [user?.uid, today]);
 
+  // Load routines + today's completions for the routine card. On focus (not
+  // just mount) so the card reflects routines added or deactivated on the Time
+  // screen when the user returns to Today.
+  //
+  // THE LOCAL DAY, FROM THE APP'S ONE HELPER. Completions are written under the
+  // local date (markRoutineComplete), and toIsoDate is the local-date helper
+  // the rest of Today keys on. This read used to key on
+  // toISOString().split('T')[0], a UTC date, so from the evening on for anyone
+  // behind UTC a routine finished today read as not done. The day is a
+  // dependency, so a re-render after midnight reloads against the new day.
+  const routineDayIso = toIsoDate(new Date());
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.uid) return;
+      let cancelled = false;
+
+      (async () => {
+        try {
+          const allRoutines = await fetchUserRoutines(user.uid);
+          const activeRoutines = allRoutines.filter((r) => r.active);
+
+          const completions: Record<string, boolean> = {};
+          await Promise.all(
+            activeRoutines.map(async (r) => {
+              const completion = await getRoutineCompletionToday(r.id, routineDayIso);
+              completions[r.id] = !!completion;
+            })
+          );
+
+          if (!cancelled) setRoutineState({ routines: activeRoutines, completions });
+        } catch (error) {
+          // The last good value stands; on a cold failure the card stays hidden.
+          logger.error('Error loading dashboard routines:', error);
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [user?.uid, routineDayIso])
+  );
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 1000);
@@ -487,6 +550,24 @@ export function useDashboard() {
     }
   }, [user]);
 
+  const handleBeginRoutine = useCallback((routine: Routine) => {
+    setActivePlayerRoutine(routine);
+    setRoutinePlayerVisible(true);
+  }, []);
+
+  const handleCloseRoutinePlayer = useCallback(() => {
+    setRoutinePlayerVisible(false);
+    setActivePlayerRoutine(null);
+  }, []);
+
+  // The player has persisted the completion (markRoutineComplete); this
+  // refreshes that one routine's entry so the card moves on without a reload.
+  const handleRoutineComplete = useCallback((routineId: string) => {
+    setRoutineState((prev) =>
+      prev ? { ...prev, completions: { ...prev.completions, [routineId]: true } } : prev
+    );
+  }, []);
+
   const dataLoading = goalsLoading;
 
   return {
@@ -559,5 +640,14 @@ export function useDashboard() {
     markFeatureVisited,
 
     cardOrder,
+
+    // Routines (the Today routine card). dashboardRoutines is null until known.
+    dashboardRoutines: routineState ? routineState.routines : null,
+    routineCompletions: routineState ? routineState.completions : {},
+    activePlayerRoutine,
+    routinePlayerVisible,
+    handleBeginRoutine,
+    handleCloseRoutinePlayer,
+    handleRoutineComplete,
   };
 }

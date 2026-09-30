@@ -102,6 +102,18 @@ jest.mock('../../components/dashboard/FirstShiftFooter', () => ({
 }));
 jest.mock('../../components/events/EventCodeCard', () => ({ EventCodeCard: () => null }));
 jest.mock('../../components/events/EventCodeSheet', () => ({ EventCodeSheet: () => null }));
+// The routine player imports expo-notifications, which cannot load under jest.
+// A stand-in that keeps its visibility and its Edit handler, so the suite can
+// see that Begin mounts it and where Edit goes. The real player is the walk's.
+jest.mock('../Time/ActiveRoutinePlayer', () => {
+  const { Pressable } = jest.requireActual('react-native');
+  return {
+    ActiveRoutinePlayer: (props: { visible: boolean; onEditRoutine: () => void }) =>
+      props.visible ? (
+        <Pressable testID="routine-player-edit" onPress={props.onEditRoutine} />
+      ) : null,
+  };
+});
 
 // Every render of the hero, with the hook state Home read on that same render.
 // The card itself renders for real underneath the recorder.
@@ -122,6 +134,13 @@ jest.mock('../../components/dashboard/TodayHeroCard', () => {
 const mockNavigate = jest.fn();
 let mockDataLoading = false;
 let mockDataErrors: string[] = [];
+// The routine card's inputs (ROUTINES-RESTORE). null is unresolved; primeHome
+// resets to [] so every render shows the known-empty card after the anchor.
+let mockRoutines: unknown[] | null = [];
+let mockRoutineCompletions: Record<string, boolean> = {};
+let mockActivePlayerRoutine: unknown = null;
+const mockHandleBeginRoutine = jest.fn();
+const mockHandleCloseRoutinePlayer = jest.fn();
 jest.mock('../../hooks/useDashboard', () => ({
   useDashboard: () => ({
     navigation: { navigate: mockNavigate },
@@ -139,6 +158,13 @@ jest.mock('../../hooks/useDashboard', () => ({
     setEventCodeSheetVisible: jest.fn(),
     handleEventCodeDismiss: jest.fn(),
     handleEventCodeSuccess: jest.fn(),
+    dashboardRoutines: mockRoutines,
+    routineCompletions: mockRoutineCompletions,
+    activePlayerRoutine: mockActivePlayerRoutine,
+    routinePlayerVisible: mockActivePlayerRoutine !== null,
+    handleBeginRoutine: mockHandleBeginRoutine,
+    handleCloseRoutinePlayer: mockHandleCloseRoutinePlayer,
+    handleRoutineComplete: jest.fn(),
   }),
 }));
 
@@ -272,6 +298,9 @@ function primeHome() {
   mockCurrentHook = null;
   mockDataLoading = false;
   mockDataErrors = [];
+  mockRoutines = [];
+  mockRoutineCompletions = {};
+  mockActivePlayerRoutine = null;
   mockUseFocusEffect.mockImplementation(() => {});
   mockTodayCard.mockReturnValue(todayCard());
   mockGetFloor.mockResolvedValue('Ten minutes of quiet');
