@@ -12,10 +12,7 @@ import { setUserPrivate } from '../services/firebase/userPrivate.service';
 import { getMergedUserData } from '../services/firebase/userMigrationRead';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
 import { useGoals } from './useGoals';
-import { useHabits } from './useHabits';
-import { useJournal } from './useJournal';
 import { useFeatureDiscovery } from './useFeatureDiscovery';
 import { useNotificationOptInCards } from './useNotificationOptInCards';
 import {
@@ -52,31 +49,22 @@ export function useDashboard() {
   const goals = DASHBOARD_V2 ? [] : goalsResult.goals;
   const goalsLoading = DASHBOARD_V2 ? false : goalsResult.loading;
   const goalsError = DASHBOARD_V2 ? null : goalsResult.error;
-  // The subscription stays for the values below that still read `habits`. It
-  // no longer gates Today's cold load or feeds its error banner
-  // (TODAY-LEGACY-REMOVAL): the habit grid that needed both is gone.
-  const { habits } = useHabits(true);
-  const { entries: journalEntries, error: journalError } = useJournal(1);
+  // No habits or journal subscription (V1-HABITS-RETIREMENT). Today reads
+  // neither, and the journal read was the only thing the error banner could
+  // report (TODAY-BANNER-JOURNAL-ONLY). The banner stays, inert: goalsError is
+  // null under DASHBOARD_V2, so dataErrors is always empty.
 
   // Collect any data-fetch errors for the UI to display
   const dataErrors = useMemo(() => {
     const errors: string[] = [];
     if (goalsError) errors.push('goals');
-    if (journalError) errors.push('journal');
     return errors;
-  }, [goalsError, journalError]);
+  }, [goalsError]);
 
-  const { trackEngagement, evaluateTriggers, pendingToasts, markToastShown } = useFeatureDiscovery();
-  const { queueUnlockToasts } = useToast();
+  // sessionCount still feeds the notification opt-in card below; only the
+  // unlock toasts are off (ruling F of the V1 SCOPE REVISION block).
+  const { trackEngagement, evaluateTriggers } = useFeatureDiscovery();
   const { activeCard: notifOptInCard, onOptIn: handleNotifOptIn, onDismiss: handleNotifDismiss } = useNotificationOptInCards();
-
-  const lastJournalDate = useMemo(() => {
-    if (journalEntries.length === 0) return null;
-    const entry = journalEntries[0];
-    if (entry.createdAt?.toDate) return entry.createdAt.toDate();
-    if (entry.createdAt?.seconds) return new Date(entry.createdAt.seconds * 1000);
-    return null;
-  }, [journalEntries]);
 
   const [refreshing, setRefreshing] = useState(false);
   const [completedToday] = useState<Set<string>>(new Set());
@@ -101,8 +89,10 @@ export function useDashboard() {
   const [brainStateCheckIn, setBrainStateCheckIn] = useState<BrainStateCheckInType | null>(null);
 
   // Dashboard V2: Daily Reflection
-  const [dailyReflection, setDailyReflection] = useState<DailyReflectionType | null>(null);
-  const [dailyReflectionDismissed, setDailyReflectionDismissed] = useState(false);
+  // Written by the handlers below but no longer read: showDailyReflection, the
+  // only reader, depended on habits and left with them (V1-HABITS-RETIREMENT).
+  const [, setDailyReflection] = useState<DailyReflectionType | null>(null);
+  const [, setDailyReflectionDismissed] = useState(false);
 
   // Event code card state
   const [showEventCodeCard, setShowEventCodeCard] = useState(false);
@@ -248,15 +238,6 @@ export function useDashboard() {
     }
   }, [user?.uid]);
 
-  // Show toasts for newly unlocked features
-  useEffect(() => {
-    if (pendingToasts.length > 0) {
-      const featureIds = pendingToasts.map(t => t.featureId);
-      queueUnlockToasts(featureIds);
-      featureIds.forEach(id => markToastShown(id).catch(logger.error));
-    }
-  }, [pendingToasts, queueUnlockToasts, markToastShown]);
-
   // V2: Load brain state check-in.
   //
   // Sub-step 2.7 round 2 — Observation 8: switched from useEffect on
@@ -339,7 +320,6 @@ export function useDashboard() {
         // tasks" when the truth is "this app does not read tasks".
         userId: user!.uid,
         goals: goals.slice(0, 5),
-        habits: habits.slice(0, 10),
       });
       setDailyPlan(response.plan);
       await SecureStore.setItemAsync(`dailyPlan_${today}`, response.plan);
@@ -349,7 +329,7 @@ export function useDashboard() {
     } finally {
       setGeneratingPlan(false);
     }
-  }, [user, goals, habits, today]);
+  }, [user, goals, today]);
 
   // Sub-step 2.5: handleBrainStateCheckIn removed — chip taps now
   // navigate to CheckInFlow, which handles the Firestore write
@@ -436,15 +416,6 @@ export function useDashboard() {
     checkCompletedFeatures();
   }, [user, db, brainStateCheckIn, todaysProtocol, nudgeDismissed, visitedFeatures]);
 
-  const showDailyReflection = useMemo(() => {
-    if (!DASHBOARD_V2) return false;
-    if (dailyReflection || dailyReflectionDismissed) return false;
-    if (habits.length === 0) return false;
-    const activeHabits = habits.filter((h) => h.active);
-    if (activeHabits.length === 0) return false;
-    return activeHabits.every((h) => completedToday.has(h.id));
-  }, [habits, completedToday, dailyReflection, dailyReflectionDismissed]);
-
   const handleDailyReflection = useCallback(async (value: DailyReflectionValue) => {
     if (!user?.uid) return;
     try {
@@ -529,13 +500,9 @@ export function useDashboard() {
     today,
     visibleDays,
 
-    // Habits
-    habits,
-
     // Goals
     goals,
     completedToday,
-    lastJournalDate,
 
     // Daily Plan
     dailyPlan,
@@ -576,7 +543,6 @@ export function useDashboard() {
     todaysProtocol,
 
     // Daily Reflection
-    showDailyReflection,
     handleDailyReflection,
     handleDailyReflectionSkip,
 

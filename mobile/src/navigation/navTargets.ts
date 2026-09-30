@@ -27,9 +27,9 @@ import { ROUTES } from './routes';
 
 export const NAV_TARGETS = {
   /**
-   * The planning surface (PlanScreen: habits + routines). The legacy IA mounts
-   * it as the `Rhythms` tab; the four-pillar IA mounts the same component as the
-   * `PillarTime` tab. Callers that deep-link into routines/habits resolve here.
+   * The planning surface (PlanScreen: routines only since V1-HABITS-RETIREMENT).
+   * The legacy IA mounts it as the `Rhythms` tab; the four-pillar IA mounts the
+   * same component as `PillarTime`. Callers that deep-link into routines resolve here.
    */
   plan: FOUR_PILLAR_IA ? ROUTES.PillarTime : ROUTES.Rhythms,
 

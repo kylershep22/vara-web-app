@@ -1359,7 +1359,8 @@ export interface Habit {
   //
   // The reminder's DAYS are not stored: they are inherited from the habit's own
   // frequencyType/specificDays at schedule time, so a habit's schedule and its
-  // reminder can never disagree. See utils/habitReminderPlan.
+  // reminder can never disagree. Nothing schedules habit reminders since
+  // V1-HABITS-RETIREMENT; the fields stay because stored data is kept dormant.
   reminderEnabled?: boolean;
   reminderTime?: ReminderTime | null;
   streak: number;

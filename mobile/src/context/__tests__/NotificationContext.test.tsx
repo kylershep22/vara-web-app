@@ -33,6 +33,12 @@ const mockNavigate = jest.fn();
 /** The notification-tap handler the provider registers. */
 let tapHandler: ((response: any) => void) | null = null;
 
+/** The foreground handler the provider registers, and the toast it can raise. */
+let foregroundHandler:
+  | ((title: string, body: string, data?: Record<string, unknown>) => Promise<void> | void)
+  | null = null;
+const mockShowNotificationToast = jest.fn();
+
 const mockCancelExceptFocus = jest.fn(async () => {
   callLog.push('cancel');
 });
@@ -47,12 +53,18 @@ const mockInitializeUserNotifications = jest.fn(async () => {
 });
 
 jest.mock('../AuthContext', () => ({ useAuth: () => ({ user: mockUser }) }));
-jest.mock('../ToastContext', () => ({ useToast: () => ({ showNotificationToast: jest.fn() }) }));
+jest.mock('../ToastContext', () => ({
+  useToast: () => ({
+    showNotificationToast: (title: string, body: string) => mockShowNotificationToast(title, body),
+  }),
+}));
 jest.mock('../../hooks/useNotificationPreferences', () => ({
   useNotificationPreferences: () => ({ preferences: mockPrefs }),
 }));
 jest.mock('../../services/notifications.service', () => ({
-  setForegroundNotificationHandler: jest.fn(),
+  setForegroundNotificationHandler: (handler: NonNullable<typeof foregroundHandler>) => {
+    foregroundHandler = handler;
+  },
   cancelAllScheduledExceptFocusComplete: (...a: any[]) => mockCancelExceptFocus(...(a as [])),
   registerAndSaveFCMToken: jest.fn().mockResolvedValue(null),
   isServerPushEnabled: jest.fn().mockResolvedValue(false),
@@ -82,9 +94,6 @@ jest.mock('../../services/firebase/focusSession.service', () => ({
   finalizeFocusSession: jest.fn(),
   planFocusCompleteLaunch: jest.fn(() => ({ finalize: null, completedSessionId: null })),
 }));
-jest.mock('../../services/firebase/habits.service', () => ({
-  isHabitCompletedToday: jest.fn().mockResolvedValue(false),
-}));
 jest.mock('../../navigation/AppNavigator', () => ({
   navigationRef: { isReady: () => mockNavReady, navigate: (...a: any[]) => mockNavigate(...a) },
 }));
@@ -101,6 +110,7 @@ beforeEach(() => {
   callLog.length = 0;
   appStateHandler = null;
   tapHandler = null;
+  foregroundHandler = null;
   mockNavReady = true;
   mockUser = { uid: 'u1', emailVerified: true };
   mockPrefs = { allNotificationsEnabled: true };
@@ -206,41 +216,35 @@ describe('resuming the app', () => {
 });
 
 describe('tapping a habit reminder', () => {
-  /** A delivered habit reminder, shaped as scheduleHabitReminder writes it. */
+  /** A delivered reminder, shaped as the (retired) habit scheduler wrote it. */
   function tap(data: Record<string, unknown>) {
     tapHandler?.({ notification: { request: { content: { data } } } });
   }
 
-  test('lands on the habits list', async () => {
+  test('a stale habit reminder lands on Home, never on the planning surface', async () => {
     mount();
     await waitFor(() => expect(tapHandler).not.toBeNull());
 
     tap({ type: 'habit-reminder', habitId: 'h1' });
 
-    // Deliberately the LIST, not a param-specific detail screen: HabitDetail
-    // requires a full Habit object in its params and the payload carries only
-    // an id, so deep-linking there needs a fetch. Tracked separately, for
-    // routines and habits together.
-    //
-    // Asserted against NAV_TARGETS.plan, not a hardcoded name. The previous
-    // version pinned the literal 'Rhythms' — a route registered only on the
-    // legacy tab navigator, unmounted since FOUR_PILLAR_IA went true. The test
-    // passed the whole time because it checked that navigate was CALLED, not
-    // that it was called with somewhere you can actually get to. Keying off the
-    // shared resolver is what stops this tap drifting away from every other
-    // caller of the planning surface again.
-    expect(mockNavigate).toHaveBeenCalledWith(NAV_TARGETS.plan);
+    // Habits left V1 (V1-HABITS-RETIREMENT, Kyle ruling 2 of 2026-09-29).
+    // Nothing schedules a habit reminder any more, but one an earlier build
+    // scheduled can still be tapped. It goes Home by the root-ref path the
+    // weekly screens use, never to PlanScreen and never to a habit screen.
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.Main, { screen: ROUTES.Home });
+    expect(mockNavigate).not.toHaveBeenCalledWith(NAV_TARGETS.plan);
     expect(Object.values(ROUTES)).toContain(mockNavigate.mock.calls[0][0]);
   });
 
-  test('a routine reminder lands on the same surface, Routines sub-tab', async () => {
+  test('a routine reminder lands on the planning surface, Routines sub-tab', async () => {
     mount();
     await waitFor(() => expect(tapHandler).not.toBeNull());
 
     tap({ type: 'routine-reminder', routineId: 'r1' });
 
-    // PlanScreen defaults to its 'habits' sub-tab, so a routine reminder that
-    // omitted the param would drop the user on habits.
+    // Unchanged by V1-HABITS-RETIREMENT. PlanScreen now ignores the param,
+    // but the tap still names the routines sub-tab it means.
     expect(mockNavigate).toHaveBeenCalledWith(NAV_TARGETS.plan, { tab: 'routines' });
   });
 
@@ -264,6 +268,32 @@ describe('tapping a habit reminder', () => {
     tap({ type: 'habit-reminder', habitId: 'h1' });
 
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+});
+
+describe('a habit reminder arriving in the foreground', () => {
+  test('displays nothing, while a routine reminder still shows its toast', async () => {
+    mount();
+    await waitFor(() => expect(foregroundHandler).not.toBeNull());
+
+    await act(async () => {
+      await foregroundHandler!('Time for Walk', 'A moment for this, if now works.', {
+        type: 'habit-reminder',
+        habitId: 'h1',
+      });
+    });
+    expect(mockShowNotificationToast).not.toHaveBeenCalled();
+
+    // The control: the same captured handler DOES raise a toast for a routine
+    // reminder, so the silence above is the habit branch and not a dead handler.
+    await act(async () => {
+      await foregroundHandler!('Morning', 'Your routine is ready.', {
+        type: 'routine-reminder',
+        routineId: 'r1',
+      });
+    });
+    expect(mockShowNotificationToast).toHaveBeenCalledTimes(1);
+    expect(mockShowNotificationToast).toHaveBeenCalledWith('Morning', 'Your routine is ready.');
   });
 });
 

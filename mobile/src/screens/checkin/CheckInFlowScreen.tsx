@@ -66,9 +66,8 @@ type RouteParams = RouteProp<
 // and an unhandled nested navigate does nothing at all: the check-in would have
 // sat there undismissed on the last screen of the flow.
 //
-// `tab` carries PlanScreen's sub-tab: that screen defaults to 'habits' when no
-// `tab` arrives, so the pointer has to name 'routines' explicitly (matching the
-// dashboard / notification callers' `{ tab }` shape).
+// `tab` names PlanScreen's routines list, matching the other callers' `{ tab }`
+// shape. PlanScreen is routines only since V1-HABITS-RETIREMENT and ignores it.
 type PlanTarget = { [K in typeof NAV_TARGETS.plan]: { tab: 'routines' } };
 
 type Nav = NativeStackNavigationProp<
@@ -224,9 +223,8 @@ export function CheckInFlowScreen() {
           // symmetric — before, this branch had to navigate to Main to pop the
           // flow, because a tab cannot be replaced into.
           //
-          // The `tab` param selects PlanScreen's Routines sub-tab; without it
-          // the screen falls back to its own 'habits' default, which contradicts
-          // the "we'll take you to your routines" promise the user just accepted.
+          // The `tab` param names the routines list the user was promised.
+          // PlanScreen is routines only since V1-HABITS-RETIREMENT and ignores it.
           navigation.replace(NAV_TARGETS.plan, { tab: 'routines' });
         }
         return;
