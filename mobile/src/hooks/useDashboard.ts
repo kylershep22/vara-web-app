@@ -6,7 +6,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import * as Haptics from 'expo-haptics';
 import * as SecureStore from 'expo-secure-store';
 import { doc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { setUserPrivate } from '../services/firebase/userPrivate.service';
@@ -20,10 +19,6 @@ import { useJournal } from './useJournal';
 import { useFeatureDiscovery } from './useFeatureDiscovery';
 import { useNotificationOptInCards } from './useNotificationOptInCards';
 import {
-  markHabitComplete,
-  getHabitCompletions,
-  isHabitCompletedToday,
-  unmarkHabitComplete,
   calculateWellnessScore,
   refreshWellnessScore,
   getTodayWellnessScore,
@@ -45,14 +40,6 @@ import {
 import { BrainState, BrainStateCheckIn as BrainStateCheckInType, DailyReflection as DailyReflectionType, DailyReflectionValue } from '../types';
 import { getNudgeSuggestion, NudgeSuggestion } from '../utils/getNudgeSuggestion';
 import { getDashboardCardOrder, type DashboardCardId } from '../utils/getDashboardCardOrder';
-import {
-  fetchUserRoutines,
-  getRoutineCompletionToday,
-  createRoutine,
-  Routine,
-} from '../services/firebase/routines.service';
-import { RoutineTemplate } from '../constants/routineTemplates';
-import { useHabitNotePrompt, confirmCompletionNoteLoss } from './useHabitNotePrompt';
 
 const SMALL_SCREEN_WIDTH = 375;
 const MEDIUM_SCREEN_WIDTH = 414;
@@ -65,18 +52,19 @@ export function useDashboard() {
   const goals = DASHBOARD_V2 ? [] : goalsResult.goals;
   const goalsLoading = DASHBOARD_V2 ? false : goalsResult.loading;
   const goalsError = DASHBOARD_V2 ? null : goalsResult.error;
-  const { habits, loading: habitsLoading, error: habitsError } = useHabits(true);
-  const { noteTarget, promptForNote, saveNote, dismissNote } = useHabitNotePrompt();
+  // The subscription stays for the values below that still read `habits`. It
+  // no longer gates Today's cold load or feeds its error banner
+  // (TODAY-LEGACY-REMOVAL): the habit grid that needed both is gone.
+  const { habits } = useHabits(true);
   const { entries: journalEntries, error: journalError } = useJournal(1);
 
   // Collect any data-fetch errors for the UI to display
   const dataErrors = useMemo(() => {
     const errors: string[] = [];
     if (goalsError) errors.push('goals');
-    if (habitsError) errors.push('habits');
     if (journalError) errors.push('journal');
     return errors;
-  }, [goalsError, habitsError, journalError]);
+  }, [goalsError, journalError]);
 
   const { trackEngagement, evaluateTriggers, pendingToasts, markToastShown } = useFeatureDiscovery();
   const { queueUnlockToasts } = useToast();
@@ -91,10 +79,7 @@ export function useDashboard() {
   }, [journalEntries]);
 
   const [refreshing, setRefreshing] = useState(false);
-  const [allCompletions, setAllCompletions] = useState<{ [habitId: string]: string[] }>({});
-  const [processingHabits, setProcessingHabits] = useState<Set<string>>(new Set());
-  const [completedToday, setCompletedToday] = useState<Set<string>>(new Set());
-  const [weeklyCompletions, setWeeklyCompletions] = useState<{ [habitId: string]: { [date: string]: boolean } }>({});
+  const [completedToday] = useState<Set<string>>(new Set());
   const [dailyPlan, setDailyPlan] = useState<string | null>(null);
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [isPlanExpanded, setIsPlanExpanded] = useState(false);
@@ -127,12 +112,6 @@ export function useDashboard() {
   const [nudgeSuggestion, setNudgeSuggestion] = useState<NudgeSuggestion | null>(null);
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [visitedFeatures] = useState<Set<string>>(() => new Set());
-
-  // Routines
-  const [dashboardRoutines, setDashboardRoutines] = useState<Routine[]>([]);
-  const [routineCompletions, setRoutineCompletions] = useState<Record<string, boolean>>({});
-  const [activePlayerRoutine, setActivePlayerRoutine] = useState<Routine | null>(null);
-  const [routinePlayerVisible, setRoutinePlayerVisible] = useState(false);
 
   // Responsive day count
   const daysToShow = useMemo(() => {
@@ -344,148 +323,10 @@ export function useDashboard() {
     loadWellnessData();
   }, [user?.uid, today]);
 
-  // Load routines + today's completions for the dashboard card. On focus (not
-  // just mount) so the card reflects routines added / deactivated on the Rhythms
-  // tab when the user returns to Home — the same freshness fix as the check-in
-  // read above.
-  useFocusEffect(
-    useCallback(() => {
-      if (!user?.uid) return;
-      let cancelled = false;
-
-      (async () => {
-        try {
-          const allRoutines = await fetchUserRoutines(user.uid);
-          const activeRoutines = allRoutines.filter((r) => r.active);
-
-          if (cancelled) return;
-          setDashboardRoutines(activeRoutines);
-
-          // Check completions for each active routine
-          const todayStr = new Date().toISOString().split('T')[0];
-          const completionMap: Record<string, boolean> = {};
-          await Promise.all(
-            activeRoutines.map(async (r) => {
-              const completion = await getRoutineCompletionToday(r.id, todayStr);
-              completionMap[r.id] = !!completion;
-            })
-          );
-
-          if (!cancelled) setRoutineCompletions(completionMap);
-        } catch (error) {
-          logger.error('Error loading dashboard routines:', error);
-        }
-      })();
-
-      return () => {
-        cancelled = true;
-      };
-    }, [user?.uid])
-  );
-
-  // Load weekly completions when habits load
-  useEffect(() => {
-    const loadHabitData = async () => {
-      const weekly: { [habitId: string]: { [date: string]: boolean } } = {};
-      const completedSet = new Set<string>();
-      const allCompletionDates: { [habitId: string]: string[] } = {};
-
-      for (const habit of habits) {
-        try {
-          const completionsData = await getHabitCompletions(habit.id);
-          const completionDates = completionsData.map((c) => c.date);
-          allCompletionDates[habit.id] = completionDates;
-
-          weekly[habit.id] = {};
-          visibleDays.forEach(day => {
-            weekly[habit.id][day.date] = completionDates.includes(day.date);
-          });
-
-          const isCompleted = await isHabitCompletedToday(habit.id);
-          if (isCompleted) completedSet.add(habit.id);
-        } catch (error) {
-          logger.error('Error loading habit data:', error);
-          weekly[habit.id] = {};
-          allCompletionDates[habit.id] = [];
-        }
-      }
-
-      setWeeklyCompletions(weekly);
-      setCompletedToday(completedSet);
-      setAllCompletions(allCompletionDates);
-    };
-
-    if (habits.length > 0) loadHabitData();
-  }, [habits]);
-
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 1000);
   }, []);
-
-  const handleHabitToggle = useCallback(async (habitId: string, date: string) => {
-    const isCompleted = weeklyCompletions[habitId]?.[date] || false;
-
-    // Only when undoing, and only when there is something to lose: a note lives
-    // on the completion document that un-completing deletes. Completing stays
-    // one tap — nothing is asked before the write.
-    if (isCompleted && !(await confirmCompletionNoteLoss(habitId, date))) return;
-
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setProcessingHabits(prev => new Set(prev).add(`${habitId}-${date}`));
-
-    try {
-      if (isCompleted) {
-        await unmarkHabitComplete(habitId, date);
-        setWeeklyCompletions(prev => ({
-          ...prev,
-          [habitId]: { ...prev[habitId], [date]: false },
-        }));
-        if (date === today) {
-          setCompletedToday(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(habitId);
-            return newSet;
-          });
-        }
-      } else {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        await markHabitComplete(habitId, user!.uid, date);
-        // Completion is saved. The note sheet is an addendum on top of it, so
-        // the grid's one-tap completion is unchanged for flagged habits.
-        promptForNote(habits.find((h) => h.id === habitId), date);
-        setWeeklyCompletions(prev => ({
-          ...prev,
-          [habitId]: { ...prev[habitId], [date]: true },
-        }));
-        if (date === today) {
-          setCompletedToday(prev => new Set(prev).add(habitId));
-          trackEngagement('habitsCompleted').then(() => evaluateTriggers()).catch(logger.error);
-        }
-      }
-
-      const completionsData = await getHabitCompletions(habitId);
-      const completionDates = completionsData.map((c) => c.date);
-      setAllCompletions(prev => ({ ...prev, [habitId]: completionDates }));
-
-      if (date === today && user?.uid) {
-        try {
-          const newScore = await refreshWellnessScore(user.uid);
-          setWellnessScore(newScore);
-        } catch (error) {
-          logger.error('Error refreshing wellness score after habit toggle:', error);
-        }
-      }
-    } catch (error) {
-      logger.error('Error toggling habit completion:', error);
-    } finally {
-      setProcessingHabits(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(`${habitId}-${date}`);
-        return newSet;
-      });
-    }
-  }, [weeklyCompletions, today, user, habits, promptForNote, trackEngagement, evaluateTriggers]);
 
   const handleGenerateDailyPlan = useCallback(async () => {
     setGeneratingPlan(true);
@@ -675,45 +516,7 @@ export function useDashboard() {
     }
   }, [user]);
 
-  const handleBeginRoutine = useCallback((routine: Routine) => {
-    setActivePlayerRoutine(routine);
-    setRoutinePlayerVisible(true);
-  }, []);
-
-  const handleCloseRoutinePlayer = useCallback(() => {
-    setRoutinePlayerVisible(false);
-    setActivePlayerRoutine(null);
-  }, []);
-
-  const handleRoutineComplete = useCallback((routineId: string) => {
-    setRoutineCompletions(prev => ({ ...prev, [routineId]: true }));
-  }, []);
-
-  const handleApplyRoutineTemplate = useCallback(async (template: RoutineTemplate) => {
-    if (!user) return;
-    try {
-      const activities = template.activities.map((a, i) => ({
-        ...a,
-        id: i + 1,
-        order: i,
-      }));
-      await createRoutine(user.uid, {
-        name: template.name,
-        type: template.type as any,
-        activities,
-        active: true,
-        reminderTime: null,
-        mode: 'checklist',
-      });
-      // Re-fetch routines
-      const allRoutines = await fetchUserRoutines(user.uid);
-      setDashboardRoutines(allRoutines.filter(r => r.active));
-    } catch (error) {
-      console.error('Error applying routine template:', error);
-    }
-  }, [user]);
-
-  const dataLoading = goalsLoading || habitsLoading;
+  const dataLoading = goalsLoading;
 
   return {
     user,
@@ -728,13 +531,6 @@ export function useDashboard() {
 
     // Habits
     habits,
-    allCompletions,
-    processingHabits,
-    weeklyCompletions,
-    handleHabitToggle,
-    noteTarget,
-    saveNote,
-    dismissNote,
 
     // Goals
     goals,
@@ -797,15 +593,5 @@ export function useDashboard() {
     markFeatureVisited,
 
     cardOrder,
-
-    // Routines (dashboard card)
-    dashboardRoutines,
-    routineCompletions,
-    activePlayerRoutine,
-    routinePlayerVisible,
-    handleBeginRoutine,
-    handleCloseRoutinePlayer,
-    handleRoutineComplete,
-    handleApplyRoutineTemplate,
   };
 }

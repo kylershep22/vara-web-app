@@ -14,13 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTabBarInset } from '../hooks/useTabBarInset';
 import { LoadingSpinner } from '../components';
 import NotificationOptInCard from '../components/dashboard/NotificationOptInCard';
-import { ActiveRoutinePlayer } from './Time/ActiveRoutinePlayer';
-import { NAV_TARGETS } from '../navigation/navTargets';
-import { InsightCard } from '../components/dashboard/InsightCard';
-import { RoutineCard } from '../components/dashboard/RoutineCard';
-import { WeeklyHabitGrid } from '../components/dashboard/WeeklyHabitGrid';
-import { HabitNoteSheet } from '../components/habits/HabitNoteSheet';
-import { InsightsLookbackCard } from '../components/dashboard/InsightsLookbackCard';
 import { FirstShiftFooter } from '../components/dashboard/FirstShiftFooter';
 import { EventCodeCard } from '../components/events/EventCodeCard';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
@@ -127,21 +120,6 @@ const DashboardScreen: React.FC = () => {
     setEventCodeSheetVisible,
     handleEventCodeDismiss,
     handleEventCodeSuccess,
-    dashboardRoutines,
-    routineCompletions,
-    activePlayerRoutine,
-    routinePlayerVisible,
-    handleBeginRoutine,
-    handleCloseRoutinePlayer,
-    handleRoutineComplete,
-    habits,
-    allCompletions,
-    weeklyCompletions,
-    processingHabits,
-    handleHabitToggle,
-    noteTarget,
-    saveNote,
-    dismissNote,
   } = useDashboard();
 
   // Sub-step 2.7 — subscribe to the user's firstShiftAt for the
@@ -868,41 +846,9 @@ const DashboardScreen: React.FC = () => {
                 component and its test are deliberately RETAINED as the seam the
                 need-something-now fast-follow re-points at a live target. */}
 
-            {/* Content cards, subordinate to the Today hero above, in fixed
-                order: Insight → This week → Routine. The habit grid sits above
-                the routine card: it is the surface a returning user comes to
-                check, so it should not sit below a card they may have already
-                acted on. */}
+            {/* The calm remainder. Structural contract (f) anchors on the
+                good-moment row inside this block (TODAY-LEGACY-REMOVAL). */}
             <View>
-              <InsightCard />
-
-              {/* This week's habits — the user's own consistency, shown back to
-                  them neutrally. Only today is interactive; `handleHabitToggle`
-                  is never handed a past date (see WeeklyHabitGrid). Self-hides
-                  when there are no habits. The tap-through goes to the Time
-                  tab's habits sub-tab, the same target the routine card uses.
-                  HabitDetail needs the full habit object, not just its id. */}
-              <WeeklyHabitGrid
-                habits={habits}
-                completionsByHabit={allCompletions}
-                optimisticCompletions={weeklyCompletions}
-                processingHabits={processingHabits}
-                onCompleteToday={handleHabitToggle}
-                onOpenHabit={(habit) =>
-                  go('HabitDetail', { habitId: habit.id, habit })
-                }
-                onViewAll={() => go(NAV_TARGETS.plan, { tab: 'habits' })}
-                onAddHabit={() => go(NAV_TARGETS.plan, { tab: 'habits' })}
-              />
-
-              <RoutineCard
-                routines={dashboardRoutines}
-                completions={routineCompletions}
-                onBeginRoutine={handleBeginRoutine}
-                onNavigateToRoutines={() => go(NAV_TARGETS.plan, { tab: 'routines' })}
-                onNavigateToHabits={() => go(NAV_TARGETS.plan, { tab: 'habits' })}
-              />
-
               {/* Good moments (journey slice 8).
 
                   IN THE UNCONDITIONAL BLOCK, NOT THE JOURNEY BLOCK, AND THAT
@@ -923,14 +869,6 @@ const DashboardScreen: React.FC = () => {
               {(['notifOptIn', 'eventCode'] as const).map((id) => (
                 <React.Fragment key={id}>{renderSystemPrompt(id)}</React.Fragment>
               ))}
-
-              {/* Insights' quiet launch home (B-3d.6): a de-emphasized look-back
-                  row at the very bottom, below the routine card. Insights leaves
-                  the tab IA under the four-pillar migration; this keeps it
-                  reachable without a stats hero. */}
-              <SurfaceTier style={styles.rowSurface} testID="home-lookback-surface">
-                <InsightsLookbackCard />
-              </SurfaceTier>
             </View>
           </>
         )}
@@ -943,20 +881,6 @@ const DashboardScreen: React.FC = () => {
         onSuccess={handleEventCodeSuccess}
       />
 
-      {/* Routine Player Modal */}
-      {activePlayerRoutine && (
-        <ActiveRoutinePlayer
-          visible={routinePlayerVisible}
-          routine={activePlayerRoutine}
-          onClose={handleCloseRoutinePlayer}
-          onEditRoutine={() => {
-            handleCloseRoutinePlayer();
-            navigation.navigate(NAV_TARGETS.plan as never, { tab: 'routines' } as never);
-          }}
-          onComplete={handleRoutineComplete}
-        />
-      )}
-
       {/* Good moments. Mounted only while open, on the DailyPickerSheet
           precedent: the sheet's text lives in its own state, so an unmounted
           sheet cannot carry yesterday's abandoned words into today. */}
@@ -966,17 +890,6 @@ const DashboardScreen: React.FC = () => {
           status={goodMoment.status}
           onConfirm={goodMoment.save}
           onDismiss={goodMoment.closeSheet}
-        />
-      )}
-
-      {/* Note capture — opens only after a flagged habit's completion has
-          already been written, so the grid stays one tap. */}
-      {noteTarget && (
-        <HabitNoteSheet
-          visible
-          habitName={noteTarget.habitName}
-          onSave={saveNote}
-          onDismiss={dismissNote}
         />
       )}
     </SafeAreaView>

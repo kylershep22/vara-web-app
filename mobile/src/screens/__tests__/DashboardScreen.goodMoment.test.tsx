@@ -45,21 +45,11 @@ jest.mock('../../components/dashboard/NotificationOptInCard', () => ({
   __esModule: true,
   default: () => null,
 }));
-jest.mock('../../components/dashboard/InsightCard', () => ({ InsightCard: () => null }));
-jest.mock('../../components/dashboard/RoutineCard', () => ({ RoutineCard: () => null }));
-jest.mock('../../components/dashboard/WeeklyHabitGrid', () => ({
-  WeeklyHabitGrid: () => null,
-}));
-jest.mock('../../components/dashboard/InsightsLookbackCard', () => ({
-  InsightsLookbackCard: () => null,
-}));
 jest.mock('../../components/dashboard/FirstShiftFooter', () => ({
   FirstShiftFooter: () => null,
 }));
-jest.mock('../../components/habits/HabitNoteSheet', () => ({ HabitNoteSheet: () => null }));
 jest.mock('../../components/events/EventCodeCard', () => ({ EventCodeCard: () => null }));
 jest.mock('../../components/events/EventCodeSheet', () => ({ EventCodeSheet: () => null }));
-jest.mock('../Time/ActiveRoutinePlayer', () => ({ ActiveRoutinePlayer: () => null }));
 
 // The row and the sheet are NOT mocked: they are the subject. The service
 // underneath them is, so no test here can reach Firestore.
@@ -102,12 +92,6 @@ jest.mock('../../hooks/useDashboard', () => ({
     handleNotifDismiss: jest.fn(), showEventCodeCard: false,
     eventCodeSheetVisible: false, setEventCodeSheetVisible: jest.fn(),
     handleEventCodeDismiss: jest.fn(), handleEventCodeSuccess: jest.fn(),
-    dashboardRoutines: [], routineCompletions: {}, activePlayerRoutine: null,
-    routinePlayerVisible: false, handleBeginRoutine: jest.fn(),
-    handleCloseRoutinePlayer: jest.fn(), handleRoutineComplete: jest.fn(),
-    habits: [], allCompletions: {}, weeklyCompletions: {}, processingHabits: {},
-    handleHabitToggle: jest.fn(), noteTarget: null, saveNote: jest.fn(),
-    dismissNote: jest.fn(),
   }),
 }));
 
