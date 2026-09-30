@@ -14,6 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTabBarInset } from '../hooks/useTabBarInset';
 import { LoadingSpinner } from '../components';
 import NotificationOptInCard from '../components/dashboard/NotificationOptInCard';
+import { ActiveRoutinePlayer } from './Time/ActiveRoutinePlayer';
+import { NAV_TARGETS } from '../navigation/navTargets';
+import { RoutineCard } from '../components/dashboard/RoutineCard';
 import { FirstShiftFooter } from '../components/dashboard/FirstShiftFooter';
 import { EventCodeCard } from '../components/events/EventCodeCard';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
@@ -120,6 +123,13 @@ const DashboardScreen: React.FC = () => {
     setEventCodeSheetVisible,
     handleEventCodeDismiss,
     handleEventCodeSuccess,
+    dashboardRoutines,
+    routineCompletions,
+    activePlayerRoutine,
+    routinePlayerVisible,
+    handleBeginRoutine,
+    handleCloseRoutinePlayer,
+    handleRoutineComplete,
   } = useDashboard();
 
   // Sub-step 2.7 — subscribe to the user's firstShiftAt for the
@@ -865,6 +875,22 @@ const DashboardScreen: React.FC = () => {
                 <GoodMomentRow onPress={goodMoment.openSheet} />
               </SurfaceTier>
 
+              {/* Today's routine (ROUTINES-RESTORE, rulings B and C of the V1
+                  SCOPE REVISION block). AFTER the good-moment row, so it is
+                  below the fold and outside contract (f)'s count, and subordinate
+                  to the day's protocol: text links only, never a filled primary.
+                  Absent while routine state is unresolved or failed cold, so the
+                  empty state appears only when there are known to be no
+                  routines. It carries its own surface tier. */}
+              {dashboardRoutines !== null && (
+                <RoutineCard
+                  routines={dashboardRoutines}
+                  completions={routineCompletions}
+                  onBeginRoutine={handleBeginRoutine}
+                  onNavigateToRoutines={() => go(NAV_TARGETS.plan)}
+                />
+              )}
+
               {/* Surviving system prompts (live-gated), after the content. */}
               {(['notifOptIn', 'eventCode'] as const).map((id) => (
                 <React.Fragment key={id}>{renderSystemPrompt(id)}</React.Fragment>
@@ -880,6 +906,20 @@ const DashboardScreen: React.FC = () => {
         onDismiss={() => setEventCodeSheetVisible(false)}
         onSuccess={handleEventCodeSuccess}
       />
+
+      {/* Routine Player Modal */}
+      {activePlayerRoutine && (
+        <ActiveRoutinePlayer
+          visible={routinePlayerVisible}
+          routine={activePlayerRoutine}
+          onClose={handleCloseRoutinePlayer}
+          onEditRoutine={() => {
+            handleCloseRoutinePlayer();
+            go(NAV_TARGETS.plan);
+          }}
+          onComplete={handleRoutineComplete}
+        />
+      )}
 
       {/* Good moments. Mounted only while open, on the DailyPickerSheet
           precedent: the sheet's text lives in its own state, so an unmounted

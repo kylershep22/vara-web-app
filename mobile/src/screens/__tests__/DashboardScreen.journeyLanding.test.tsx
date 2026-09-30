@@ -51,6 +51,7 @@ jest.mock('../../components/dashboard/FirstShiftFooter', () => ({
 }));
 jest.mock('../../components/events/EventCodeCard', () => ({ EventCodeCard: () => null }));
 jest.mock('../../components/events/EventCodeSheet', () => ({ EventCodeSheet: () => null }));
+jest.mock('../Time/ActiveRoutinePlayer', () => ({ ActiveRoutinePlayer: () => null }));
 
 const mockNavigate = jest.fn();
 jest.mock('../../hooks/useDashboard', () => ({
@@ -70,6 +71,13 @@ jest.mock('../../hooks/useDashboard', () => ({
     setEventCodeSheetVisible: jest.fn(),
     handleEventCodeDismiss: jest.fn(),
     handleEventCodeSuccess: jest.fn(),
+    dashboardRoutines: [],
+    routineCompletions: {},
+    activePlayerRoutine: null,
+    routinePlayerVisible: false,
+    handleBeginRoutine: jest.fn(),
+    handleCloseRoutinePlayer: jest.fn(),
+    handleRoutineComplete: jest.fn(),
   }),
 }));
 
