@@ -3,7 +3,7 @@
 **Row:** ROUTINE-REMINDER-TIME-PICKER. The routine editor's free-text reminder field becomes a tappable row that opens the shared time picker. Done commits, Cancel discards, and a set reminder can be removed. Scheduling, permission, cancellation, sign-out and alert behaviour are unchanged from ROUTINE-REMINDERS.
 **Build:** branch `journey/routine-reminder-time-picker`: `ff6bfc7` (the before-state captures, C1), `4a4cb23` (the code and tests, C2), `b74e006` (the docs, C3), `bf8f225` (the fixes before the walk, C4) and the docs commit that carries this line (C5). **Walk the C5 commit, the tip of the branch, not `b74e006`.** It runs the same code as C4. A commit cannot carry its own hash: `git rev-parse HEAD` on the branch gives it, and it is recorded in the hand-off. The other hashes are in the roadmap's §13 entry for this slice.
 **Device:** iPhone 14 Plus, dev client, default Dynamic Type. No new dev-client build is needed: the date-time picker package is already installed, and the fixes are JavaScript only.
-**Walker:** Kyle. **Status: NOT YET WALKED.**
+**Walker:** Kyle. **Status: WALKED AND ATTESTED by Kyle on 2026-10-01 at `fb9d303`, iPhone 14 Plus, default Dynamic Type. ALL STEPS PASS.**
 
 ---
 
@@ -75,14 +75,16 @@ Report every step as **PASS**, **FAIL** or **NOT RUN**, with what you saw.
 
 ## Part 3 - Results
 
+Walked and attested by Kyle on 2026-10-01, iPhone 14 Plus, default Dynamic Type.
+
 | Step | Result | What was seen |
 |---|---|---|
-| W0 | NOT YET WALKED | |
-| W1 | NOT YET WALKED | |
-| W2 | NOT YET WALKED | |
-| W3 | NOT YET WALKED | |
-| W4 | NOT YET WALKED | |
-| W5 | NOT YET WALKED | |
-| W6 | NOT YET WALKED | |
-| W7a | NOT YET WALKED | |
-| W7b | NOT YET WALKED | |
+| W0 | Recorded | Build fb9d303; iOS 26.3; notifications allowed for Vara. |
+| W1 | PASS | |
+| W2 | PASS | |
+| W3 | PASS | |
+| W4 | PASS | |
+| W5 | PASS | |
+| W6 | PASS | |
+| W7a | PASS | |
+| W7b | PASS | |
