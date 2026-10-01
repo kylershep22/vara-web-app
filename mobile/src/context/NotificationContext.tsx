@@ -73,7 +73,7 @@ function navigateToFocusTimer(completedSessionId?: string): void {
 }
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, isAuthReady } = useAuth();
   const { preferences } = useNotificationPreferences();
   const { showNotificationToast } = useToast();
   const appStateRef = useRef(AppState.currentState);
@@ -281,6 +281,18 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     };
   }, [user, runExclusive]);
+
+  // Auth has resolved and nobody is signed in. Covers the start with no
+  // session, where there is no transition for the cleanup above to see: a
+  // device signed out on an older build still holds that account's routine
+  // reminders. Never while auth is still resolving, and never with a user,
+  // whose sign-in sync owns cancelling and rescheduling (ruling R-I).
+  const sessionUid = user?.uid;
+  useEffect(() => {
+    if (isAuthReady && !sessionUid) {
+      runExclusive(cancelAllRoutineReminders);
+    }
+  }, [isAuthReady, sessionUid, runExclusive]);
 
   const initializeNotifications = useCallback(async () => {
     if (!user?.uid) return;
