@@ -3,7 +3,7 @@
 **Row:** ROUTINE-REMINDERS. A routine reminder depends only on the user setting one, a valid time and OS notification permission. It is independent of the General notifications control. Every save says honestly what happened to the reminder, and no routine reminder survives loss of the owning user session.
 **Build:** branch `journey/routine-reminders`: `0a37989` (the before-state captures, C1), the code and tests commit (C2) and the docs commit that carries this script (C3). **Walk the C3 commit**, which runs the same code as C2. The hashes are recorded in the roadmap's §13 entry for this slice.
 **Device:** iPhone 14 Plus, dev client, default Dynamic Type.
-**Walker:** Kyle. **Status: NOT YET WALKED.**
+**Walker:** Kyle. **Status: WALKED AND ATTESTED by Kyle on 2026-10-01 at `e22eaa8`, iPhone 14 Plus, default Dynamic Type. ALL STEPS PASS.**
 
 ---
 
@@ -115,19 +115,23 @@ Report every step as **PASS**, **FAIL** or **NOT RUN**, with what you saw.
 
 ## Part 4 - Results
 
+**Walked and attested by Kyle on 2026-10-01, iPhone 14 Plus, default Dynamic Type.**
+
 | Step | Result | Observed |
 |---|---|---|
-| W0 | NOT YET WALKED | |
-| W1 | NOT YET WALKED | |
-| W2 | NOT YET WALKED | |
-| W3 | NOT YET WALKED | |
-| W4 | NOT YET WALKED | |
-| W5 | NOT YET WALKED | |
-| W6 | NOT YET WALKED | |
-| W7 | NOT YET WALKED | |
-| W8 | NOT YET WALKED | |
-| W9 | NOT YET WALKED | |
-| W10 | NOT YET WALKED | |
-| W11 | NOT YET WALKED | |
-| W12 | NOT YET WALKED | |
-| W13 | NOT YET WALKED | |
+| W0 | RECORDED | Build `e22eaa8`; iOS 26.3; notifications were allowed for Vara on the prior install, before the W2 deletion. |
+| W1 | PASS |  |
+| W2 | PASS |  |
+| W3 | PASS |  |
+| W4 | PASS |  |
+| W5 | PASS | Tapping the notification opens the Time screen with the routine shown. |
+| W6 | PASS |  |
+| W7 | PASS |  |
+| W8 | PASS |  |
+| W9 | PASS |  |
+| W10 | PASS | Kyle also noted that turning Vara's notifications off and back on in iOS Settings on the new install behaved as expected. |
+| W11 | PASS |  |
+| W12 | PASS |  |
+| W13 | PASS | Using a second test account, not the main test account. |
+
+**Post-walk ruling (Kyle, 2026-10-01):** After the walk, Kyle ruled that the free-text reminder input must not ship; it is replaced by ROUTINE-REMINDER-TIME-PICKER.
