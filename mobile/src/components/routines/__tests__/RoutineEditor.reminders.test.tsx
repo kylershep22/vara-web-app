@@ -870,3 +870,73 @@ describe('R-7: display normalisation in the row', () => {
     expect(alertSpy).not.toHaveBeenCalled();
   });
 });
+
+describe('while a save is in progress (fixes before the walk)', () => {
+  // The routine write is held open so the editor stays mid-save.
+  //
+  // TouchableOpacity disables itself from `disabled` OR
+  // `accessibilityState.disabled` (react-native TouchableOpacity.js,
+  // _createPressabilityConfig), so a control is only re-enabled when BOTH are
+  // dropped. The mutations below drop both.
+  function holdTheWrite() {
+    let finish!: () => void;
+    mockUpdateRoutine.mockImplementationOnce(
+      () => new Promise<void>((resolve) => {
+        finish = resolve;
+      })
+    );
+    return () => finish();
+  }
+
+  test('pressing the reminder row does not open the picker', async () => {
+    // Mutation caught: the row not disabled while saving (both props dropped).
+    const release = holdTheWrite();
+    const view = mount(existing('7:30 PM'));
+    await save(view, 'Update Routine');
+    expect(view.getByText('Saving...')).toBeTruthy();
+
+    openRow(view);
+    expect(view.queryByTestId('time-picker-sheet')).toBeNull();
+
+    await act(async () => {
+      release();
+    });
+  });
+
+  test('pressing Remove reminder does not change the model', async () => {
+    // Mutation caught: Remove reminder not disabled while saving (both props dropped).
+    const release = holdTheWrite();
+    const view = mount(existing('7:30 PM'));
+    await save(view, 'Update Routine');
+    expect(view.getByText('Saving...')).toBeTruthy();
+
+    fireEvent.press(view.getByTestId('routine-reminder-remove'));
+    expect(view.getByText('7:30 PM')).toBeTruthy();
+    expect(view.queryByText('Add a reminder')).toBeNull();
+
+    await act(async () => {
+      release();
+    });
+  });
+
+  test('after the save finishes, the row is enabled again', async () => {
+    // Mutation caught: a row that stays disabled once saving ends.
+    const release = holdTheWrite();
+    const view = mount(existing('7:30 PM'));
+    await save(view, 'Update Routine');
+    expect(view.getByTestId('routine-reminder-row').props.accessibilityState).toEqual(
+      expect.objectContaining({ disabled: true })
+    );
+
+    await act(async () => {
+      release();
+    });
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+
+    expect(view.getByTestId('routine-reminder-row').props.accessibilityState).toEqual(
+      expect.objectContaining({ disabled: false })
+    );
+    openRow(view);
+    expect(view.getByTestId('time-picker-sheet')).toBeTruthy();
+  });
+});

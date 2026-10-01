@@ -19,7 +19,7 @@ import * as Notifications from 'expo-notifications';
 import Text from '../shared/Text';
 import TextInput from '../shared/TextInput';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import { Colors, Spacing } from '../../constants';
+import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { Button, Card } from '../';
 import {
   Activity,
@@ -519,6 +519,10 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
           <TouchableOpacity
             style={styles.reminderRow}
             onPress={openPicker}
+            // Disabled while a save is in progress, like the save button: the
+            // outcome flow reads the model that save started with.
+            disabled={saving}
+            accessibilityState={{ disabled: saving }}
             activeOpacity={0.8}
             accessibilityRole="button"
             accessibilityLabel={
@@ -529,12 +533,14 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
             <Text style={shownReminder ? styles.reminderRowValue : styles.reminderRowEmpty}>
               {shownReminder ?? REMINDER_ROW.empty}
             </Text>
-            <Icon name="chevron-right" size={20} color={Colors.textSecondary} />
+            <Icon name="chevron-right" size={Layout.iconSize.sm} color={Colors.textSecondary} />
           </TouchableOpacity>
           {shownReminder && (
             <TouchableOpacity
               style={styles.removeReminder}
               onPress={() => setReminder(null)}
+              disabled={saving}
+              accessibilityState={{ disabled: saving }}
               accessibilityRole="button"
               accessibilityLabel={REMINDER_ROW.a11yRemove}
               testID="routine-reminder-remove"
@@ -708,32 +714,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 48,
+    minHeight: Layout.buttonHeight.sm,
     backgroundColor: Colors.surface,
-    borderRadius: 12,
+    borderRadius: Layout.borderRadius.lg,
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.md,
-    borderWidth: 1,
+    borderWidth: Layout.borderWidth.thin,
     borderColor: Colors.border,
   },
   reminderRowValue: {
-    fontSize: 16,
+    fontSize: Typography.fontSize.base,
     color: Colors.textPrimary,
   },
   reminderRowEmpty: {
-    fontSize: 16,
+    fontSize: Typography.fontSize.base,
     color: Colors.textSecondary,
   },
   // Housekeeping, not a destructive action: a text button with no fill.
+  // The 48pt minimum target (UI Standards 18.2). The top margin is 2pt less
+  // than before so the label sits exactly where it did at the old 44pt height.
   removeReminder: {
     alignSelf: 'flex-start',
-    minHeight: 44,
+    minHeight: Layout.buttonHeight.sm,
     justifyContent: 'center',
-    marginTop: Spacing.xs,
+    marginTop: Spacing['2xs'],
   },
   removeReminderLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
     color: Colors.evergreenTeal,
   },
   emptyCard: {
