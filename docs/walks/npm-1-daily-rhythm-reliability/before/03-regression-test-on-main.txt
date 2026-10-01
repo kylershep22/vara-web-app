@@ -1,0 +1,35 @@
+NPM-1 T0: the first-day regression test run against UNMODIFIED production code at main 5277031
+Branch: journey/npm-1-daily-rhythm-reliability, HEAD 527703163b2eb6a050a8244d0f6f8e6ff6cab24e; only the new test file is present, uncommitted; no production file differs from 5277031:
+?? ../docs/walks/npm-1-daily-rhythm-reliability/
+?? src/context/__tests__/NotificationContext.dailyRhythmFirstDay.test.tsx
+Command (from mobile/): npx jest --forceExit --colors=false src/context/__tests__/NotificationContext.dailyRhythmFirstDay.test.tsx
+Captured: 2026-10-01T18:36:34-04:00
+----
+FAIL src/context/__tests__/NotificationContext.dailyRhythmFirstDay.test.tsx
+  a new user’s first daily reminder (NPM-1)
+    × survives a leave-and-return after onboarding, although the provider loaded General off (12 ms)
+
+  ● a new user’s first daily reminder (NPM-1) › survives a leave-and-return after onboarding, although the provider loaded General off
+
+    expect(received).toBeDefined()
+
+    Received: undefined
+
+      182 |
+      183 |     const pending = mockStore.get('u1-daily-rhythm');
+    > 184 |     expect(pending).toBeDefined();
+          |                     ^
+      185 |     expect(pending?.trigger).toMatchObject({ hour: 18, minute: 20 });
+      186 |   });
+      187 | });
+
+      at Object.toBeDefined (src/context/__tests__/NotificationContext.dailyRhythmFirstDay.test.tsx:184:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        0.425 s, estimated 1 s
+Ran all test suites matching /src\\context\\__tests__\\NotificationContext.dailyRhythmFirstDay.test.tsx/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
