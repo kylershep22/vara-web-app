@@ -11,6 +11,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Colors, Spacing, Typography } from '../../constants';
 import { Routine, Activity, calculateTotalDuration } from '../../services/firebase/routines.service';
 import { getTemplatesForType, RoutineTemplate } from '../../constants/routineTemplates';
+import { displayReminderTime } from '../routines/routineReminderTime';
 
 const COLLAPSE_KEY = 'dashboard_routines_collapsed';
 
@@ -55,6 +56,7 @@ const RoutineRow: React.FC<{
   onBegin: () => void;
 }> = ({ routine, isExpanded, isCompleted, onToggleExpand, onBegin }) => {
   const totalDuration = calculateTotalDuration(routine.activities);
+  const shownReminder = displayReminderTime(routine.reminderTime);
 
   return (
     <View style={rowStyles.container}>
@@ -81,10 +83,12 @@ const RoutineRow: React.FC<{
             </View>
           ))}
 
-          {routine.reminderTime && (
+          {/* Never shown as a time unless it parses, and shown in the
+              picker-era format (ROUTINE-REMINDER-TIME-PICKER R-7). */}
+          {shownReminder && (
             <View style={rowStyles.reminderRow}>
               <Icon name="bell-outline" size={14} color={Colors.textSecondary} />
-              <Text style={rowStyles.reminderText}>Reminder at {routine.reminderTime}</Text>
+              <Text style={rowStyles.reminderText}>Reminder at {shownReminder}</Text>
             </View>
           )}
 

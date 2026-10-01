@@ -10,9 +10,14 @@
  *
  * expo-notifications is mocked at its boundary and reminderScheduler.service
  * runs for real, so a schedule is observed as the identifier the OS receives.
+ *
+ * ROUTINE-REMINDER-TIME-PICKER (2026-10-01): the reminder is picked, not typed.
+ * `setTime` opens the reminder row, drives the shared TimePickerSheet's
+ * DateTimePicker (stubbed as the TimePickerSheet suite stubs it) and presses
+ * Done. The picker-era rulings R-1 to R-8 are pinned at the end of the file.
  */
 import React from 'react';
-import { Alert, AlertButton, Linking } from 'react-native';
+import { Alert, AlertButton, Linking, Modal, Platform } from 'react-native';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 
 const mockGetPerms = jest.fn();
@@ -54,6 +59,7 @@ jest.mock('../../../services/notifications.service', () => ({
   getPermissionsStatus: () => mockGetPerms(),
 }));
 jest.mock('../../../config/firebase', () => ({ db: null }));
+jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
 // The components barrel pulls in analytics and its native modules. Button and
 // Card stand in as plain pressables and views; Button still forwards onPress
 // and disabled, so Save and Delete are pressed through the real handlers.
@@ -74,6 +80,7 @@ jest.mock('../../index', () => {
 
 import { RoutineEditor } from '../RoutineEditor';
 import { Routine } from '../../../services/firebase/routines.service';
+import * as scheduler from '../../../services/reminderScheduler.service';
 
 const activities = [{ id: 1, name: 'Stretch', duration: 5, order: 0, icon: 'run', color: 'teal' }];
 
@@ -94,6 +101,7 @@ function existing(reminderTime: string | null): Routine {
 
 let alertSpy: jest.SpyInstance;
 const onSave = jest.fn();
+const onCancel = jest.fn();
 
 function mount(routine: Routine | null) {
   return render(
@@ -102,14 +110,42 @@ function mount(routine: Routine | null) {
       routineType="morning"
       existingRoutine={routine}
       onSave={onSave}
-      onCancel={jest.fn()}
+      onCancel={onCancel}
     />
   );
 }
 
-function setTime(view: ReturnType<typeof mount>, value: string) {
-  fireEvent.changeText(view.getByPlaceholderText('08:00'), value);
+function openRow(view: ReturnType<typeof mount>) {
+  fireEvent.press(view.getByTestId('routine-reminder-row'));
 }
+
+/** Scroll the open sheet's wheel, as an iOS spinner tick would. */
+function scrollTo(view: ReturnType<typeof mount>, hour: number, minute: number) {
+  const d = new Date();
+  d.setHours(hour, minute, 0, 0);
+  fireEvent(view.UNSAFE_getByType('DateTimePicker' as never), 'change', { type: 'set' }, d);
+}
+
+/** The time the open sheet's wheel is showing. */
+function wheel(view: ReturnType<typeof mount>): [number, number] {
+  const value = view.UNSAFE_getByType('DateTimePicker' as never).props.value as Date;
+  return [value.getHours(), value.getMinutes()];
+}
+
+/** Picks a time through the row, the sheet and Done. `value` is any time parseTimeString reads. */
+function setTime(view: ReturnType<typeof mount>, value: string) {
+  const t = scheduler.parseTimeString(value);
+  if (!t) throw new Error(`setTime needs a valid time, got "${value}"`);
+  openRow(view);
+  scrollTo(view, t.hour, t.minute);
+  fireEvent.press(view.getByTestId('time-picker-done'));
+}
+
+/** Every reminderTime the editor persisted, from updates and creates. */
+const persistedTimes = (): unknown[] => [
+  ...mockUpdateRoutine.mock.calls.map((c) => (c[1] as { reminderTime: unknown }).reminderTime),
+  ...mockCreateRoutine.mock.calls.map((c) => (c[1] as { reminderTime: unknown }).reminderTime),
+];
 
 /** Adds one activity through the activity library modal (a create starts empty). */
 function addActivity(view: ReturnType<typeof mount>) {
@@ -151,24 +187,46 @@ afterEach(() => {
   alertSpy.mockRestore();
 });
 
-describe('the reminder field', () => {
-  test('shows the approved helper line, and the old one is gone', () => {
-    // Mutation caught: restoring "Set a daily reminder time (HH:MM format)".
+describe('the reminder row (R-2, R-3)', () => {
+  test('no reminder: the section label, Add a reminder, its full label, and no Remove', () => {
+    // Mutations caught: the old label or helper restored; a row label that
+    // leans on the heading; Remove shown with no reminder.
     const view = mount(existing(null));
-    expect(view.getByText('Optional. For example, 7:30 AM or 7:30 PM.')).toBeTruthy();
-    expect(view.queryByText(/Set a daily reminder time/)).toBeNull();
-    expect(view.queryByText(/HH:MM format/)).toBeNull();
-    // Label and placeholder unchanged.
-    expect(view.getByText('Reminder Time (Optional)')).toBeTruthy();
-    expect(view.getByPlaceholderText('08:00')).toBeTruthy();
+    expect(view.getByText('Reminder (optional)')).toBeTruthy();
+    expect(view.getByText('Add a reminder')).toBeTruthy();
+    const row = view.getByTestId('routine-reminder-row');
+    expect(row.props.accessibilityRole).toBe('button');
+    expect(row.props.accessibilityLabel).toBe('Reminder, add a reminder');
+    expect(view.queryByTestId('routine-reminder-remove')).toBeNull();
+    // The helper line, the old label and the free-text field are gone.
+    expect(view.queryByText('Optional. For example, 7:30 AM or 7:30 PM.')).toBeNull();
+    expect(view.queryByText('Reminder Time (Optional)')).toBeNull();
+    expect(view.queryByPlaceholderText('08:00')).toBeNull();
+  });
+
+  test('a set reminder: the formatted time, its full label, and Remove reminder', () => {
+    // Mutation caught: a set-row label missing "Reminder, " or the time.
+    const view = mount(existing('7:30 PM'));
+    expect(view.getByText('7:30 PM')).toBeTruthy();
+    const row = view.getByTestId('routine-reminder-row');
+    expect(row.props.accessibilityRole).toBe('button');
+    expect(row.props.accessibilityLabel).toBe('Reminder, 7:30 PM');
+    const remove = view.getByTestId('routine-reminder-remove');
+    expect(remove.props.accessibilityRole).toBe('button');
+    expect(remove.props.accessibilityLabel).toBe('Remove reminder');
+    expect(view.getByText('Remove reminder')).toBeTruthy();
   });
 });
 
-describe('E1: field empty', () => {
-  test('edit: cancels the reminder and closes with no alert', async () => {
-    // Mutation caught: dropping the E1 cancel on the edit path.
+describe('E1: no reminder', () => {
+  test('edit: Remove reminder then save cancels the reminder and closes with no alert', async () => {
+    // The field was cleared by typing; it is now cleared by Remove reminder
+    // (R-1, R-6), and lands on the same empty path. Mutations caught: dropping
+    // the E1 cancel on the edit path; Remove not clearing the model.
     const view = mount(existing('7:30 PM'));
-    setTime(view, '   ');
+    fireEvent.press(view.getByTestId('routine-reminder-remove'));
+    expect(view.getByText('Add a reminder')).toBeTruthy();
+    expect(view.queryByTestId('routine-reminder-remove')).toBeNull();
     await save(view, 'Update Routine');
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
@@ -192,13 +250,18 @@ describe('E1: field empty', () => {
   });
 });
 
-describe('E2: field invalid', () => {
-  test('persists null, cancels, shows Check the reminder time, never asks permission', async () => {
-    // Mutation caught: persisting the rejected text, or requesting permission.
+describe('E2: invalid at the save boundary (defensive, R-6)', () => {
+  // NOT REACHABLE FROM THE UI. The picker-era model only ever holds a valid
+  // time or null. Malformed input is forced to the save boundary here by
+  // making the single parser reject the model's value after it loaded.
+  test('persists null, cancels, shows Check the reminder time with the new body, never asks permission', async () => {
+    // Mutations caught: persisting the rejected text, requesting permission,
+    // or keeping the old "Enter a time" body.
     mockGetPerms.mockResolvedValue({ status: 'undetermined' });
     const view = mount(existing('7:30 PM'));
-    setTime(view, '730');
+    const parseSpy = jest.spyOn(scheduler, 'parseTimeString').mockReturnValue(null);
     await save(view, 'Update Routine');
+    parseSpy.mockRestore();
 
     await waitFor(() => expect(alertSpy).toHaveBeenCalledTimes(1));
     expect(mockUpdateRoutine).toHaveBeenCalledWith('r1', expect.objectContaining({ reminderTime: null }));
@@ -207,7 +270,7 @@ describe('E2: field invalid', () => {
     expect(mockSchedule).not.toHaveBeenCalled();
     const [title, body, buttons] = alertAt(0);
     expect(title).toBe('Check the reminder time');
-    expect(body).toBe('Your routine is saved without a reminder. Enter a time like 7:30 AM or 7:30 PM.');
+    expect(body).toBe('Your routine is saved without a reminder. Choose a time to add one.');
     expect(buttons.map((b) => b.text)).toEqual(['OK']);
 
     expect(onSave).not.toHaveBeenCalled();
@@ -215,14 +278,18 @@ describe('E2: field invalid', () => {
     expect(onSave).toHaveBeenCalledTimes(1);
   });
 
-  test('a legacy unparseable stored value resolves to null on the next save', async () => {
-    // Mutation caught: keeping a legacy stored value when it fails to parse.
+  test('a legacy unparseable stored value resolves to null on the next save, with no alert', async () => {
+    // MEANING CHANGED (R-6): this used to expect Check the reminder time. A
+    // legacy value the user cannot see is null in the model, so the save
+    // takes the empty-field path. Mutations caught: keeping the legacy text;
+    // restoring the old validation alert on this path.
     const view = mount(existing('730'));
     await save(view, 'Update Routine');
 
-    await waitFor(() => expect(alertSpy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(mockUpdateRoutine).toHaveBeenCalledWith('r1', expect.objectContaining({ reminderTime: null }));
-    expect(alertAt(0)[0]).toBe('Check the reminder time');
+    expect(mockCancelOne).toHaveBeenCalledWith('routine-reminder-r1');
+    expect(alertSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -234,7 +301,7 @@ describe('E3: granted', () => {
     await save(view, 'Update Routine');
 
     await waitFor(() => expect(alertSpy).toHaveBeenCalledTimes(1));
-    expect(mockUpdateRoutine).toHaveBeenCalledWith('r1', expect.objectContaining({ reminderTime: '19:05' }));
+    expect(mockUpdateRoutine).toHaveBeenCalledWith('r1', expect.objectContaining({ reminderTime: '7:05 PM' }));
     expect(mockCancelOne).toHaveBeenCalledWith('routine-reminder-r1');
     expect(scheduledIds()).toEqual(['routine-reminder-r1']);
     // The cancel precedes the schedule.
@@ -247,14 +314,15 @@ describe('E3: granted', () => {
     expect(onSave).toHaveBeenCalledTimes(1);
   });
 
-  test('a valid time persists as the trimmed text the user typed', async () => {
-    // Mutation caught: normalising the stored text.
+  test('a picked time persists as the formatted time', async () => {
+    // MEANING CHANGED (R-6): this used to pin the trimmed typed text. The
+    // picker writes the formatted time. Mutation caught: storing 24-hour text.
     const view = mount(existing(null));
-    setTime(view, '  7:30 pm ');
+    setTime(view, '19:30');
     await save(view, 'Update Routine');
 
     await waitFor(() => expect(alertSpy).toHaveBeenCalledTimes(1));
-    expect(mockUpdateRoutine).toHaveBeenCalledWith('r1', expect.objectContaining({ reminderTime: '7:30 pm' }));
+    expect(mockUpdateRoutine).toHaveBeenCalledWith('r1', expect.objectContaining({ reminderTime: '7:30 PM' }));
     expect(alertAt(0)[1]).toBe('Your routine is saved. Vara will remind you at 7:30 PM.');
   });
 
@@ -270,10 +338,11 @@ describe('E3: granted', () => {
     expect(mockRequestPerms).not.toHaveBeenCalled();
   });
 
-  test('"19:30" is unchanged from a stored "7:30 PM" (compared as parsed hours and minutes)', async () => {
-    // Mutation caught: comparing the raw text instead of the parsed time.
-    const view = mount(existing('7:30 PM'));
-    setTime(view, '19:30');
+  test('a picked 7:30 PM is unchanged from a stored "19:30" (compared as parsed hours and minutes)', async () => {
+    // R-8. The stored text differs ("19:30" against the picker's "7:30 PM");
+    // the time does not. Mutation caught: comparing the raw text.
+    const view = mount(existing('19:30'));
+    setTime(view, '7:30 PM');
     await save(view, 'Update Routine');
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
@@ -567,5 +636,307 @@ describe('R-G: delete cancels the reminder', () => {
 
     expect(mockCancelOne).not.toHaveBeenCalled();
     errorSpy.mockRestore();
+  });
+});
+
+// ─── ROUTINE-REMINDER-TIME-PICKER (Kyle's rulings R-1 to R-8, 2026-10-01) ───
+
+describe('R-1: the picker', () => {
+  test('on iOS the sheet opens inside a visible transparent Modal', () => {
+    // Mutation caught: rendering the sheet outside the Modal on iOS, where
+    // PlanScreen would clip it and the floating tab bar would cover it.
+    const view = mount(existing(null));
+    expect(view.queryByTestId('time-picker-sheet')).toBeNull();
+    openRow(view);
+    const hosts = view
+      .UNSAFE_getAllByType(Modal)
+      .filter(
+        (m) =>
+          m.findAll((n: { props: { testID?: string } }) => n.props.testID === 'time-picker-sheet')
+            .length > 0
+      );
+    expect(hosts).toHaveLength(1);
+    expect(hosts[0].props.visible).toBe(true);
+    expect(hosts[0].props.transparent).toBe(true);
+  });
+
+  test('Done sets the row to the formatted time and offers Remove, writing nothing yet', () => {
+    // Mutation caught: Done not committing to the local model.
+    const view = mount(existing(null));
+    setTime(view, '14:14');
+    expect(view.getByText('2:14 PM')).toBeTruthy();
+    expect(view.getByTestId('routine-reminder-row').props.accessibilityLabel).toBe('Reminder, 2:14 PM');
+    expect(view.getByTestId('routine-reminder-remove')).toBeTruthy();
+    expect(view.queryByTestId('time-picker-sheet')).toBeNull();
+    expect(mockUpdateRoutine).not.toHaveBeenCalled();
+  });
+
+  test('open, scroll, Cancel: the model and the persisted value are unchanged', async () => {
+    // Mutation caught: committing on Cancel, or on a scroll tick.
+    const view = mount(existing('7:30 PM'));
+    openRow(view);
+    scrollTo(view, 6, 0);
+    fireEvent.press(view.getByTestId('time-picker-cancel'));
+
+    expect(view.queryByTestId('time-picker-sheet')).toBeNull();
+    expect(view.getByText('7:30 PM')).toBeTruthy();
+    expect(mockUpdateRoutine).not.toHaveBeenCalled();
+
+    await save(view, 'Update Routine');
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(mockUpdateRoutine).toHaveBeenCalledWith('r1', expect.objectContaining({ reminderTime: '7:30 PM' }));
+    expect(alertSpy).not.toHaveBeenCalled();
+  });
+
+  test('on Android the system dialog commits on set and discards on dismiss', () => {
+    // The Android branch renders the shared sheet without the iOS Modal.
+    // Mutation caught: wrapping Android's dialog in a second modal layer.
+    Platform.OS = 'android';
+    try {
+      const view = mount(existing(null));
+      openRow(view);
+      expect(view.UNSAFE_getAllByType(Modal).some((m) => m.props.visible)).toBe(false);
+      const d = new Date();
+      d.setHours(7, 15, 0, 0);
+      fireEvent(view.UNSAFE_getByType('DateTimePicker' as never), 'change', { type: 'dismissed' }, d);
+      expect(view.getByText('Add a reminder')).toBeTruthy();
+
+      openRow(view);
+      fireEvent(view.UNSAFE_getByType('DateTimePicker' as never), 'change', { type: 'set' }, d);
+      expect(view.getByText('7:15 AM')).toBeTruthy();
+    } finally {
+      Platform.OS = 'ios';
+    }
+  });
+});
+
+describe('R-4: the initial picker value', () => {
+  const at = (h: number, m: number) => {
+    const d = new Date(2026, 9, 1);
+    d.setHours(h, m, 0, 0);
+    return d;
+  };
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test('a valid reminder opens the wheel at that time', () => {
+    // Mutation caught: always seeding from the clock.
+    const view = mount(existing('7:30 PM'));
+    openRow(view);
+    expect(wheel(view)).toEqual([19, 30]);
+  });
+
+  test('no reminder opens at the next quarter hour, captured at open and held while open', () => {
+    // Mutation caught: computing the seed on every render, which re-seeds the
+    // sheet and moves the wheel as the clock crosses a quarter hour.
+    jest.useFakeTimers();
+    jest.setSystemTime(at(14, 14));
+    const routine = existing(null);
+    const view = mount(routine);
+    openRow(view);
+    expect(wheel(view)).toEqual([14, 15]);
+
+    jest.setSystemTime(at(14, 16));
+    view.rerender(
+      <RoutineEditor
+        userId="u1"
+        routineType="morning"
+        existingRoutine={routine}
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    );
+    expect(wheel(view)).toEqual([14, 15]);
+  });
+
+  test('a fresh open after Cancel reads the clock again', () => {
+    // The hold is per open, not per editor. Mutation caught: caching the
+    // first seed for the editor's lifetime.
+    jest.useFakeTimers();
+    jest.setSystemTime(at(14, 14));
+    const view = mount(existing(null));
+    openRow(view);
+    fireEvent.press(view.getByTestId('time-picker-cancel'));
+    jest.setSystemTime(at(14, 16));
+    openRow(view);
+    expect(wheel(view)).toEqual([14, 30]);
+  });
+});
+
+describe('R-6: removal and legacy malformed values', () => {
+  test('Remove reminder is hidden when there is no valid reminder', () => {
+    // Mutation caught: rendering Remove whenever anything is stored.
+    for (const stored of [null, '730']) {
+      const view = mount(existing(stored));
+      expect(view.queryByTestId('routine-reminder-remove')).toBeNull();
+      view.unmount();
+    }
+  });
+
+  test('the editor Cancel after Remove leaves the persisted value unchanged', () => {
+    // Mutation caught: Remove writing straight to Firestore.
+    const view = mount(existing('7:30 PM'));
+    fireEvent.press(view.getByTestId('routine-reminder-remove'));
+    fireEvent.press(view.getByText('Cancel'));
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(mockUpdateRoutine).not.toHaveBeenCalled();
+    expect(mockCancelOne).not.toHaveBeenCalled();
+  });
+
+  test('a legacy malformed value displays Add a reminder, and opening and cancelling writes nothing', () => {
+    // Mutation caught: carrying the malformed text into the model, where it
+    // would display, seed the wheel, or offer Remove.
+    const view = mount(existing('730'));
+    expect(view.getByText('Add a reminder')).toBeTruthy();
+    expect(view.queryByText('730')).toBeNull();
+    expect(view.getByTestId('routine-reminder-row').props.accessibilityLabel).toBe(
+      'Reminder, add a reminder'
+    );
+
+    openRow(view);
+    scrollTo(view, 9, 0);
+    fireEvent.press(view.getByTestId('time-picker-cancel'));
+    expect(view.getByText('Add a reminder')).toBeTruthy();
+
+    fireEvent.press(view.getByText('Cancel'));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(mockUpdateRoutine).not.toHaveBeenCalled();
+    expect(mockCreateRoutine).not.toHaveBeenCalled();
+    expect(mockCancelOne).not.toHaveBeenCalled();
+  });
+
+  test('a legacy malformed value replaced through the picker stores the new time', async () => {
+    const view = mount(existing('730'));
+    setTime(view, '7:30 PM');
+    await save(view, 'Update Routine');
+
+    await waitFor(() => expect(alertSpy).toHaveBeenCalledTimes(1));
+    expect(mockUpdateRoutine).toHaveBeenCalledWith('r1', expect.objectContaining({ reminderTime: '7:30 PM' }));
+    expect(alertAt(0)[0]).toBe('Reminder set');
+  });
+
+  test('THE INVARIANT: after any save, the persisted value is null or parses', async () => {
+    // "After any successful save through the picker-era routine editor, the
+    // persisted reminder value is either null or parseable by parseTimeString."
+    // The invariant is held twice: the model only takes a parseable value, and
+    // the save persists null for anything that does not parse. Removing one
+    // layer is caught elsewhere (the legacy tests; the E2 boundary test).
+    // Mutation caught here: removing both layers at once.
+    type Scenario = { stored: string | null; create?: boolean; act?: (v: ReturnType<typeof mount>) => void };
+    const scenarios: Scenario[] = [
+      { stored: null },
+      { stored: '7:30 PM' },
+      { stored: '08:00' },
+      { stored: '730' },
+      { stored: '7.30 pm' },
+      { stored: '730', act: (v) => setTime(v, '6:45 AM') },
+      { stored: '7:30 PM', act: (v) => fireEvent.press(v.getByTestId('routine-reminder-remove')) },
+      { stored: null, create: true },
+      { stored: null, create: true, act: (v) => setTime(v, '21:05') },
+    ];
+    for (const s of scenarios) {
+      const view = mount(s.create ? null : existing(s.stored));
+      if (s.create) addActivity(view);
+      s.act?.(view);
+      await save(view, s.create ? 'Save Routine' : 'Update Routine');
+      view.unmount();
+    }
+
+    const times = persistedTimes();
+    expect(times).toHaveLength(scenarios.length);
+    for (const t of times) {
+      expect(t === null || (typeof t === 'string' && scheduler.parseTimeString(t) !== null)).toBe(true);
+    }
+  });
+});
+
+describe('R-7: display normalisation in the row', () => {
+  test('a stored "08:00" displays as 8:00 AM, and nothing is rewritten for formatting', async () => {
+    // Mutations caught: displaying the raw stored text; rewriting storage
+    // into the picker-era format on an ordinary save.
+    const view = mount(existing('08:00'));
+    expect(view.getByText('8:00 AM')).toBeTruthy();
+    expect(view.queryByText('08:00')).toBeNull();
+    expect(view.getByTestId('routine-reminder-row').props.accessibilityLabel).toBe('Reminder, 8:00 AM');
+    expect(mockUpdateRoutine).not.toHaveBeenCalled();
+
+    await save(view, 'Update Routine');
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(mockUpdateRoutine).toHaveBeenCalledWith('r1', expect.objectContaining({ reminderTime: '08:00' }));
+    // Unchanged under R-8, so it reschedules silently.
+    expect(alertSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('while a save is in progress (fixes before the walk)', () => {
+  // The routine write is held open so the editor stays mid-save.
+  //
+  // TouchableOpacity disables itself from `disabled` OR
+  // `accessibilityState.disabled` (react-native TouchableOpacity.js,
+  // _createPressabilityConfig), so a control is only re-enabled when BOTH are
+  // dropped. The mutations below drop both.
+  function holdTheWrite() {
+    let finish!: () => void;
+    mockUpdateRoutine.mockImplementationOnce(
+      () => new Promise<void>((resolve) => {
+        finish = resolve;
+      })
+    );
+    return () => finish();
+  }
+
+  test('pressing the reminder row does not open the picker', async () => {
+    // Mutation caught: the row not disabled while saving (both props dropped).
+    const release = holdTheWrite();
+    const view = mount(existing('7:30 PM'));
+    await save(view, 'Update Routine');
+    expect(view.getByText('Saving...')).toBeTruthy();
+
+    openRow(view);
+    expect(view.queryByTestId('time-picker-sheet')).toBeNull();
+
+    await act(async () => {
+      release();
+    });
+  });
+
+  test('pressing Remove reminder does not change the model', async () => {
+    // Mutation caught: Remove reminder not disabled while saving (both props dropped).
+    const release = holdTheWrite();
+    const view = mount(existing('7:30 PM'));
+    await save(view, 'Update Routine');
+    expect(view.getByText('Saving...')).toBeTruthy();
+
+    fireEvent.press(view.getByTestId('routine-reminder-remove'));
+    expect(view.getByText('7:30 PM')).toBeTruthy();
+    expect(view.queryByText('Add a reminder')).toBeNull();
+
+    await act(async () => {
+      release();
+    });
+  });
+
+  test('after the save finishes, the row is enabled again', async () => {
+    // Mutation caught: a row that stays disabled once saving ends.
+    const release = holdTheWrite();
+    const view = mount(existing('7:30 PM'));
+    await save(view, 'Update Routine');
+    expect(view.getByTestId('routine-reminder-row').props.accessibilityState).toEqual(
+      expect.objectContaining({ disabled: true })
+    );
+
+    await act(async () => {
+      release();
+    });
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+
+    expect(view.getByTestId('routine-reminder-row').props.accessibilityState).toEqual(
+      expect.objectContaining({ disabled: false })
+    );
+    openRow(view);
+    expect(view.getByTestId('time-picker-sheet')).toBeTruthy();
   });
 });

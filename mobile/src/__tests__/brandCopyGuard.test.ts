@@ -249,6 +249,25 @@ const FRAMEWORK_ALLOWLIST: Record<string, string> = {
     'removing a time block is that feature own verb and predates the journey; "Remove block" is not the Remove phase.',
 };
 
+/**
+ * Single strings waived from THIS rule only, each with the reason. Added
+ * 2026-10-01 (ROUTINE-REMINDER-TIME-PICKER, Kyle's ruling) as the narrowest
+ * waiver: the file that holds the string stays fully guarded.
+ *
+ * EXACT, CASE-SENSITIVE, WHOLE-STRING. The literal must equal the key
+ * character for character, untrimmed: "Remove reminders", "remove reminder" and
+ * "Remove reminder now" all still fail. Same integrity contract as the file
+ * list - an entry whose string no longer appears in any guarded module FAILS.
+ */
+const FRAMEWORK_EXACT_EXEMPTIONS: Record<string, string> = {
+  'Remove reminder':
+    '"Remove reminder" uses remove as the ordinary verb, not the Remove journey phase; precedent, the src/screens/Focus/blocks entry in FRAMEWORK_ALLOWLIST.',
+};
+
+function isExactlyExempt(literal: string): boolean {
+  return Object.prototype.hasOwnProperty.call(FRAMEWORK_EXACT_EXEMPTIONS, literal);
+}
+
 /** Every quoted string literal on a line. */
 function quotedStrings(line: string): string[] {
   return [...line.matchAll(/'([^']*)'|"([^"]*)"|`([^`]*)`/g)].map(
@@ -257,7 +276,10 @@ function quotedStrings(line: string): string[] {
 }
 
 function frameworkViolations(relPath: string): Violation[] {
-  const raw = fs.readFileSync(path.join(mobileRoot, relPath), 'utf-8');
+  return frameworkViolationsIn(relPath, fs.readFileSync(path.join(mobileRoot, relPath), 'utf-8'));
+}
+
+function frameworkViolationsIn(relPath: string, raw: string): Violation[] {
   const out: Violation[] = [];
   stripBlockComments(raw)
     .split('\n')
@@ -282,6 +304,8 @@ function frameworkViolations(relPath: string): Violation[] {
         // week and then trusted by nobody. The cap is the line between a label
         // and an explanation.
         if (literal.length > LABEL_MAX_CHARS) continue;
+        // One waived string, matched exactly (FRAMEWORK_EXACT_EXEMPTIONS).
+        if (isExactlyExempt(literal)) continue;
         if (FRAMEWORK_WORDS.test(literal)) {
           out.push({
             file: relPath,
@@ -323,6 +347,55 @@ describe('Brand copy guard - journey framework words', () => {
           'The user reads PHASE_DISPLAY copy, never the phase key. Rewrite the string.'
       );
     }
+  });
+});
+
+describe('Brand copy guard - framework exact-string exemptions', () => {
+  const EDITOR_COPY = 'src/components/routines/routineEditor.copy.ts';
+
+  it.each([
+    ['Remove reminders'],
+    ['Remove this'],
+    ['remove reminder'],
+    [' Remove reminder'],
+    ['Remove reminder '],
+    ['Remove reminder now'],
+  ])('the exemption is exact: %p still fails', (literal) => {
+    // Mutation caught: matching the exemption loosely (prefix, trimmed or
+    // case-insensitive) instead of as the exact whole string.
+    const violations = frameworkViolationsIn('synthetic.copy.ts', `export const X = '${literal}';\n`);
+    expect(violations.map((v) => v.text)).toEqual([literal]);
+  });
+
+  it('the exempted string itself passes', () => {
+    expect(frameworkViolationsIn('synthetic.copy.ts', "export const X = 'Remove reminder';\n")).toEqual([]);
+  });
+
+  it('a phase word in any other string of the same module still fails', () => {
+    // The waiver is the string, not the file. Mutation caught: allowlisting
+    // routineEditor.copy.ts as a whole file.
+    const raw = fs.readFileSync(path.join(mobileRoot, EDITOR_COPY), 'utf-8');
+    const violations = frameworkViolationsIn(EDITOR_COPY, `${raw}\nexport const Y = 'Recover your routine';\n`);
+    expect(violations.map((v) => v.text)).toEqual(['Recover your routine']);
+    expect(EDITOR_COPY in FRAMEWORK_ALLOWLIST).toBe(false);
+  });
+
+  Object.entries(FRAMEWORK_EXACT_EXEMPTIONS).forEach(([literal, reason]) => {
+    it(`exempted string still appears in a guarded module: ${JSON.stringify(literal)}`, () => {
+      const files = walk('src').filter((f) => /copy[^/]*\.tsx?$/i.test(path.basename(f)));
+      const used = files.some((f) =>
+        stripBlockComments(fs.readFileSync(path.join(mobileRoot, f), 'utf-8'))
+          .split('\n')
+          .some((l) => quotedStrings(stripLineComment(l)).includes(literal))
+      );
+      if (!used) {
+        throw new Error(
+          `FRAMEWORK_EXACT_EXEMPTIONS names a string no guarded module uses: ${JSON.stringify(literal)}\n` +
+            `  reason on record: ${reason}\n\n` +
+            'Remove the entry. Waivers must not outlive what they waive.'
+        );
+      }
+    });
   });
 });
 
