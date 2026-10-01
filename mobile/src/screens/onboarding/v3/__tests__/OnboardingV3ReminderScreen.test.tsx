@@ -10,9 +10,12 @@
  *
  * The rest pins what must NOT change while the order does: both branches still
  * write the preference (the deny copy literally promises "your time is saved"),
- * grant still schedules, deny still does not, and the push token is a network
- * call with no bearing on the local reminder, so navigation must never wait on
- * it.
+ * and the push token is a network call with no bearing on the local reminder,
+ * so navigation must never wait on it.
+ *
+ * NPM-1: both branches now end in reconcileDailyRhythm (ruling 3), which
+ * decides from the stored preference rather than OS permission, and the write
+ * gets exactly one automatic retry (ruling 5).
  */
 
 /** Every service call in this path, in the order it actually happened. */
@@ -35,9 +38,9 @@ const mockUpdatePrefs = jest.fn((..._a: any[]) => {
   calls.push('updatePrefs');
   return Promise.resolve(undefined);
 });
-const mockScheduleDailyRhythm = jest.fn((..._a: any[]) => {
-  calls.push('scheduleDailyRhythm');
-  return Promise.resolve('notif-1');
+const mockReconcile = jest.fn((..._a: any[]) => {
+  calls.push('reconcile');
+  return Promise.resolve('scheduled');
 });
 
 jest.mock('@react-navigation/native', () => ({
@@ -52,7 +55,7 @@ jest.mock('../../../../services/notifications.service', () => ({
   registerPushToken: (...a: any[]) => mockRegisterPushToken(...a),
 }));
 jest.mock('../../../../services/notificationScheduler.service', () => ({
-  scheduleDailyRhythm: (...a: any[]) => mockScheduleDailyRhythm(...a),
+  reconcileDailyRhythm: (...a: any[]) => mockReconcile(...a),
 }));
 jest.mock('../../../../services/firebase/notificationPreferences.service', () => ({
   getNotificationPreferences: (...a: any[]) => mockGetPrefs(...a),
@@ -107,9 +110,9 @@ beforeEach(() => {
     calls.push('updatePrefs');
     return Promise.resolve(undefined);
   });
-  mockScheduleDailyRhythm.mockImplementation(() => {
-    calls.push('scheduleDailyRhythm');
-    return Promise.resolve('notif-1');
+  mockReconcile.mockImplementation(() => {
+    calls.push('reconcile');
+    return Promise.resolve('scheduled');
   });
 });
 
@@ -163,26 +166,25 @@ describe('OnboardingV3ReminderScreen — granted', () => {
     );
   });
 
-  test('schedules the daily reminder and advances', async () => {
+  test('reconciles the daily rhythm and advances', async () => {
     renderStep();
 
     confirm();
 
-    await waitFor(() => expect(mockScheduleDailyRhythm).toHaveBeenCalledWith('u1'));
+    await waitFor(() => expect(mockReconcile).toHaveBeenCalledWith('u1'));
     expect(mockNavigate).toHaveBeenCalledWith(V3_ROUTES.Done);
   });
 
-  test('writes the preference before scheduling reads it back', async () => {
-    // scheduleDailyRhythm re-reads the document it is about to act on, so a
-    // schedule that overtook the write would silently schedule the old time.
+  test('writes the preference before the reconcile reads it back', async () => {
+    // The reconcile re-reads the document it is about to act on, so one that
+    // overtook the write would see General off and schedule nothing.
+    // Mutation caught: calling the reconcile before the write.
     renderStep();
 
     confirm();
 
-    await waitFor(() => expect(mockScheduleDailyRhythm).toHaveBeenCalled());
-    expect(calls.indexOf('updatePrefs')).toBeLessThan(
-      calls.indexOf('scheduleDailyRhythm')
-    );
+    await waitFor(() => expect(mockReconcile).toHaveBeenCalled());
+    expect(calls.indexOf('updatePrefs')).toBeLessThan(calls.indexOf('reconcile'));
   });
 });
 
@@ -217,13 +219,22 @@ describe('OnboardingV3ReminderScreen — denied', () => {
     );
   });
 
-  test('schedules nothing', async () => {
+  test('keeps General ON and still reconciles, after the write (NPM-1 ruling 3)', async () => {
+    // A user who later allows notifications in iOS Settings must get the
+    // reminder on their next return without revisiting onboarding, so the
+    // denial neither turns General off nor skips the reconcile.
+    // Mutations caught: gating the reconcile on `granted`; writing General off
+    // on denial.
     renderStep();
 
     confirm();
 
-    await waitFor(() => expect(mockUpdatePrefs).toHaveBeenCalled());
-    expect(mockScheduleDailyRhythm).not.toHaveBeenCalled();
+    await waitFor(() => expect(mockReconcile).toHaveBeenCalledWith('u1'));
+    expect(mockUpdatePrefs).toHaveBeenCalledWith(
+      'u1',
+      expect.objectContaining({ allNotificationsEnabled: true })
+    );
+    expect(calls.indexOf('updatePrefs')).toBeLessThan(calls.indexOf('reconcile'));
   });
 
   test('the second tap advances without re-prompting', async () => {
@@ -266,5 +277,42 @@ describe('OnboardingV3ReminderScreen — the push token', () => {
 
     await waitFor(() => expect(mockUpdatePrefs).toHaveBeenCalled());
     expect(mockRegisterPushToken).not.toHaveBeenCalled();
+  });
+});
+
+describe('OnboardingV3ReminderScreen — the write retry (NPM-1 ruling 5)', () => {
+  test('a first failure is retried once, and the second attempt is the one that lands', async () => {
+    // Mutation caught: removing the retry.
+    mockUpdatePrefs
+      .mockImplementationOnce(() => {
+        calls.push('updatePrefs');
+        return Promise.reject(new Error('offline'));
+      })
+      .mockImplementationOnce(() => {
+        calls.push('updatePrefs');
+        return Promise.resolve(undefined);
+      });
+    renderStep();
+
+    confirm();
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(V3_ROUTES.Done));
+    expect(mockUpdatePrefs).toHaveBeenCalledTimes(2);
+    expect(mockGetPrefs).toHaveBeenCalledTimes(2);
+    expect(calls.lastIndexOf('updatePrefs')).toBeLessThan(calls.indexOf('reconcile'));
+  });
+
+  test('two failures: exactly one retry, then the arc continues', async () => {
+    // Mutations caught: retrying more than once; blocking the arc on failure.
+    mockUpdatePrefs.mockImplementation(() => {
+      calls.push('updatePrefs');
+      return Promise.reject(new Error('offline'));
+    });
+    renderStep();
+
+    confirm();
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(V3_ROUTES.Done));
+    expect(mockUpdatePrefs).toHaveBeenCalledTimes(2);
   });
 });

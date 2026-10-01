@@ -278,10 +278,15 @@ export async function cancelAllNotifications(): Promise<void> {
  * syncAllReminders). focus-complete has no stable identifier prefix, so it is
  * matched by its data payload (data.type === 'focus-complete').
  */
-export async function cancelAllScheduledExceptFocusComplete(): Promise<void> {
+export async function cancelAllScheduledExceptFocusComplete(
+  spare: (identifier: string) => boolean = () => false
+): Promise<void> {
   const pending = await Notifications.getAllScheduledNotificationsAsync();
   for (const request of pending) {
     if (request.content?.data?.type === 'focus-complete') continue;
+    // `spare` keeps an identifier a reconcile owns (NPM-1: the current user's
+    // daily rhythm), so a failed or offline reconcile cannot leave it cancelled.
+    if (spare(request.identifier)) continue;
     await Notifications.cancelScheduledNotificationAsync(request.identifier);
   }
 }

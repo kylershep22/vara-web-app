@@ -24,7 +24,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useNotificationOptIn } from '../hooks/useNotificationOptIn';
 import { updateNotificationPreferences } from '../services/firebase/notificationPreferences.service';
-import { scheduleDailyRhythm } from '../services/notificationScheduler.service';
+import { reconcileDailyRhythm } from '../services/notificationScheduler.service';
 
 interface NotificationOptInScreenProps {
   navigation: any;
@@ -94,7 +94,7 @@ const NotificationOptInScreen: React.FC<NotificationOptInScreenProps> = ({ navig
       // still saved and this is not an error.
       const perm = await getPermissionsStatus();
       if (perm.status === 'granted') {
-        await scheduleDailyRhythm(user.uid);
+        await reconcileDailyRhythm(user.uid);
       }
 
       await markOptedIn();

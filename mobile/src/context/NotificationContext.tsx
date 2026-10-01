@@ -3,21 +3,19 @@
  * Manages notification scheduling, foreground consolidation, FCM token registration,
  * and provides notification functions to the app.
  *
- * Server push: When serverPushEnabled feature flag is on, local scheduling for
- * daily_rhythm and insights_learning is skipped (Cloud Functions handle those).
- * Social notifications still use local fallback for immediate delivery.
+ * The daily rhythm is local only in V1 (Kyle's ruling D1 and NPM-1 ruling 1):
+ * whether it should exist is decided by reconcileDailyRhythm from a FRESH read of
+ * the user's preferences, never from a hook copy and never from serverPushEnabled.
  */
 
-import React, { createContext, useContext, useEffect, useCallback, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useCallback, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { useAuth } from './AuthContext';
-import { useNotificationPreferences } from '../hooks/useNotificationPreferences';
 import { useToast } from './ToastContext';
 import {
   setForegroundNotificationHandler,
   cancelAllScheduledExceptFocusComplete,
   registerAndSaveFCMToken,
-  isServerPushEnabled,
   addNotificationResponseListener,
   getLastNotificationResponse,
 } from '../services/notifications.service';
@@ -33,11 +31,10 @@ import { navigationRef } from '../navigation/AppNavigator';
 import { ROUTES } from '../navigation/routes';
 import { NAV_TARGETS } from '../navigation/navTargets';
 import {
-  initializeUserNotifications,
-  updateNotificationsFromPreferences,
+  reconcileDailyRhythm,
+  dailyRhythmNotificationId,
   cancelAllUserNotifications,
   sendMilestoneNotification,
-  scheduleDailyReminder,
   sendConnectionRequestNotification,
   sendMessageNotification,
   sendGroupPostNotification,
@@ -74,10 +71,8 @@ function navigateToFocusTimer(completedSessionId?: string): void {
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthReady } = useAuth();
-  const { preferences } = useNotificationPreferences();
   const { showNotificationToast } = useToast();
   const appStateRef = useRef(AppState.currentState);
-  const [serverPush, setServerPush] = useState(false);
 
   // Reminder reconciliation is cancel-then-reschedule, and two effects run it:
   // the login effect below and the foreground handler. On a cold start they
@@ -102,39 +97,33 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     });
   }, [showNotificationToast, user?.uid]);
 
-  // Register FCM token and check feature flag on login
+  // Register FCM token on login
   useEffect(() => {
     if (!user?.uid) return;
-
-    const setup = async () => {
-      // Register native push token for FCM
-      await registerAndSaveFCMToken(user.uid);
-
-      // Check if server push is enabled
-      const enabled = await isServerPushEnabled();
-      setServerPush(enabled);
-    };
-
-    setup();
+    // Register native push token for FCM
+    registerAndSaveFCMToken(user.uid);
   }, [user?.uid]);
 
   // Foreground consolidation: cancel pending, reschedule future. Spares the
   // pending focus-complete notification (the OS owns it; the timer relies on it
-  // firing at endsAt) so a mid-block glance at the phone no longer wipes it.
-  // Every other type is cleared exactly as before.
+  // firing at endsAt) so a mid-block glance at the phone no longer wipes it, and
+  // the current user's daily rhythm, which the reconcile owns (NPM-1). Every
+  // other identifier is cleared exactly as before, including ids older builds
+  // left behind that nothing else cancels.
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextState: AppStateStatus) => {
       if (appStateRef.current !== 'active' && nextState === 'active' && user?.uid) {
         const uid = user.uid;
         await runExclusive(async () => {
-          await cancelAllScheduledExceptFocusComplete();
-          // Only reschedule locally if server push is off
-          if (preferences?.allNotificationsEnabled && !serverPush) {
-            await scheduleDailyReminder(uid);
-          }
-          // Habit and routine reminders are re-synced regardless of the
-          // server-push toggle, matching the login effect below: server push
-          // covers daily rhythm and insights, never reminders. Without this,
+          // The current user's daily rhythm is spared: the reconcile below owns
+          // it, and a failed or offline read there must leave it scheduled.
+          const dailyRhythmId = dailyRhythmNotificationId(uid);
+          await cancelAllScheduledExceptFocusComplete((id) => id === dailyRhythmId);
+          // Decided from a fresh read (NPM-1). The provider used to read its own
+          // preferences copy here, loaded once per uid, so a new user's first
+          // leave-and-return cancelled the reminder onboarding had just set.
+          await reconcileDailyRhythm(uid);
+          // Routine reminders are re-synced as well. Without this,
           // the cancel above wipes every pending routine reminder — and, once
           // they exist, every habit reminder — until the next login, so a
           // glance at the phone silently emptied the schedule for the day.
@@ -145,21 +134,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       appStateRef.current = nextState;
     });
     return () => subscription.remove();
-  }, [user?.uid, preferences?.allNotificationsEnabled, serverPush, runExclusive]);
+  }, [user?.uid, runExclusive]);
 
-  // Initialize notifications when user logs in (only if master toggle is on)
+  // Reconcile the daily rhythm on sign-in and cold start. The reconcile reads the
+  // preferences fresh and decides; nothing here consults a stored copy.
   useEffect(() => {
-    if (user?.uid && user?.emailVerified && preferences?.allNotificationsEnabled) {
+    if (user?.uid && user?.emailVerified) {
       const uid = user.uid;
       // Serialized against the foreground handler above; see runExclusive.
       runExclusive(async () => {
-        if (!serverPush) {
-          // Local scheduling as fallback when server push is off
-          await initializeUserNotifications(uid);
-        }
+        await reconcileDailyRhythm(uid);
       });
     }
-  }, [user?.uid, user?.emailVerified, preferences?.allNotificationsEnabled, serverPush, runExclusive]);
+  }, [user?.uid, user?.emailVerified, runExclusive]);
 
   // Sync routine reminders on sign-in. Independent of the General notifications
   // preference and of server push: a routine reminder depends only on the user
@@ -171,13 +158,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       runExclusive(() => syncAllReminders(uid));
     }
   }, [user?.uid, user?.emailVerified, runExclusive]);
-
-  // Update notifications when preferences change
-  useEffect(() => {
-    if (user?.uid && preferences && !serverPush) {
-      updateNotificationsFromPreferences(user.uid, preferences);
-    }
-  }, [user?.uid, preferences, serverPush]);
 
   // Deep link routing for notification taps
   useEffect(() => {
@@ -267,17 +247,17 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useEffect(() => {
     if (!user) return;
     return () => {
-      if (user?.uid) {
+      // Only when the session actually ended: the uid became null (sign-out,
+      // account deletion, a lost token) or a different uid. Not when the same
+      // user's object is replaced, and not on unmount (NPM-1 T5: replacing the
+      // object used to cancel the daily rhythm too).
+      if (user?.uid && currentUidRef.current !== user.uid) {
         cancelAllUserNotifications(user.uid);
         // No routine reminder survives loss of the owning user session
         // (ruling R-I). Routine reminder ids carry no user id, so the call
-        // above never matches them. Runs when the uid becomes null (sign-out,
-        // account deletion, a lost token) or a different uid; not when the
-        // same user's object is replaced, and not on unmount.
+        // above never matches them.
         // Serialized, so the next account's sign-in sync cannot interleave.
-        if (currentUidRef.current !== user.uid) {
-          runExclusive(cancelAllRoutineReminders);
-        }
+        runExclusive(cancelAllRoutineReminders);
       }
     };
   }, [user, runExclusive]);
@@ -296,10 +276,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const initializeNotifications = useCallback(async () => {
     if (!user?.uid) return;
-    if (!serverPush) {
-      await initializeUserNotifications(user.uid);
-    }
-  }, [user?.uid, serverPush]);
+    await reconcileDailyRhythm(user.uid);
+  }, [user?.uid]);
 
   const onDailyCompletionAchieved = useCallback(async () => {
     if (!user?.uid) return;

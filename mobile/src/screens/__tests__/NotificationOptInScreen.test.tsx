@@ -16,7 +16,7 @@ const mockRegisterForPush = jest.fn();
 const mockGetPermissions = jest.fn();
 const mockSavePushToken = jest.fn().mockResolvedValue(undefined);
 const mockUpdatePrefs = jest.fn().mockResolvedValue(undefined);
-const mockScheduleDailyRhythm = jest.fn().mockResolvedValue('notif-id');
+const mockReconcileDailyRhythm = jest.fn().mockResolvedValue('scheduled');
 const mockMarkOptedIn = jest.fn().mockResolvedValue(undefined);
 const mockMarkDismissed = jest.fn().mockResolvedValue(undefined);
 const mockGoBack = jest.fn();
@@ -32,7 +32,7 @@ jest.mock('../../services/firebase/notificationPreferences.service', () => ({
   updateNotificationPreferences: (...a: any[]) => mockUpdatePrefs(...a),
 }));
 jest.mock('../../services/notificationScheduler.service', () => ({
-  scheduleDailyRhythm: (...a: any[]) => mockScheduleDailyRhythm(...a),
+  reconcileDailyRhythm: (...a: any[]) => mockReconcileDailyRhythm(...a),
 }));
 jest.mock('../../hooks/useNotificationOptIn', () => ({
   useNotificationOptIn: () => ({
@@ -102,7 +102,7 @@ describe('permission granted', () => {
     render(<NotificationOptInScreen navigation={navigation} />);
     fireEvent.press(screen.getByLabelText('Choose my reminder time'));
 
-    await waitFor(() => expect(mockScheduleDailyRhythm).toHaveBeenCalledWith('u1'));
+    await waitFor(() => expect(mockReconcileDailyRhythm).toHaveBeenCalledWith('u1'));
     expect(mockMarkOptedIn).toHaveBeenCalled();
     expect(mockGoBack).toHaveBeenCalled();
   });
@@ -132,7 +132,7 @@ describe('permission denied — the graceful path must hold', () => {
     fireEvent.press(screen.getByLabelText('Choose my reminder time'));
 
     await waitFor(() => expect(mockMarkOptedIn).toHaveBeenCalled());
-    expect(mockScheduleDailyRhythm).not.toHaveBeenCalled();
+    expect(mockReconcileDailyRhythm).not.toHaveBeenCalled();
 
     expect(alertSpy).toHaveBeenCalledWith(
       'Time saved',
@@ -158,7 +158,7 @@ describe('permission denied — the graceful path must hold', () => {
     render(<NotificationOptInScreen navigation={navigation} />);
     fireEvent.press(screen.getByLabelText('Choose my reminder time'));
 
-    await waitFor(() => expect(mockScheduleDailyRhythm).toHaveBeenCalledWith('u1'));
+    await waitFor(() => expect(mockReconcileDailyRhythm).toHaveBeenCalledWith('u1'));
   });
 });
 
@@ -169,7 +169,7 @@ describe('"Maybe later"', () => {
 
     await waitFor(() => expect(mockMarkDismissed).toHaveBeenCalled());
     expect(mockUpdatePrefs).not.toHaveBeenCalled();
-    expect(mockScheduleDailyRhythm).not.toHaveBeenCalled();
+    expect(mockReconcileDailyRhythm).not.toHaveBeenCalled();
     expect(mockGoBack).toHaveBeenCalled();
   });
 });
