@@ -411,8 +411,8 @@ deploy. Deploy state lives on Kyle's checklist.
 | V1-LEGACY-RETIREMENT | **[SUPERSEDED 2026-09-29 by Kyle's revised V1 scope rulings (the V1 SCOPE REVISION block at the end of §5). NO WORK SHIPPED UNDER THIS ID. Its successors: V1-HABITS-RETIREMENT (habits, ruling A), ROUTINES-RESTORE (routines stay, rulings B and C) and INSIGHTS-V1 (Insights stays, ruling D). This marker update is recorded in the §12.1 append of 2026-09-29.]** Was: **[READY. NOT AN R-SERIES ROW. OWN SLICE, LAUNCH-BLOCKING. Row added 2026-09-29, Kyle's product ruling: Rulings 2, 3 and 4 of the V1 launch scope block at the end of §5.]** Habits, routines as currently implemented, and the Insights screen's launch entry points leave V1 *(row added 2026-09-29)* | **FULL RETIREMENT** of habits, of routines as currently implemented, and of the Insights screen's launch entry points, **preserving implementation and data where that is cheaper and safe.** **IT MUST ENUMERATE EVERY REMAINING HABIT ENTRY POINT, INCLUDING BUT NOT LIMITED TO** (locations at `7bd11be`, under `mobile/src/`): `WeeklyHabitGrid`'s "Add a habit" (`components/dashboard/WeeklyHabitGrid.tsx` lines 97 to 122, wired at `screens/DashboardScreen.tsx` line 895); `RoutineCard`'s "Check habits" (`components/dashboard/RoutineCard.tsx` lines 70 to 71, wired at `DashboardScreen.tsx` line 903); PlanScreen defaulting to its Habits tab (`screens/PlanScreen.tsx` line 163), **including via Journey to Routines**, where the Habits tab is one tap away in the tab switch (`PlanScreen.tsx` line 256); the habit-reminder notification (`context/NotificationContext.tsx` lines 200 to 201, plus its foreground handler at line 100); HabitDetail (registered at `navigation/AppNavigator.tsx` line 1111, reached from `DashboardScreen.tsx` line 892 and `screens/HabitsScreen.tsx` line 63); and the Insights empty state (`screens/InsightsScreen.tsx` line 367, *"Start tracking habits and journaling to see your insights here."*). **THE ROUTINE SURFACES:** the Journey Routines card (`screens/journey/JourneyMapScreen.tsx` lines 159 to 169), the PlanScreen Routines tab (`PlanScreen.tsx` line 301), and the routine-reminder notification (`NotificationContext.tsx` lines 202 to 203). **IT VERIFIES THE UNVERIFIED INSIGHTS PATHS:** `BrainStateCheckin` (`components/dashboard/BrainStateCheckin.tsx` line 61), the `useNotifications` listener (`hooks/useNotifications.ts` line 83) and featureDiscovery (`constants/featureDiscovery.ts` line 279). Their reachability changes implementation scope, not Ruling 3. | Launch-blocking. **Does not block R3b once TODAY-LEGACY-REMOVAL lands, unless its investigation finds a direct Today dependency.** | Set at its Step 0. |
 | V1-HABITS-RETIREMENT | **[DONE, merged `6653b7c`, 2026-09-29; built `f0d339c` and `da57386`; walked 2026-09-29, zero FAILs. MOBILE CODE COMPLETE; OPERATIONALLY INCOMPLETE FOR LAUNCH UNTIL KYLE CONFIRMS THE SERVER FLAGS (row LEGACY-SERVER-PUSHES).]** Was: **[Next]** **[BUILT AND WALKED at `8046d1f` (build `f0d339c` and `da57386`; walked 2026-09-29, zero FAILs), AWAITING MERGE. MOBILE CODE COMPLETE; OPERATIONALLY INCOMPLETE FOR LAUNCH UNTIL KYLE CONFIRMS THE SERVER FLAGS (row LEGACY-SERVER-PUSHES).]** Was: **[READY. NOT AN R-SERIES ROW. OWN SLICE, LAUNCH-BLOCKING. Row added 2026-09-29 under ruling A of the V1 SCOPE REVISION block at the end of §5.]** Habits leave V1, and PlanScreen becomes routines only *(row added 2026-09-29)* | **EVERY EXPLICIT HABIT ENTRY POINT LEAVES V1, INCLUDING BUT NOT LIMITED TO** the list inherited from V1-LEGACY-RETIREMENT, re-cited at `d542352` under `mobile/src/`. Two of its items already left with TODAY-LEGACY-REMOVAL at `4b7662c`: `WeeklyHabitGrid`'s "Add a habit" and `RoutineCard`'s "Check habits". What remains: PlanScreen's Habits tab (the tab list at `screens/PlanScreen.tsx` lines 255 to 258, `HabitsScreen` rendered at lines 294 to 300); the habit-reminder notification tap (`context/NotificationContext.tsx` lines 200 to 201) and its foreground handler (lines 98 to 100); and HabitDetail (registered at `navigation/AppNavigator.tsx` lines 1110 to 1112, reached only from `screens/HabitsScreen.tsx` line 63). **HABITDETAIL CARRIES THE ONLY LIVE ROUTE INTO INSIGHTS**, its Look back row (`screens/HabitDetailScreen.tsx` lines 492 to 494); the Step 0 of 2026-09-29 found the other routes into Insights unmounted or unconsumed. Removing it leaves Insights unreachable until INSIGHTS-V1, per ruling D. **PLANSCREEN BECOMES ROUTINES ONLY (ruling B), with no route or screen rename unless the removal requires it.** This includes the default tab (`PlanScreen.tsx` line 163, which falls back to `'habits'`), the habit-reminder tap (it passes no tab param, so it lands on that default), and the test that pins the habits default, *"keeps the habits default for entry points that pass no tab param"* (`screens/__tests__/PlanScreen.tabParam.test.tsx`, the describe block at line 70, that case at line 87). **JOURNEY TO ROUTINES LANDS ON ROUTINES:** `screens/journey/JourneyMapScreen.tsx` line 169 passes `{ tab: 'routines' }`. **HABIT CREATION, SETTINGS AND REMINDER ENTRY POINTS ARE REMOVED FOR NEW V1 USE:** "Add a habit" (`HabitsScreen.tsx` line 137, and the create button at line 174 when inline create is off) opening `SimpleHabitCreateScreen` (line 182); `createHabit` at `hooks/useHabitsScreen.ts` lines 171 and 246; per-habit reminder scheduling at `useHabitsScreen.ts` line 264 and `HabitDetailScreen.tsx` line 304. A source search at `d542352` found no habit entry in `screens/SettingsScreen.tsx` or `screens/NotificationSettingsScreen.tsx`, and found no navigator registering the legacy onboarding screens that call `createHabit` (`screens/onboarding/OnboardingConfirmationScreen.tsx` line 59, `screens/onboarding/OnboardingQuickStartScreen.tsx` lines 232 and 263); this row's Step 0 confirms both. Dead `'Habits'` targets name a route that is not registered: `constants/featureDiscovery.ts` line 399 and `services/firebase/wellnessScore.service.ts` lines 378 and 434. **EXISTING STORED HABIT DATA AND ALREADY-SCHEDULED REMINDERS NEED NO MIGRATION HANDLING (ruling G).** The server-side `sendHabitReminders` export (`functions/index.js` line 26) is recorded for this row's Step 0. **THE FEATURE-DISCOVERY UNLOCK TOASTS ARE SWITCHED OFF (ruling F):** they are queued from `hooks/useDashboard.ts` line 255, with the `sessionCount` engagement call at line 247. **LEDGER ROWS IT OWNS:** TODAY-HABITS-SUBSCRIPTION-RESIDUAL (`useHabits(true)` at `useDashboard.ts` line 58), TODAY-BANNER-JOURNAL-ONLY and LEGACY-UNLOCK-TOASTS. **IT INHERITS THE MODAL-INVENTORY NOTE** at board lines 2837 to 2842 at `d542352`: five of the twelve modals are habits-owned (`HabitCompletionSheet`, `IntentionEditSheet`, `SimpleHabitCreateScreen`, `WizardContainer`, `HabitDetailScreen`), and that note's blast radius is re-read at this row. Mobile only (ruling H). | This docs slice, `docs/v1-scope-revision`, merged. | Yes, Kyle's device walk, confirming by sight that the habit entry points are gone, without walking any habit screen. |
 | ROUTINES-RESTORE | **[DONE, merged at cff2e98. ROUTINES ARE NOT LAUNCH-COMPLETE UNTIL ROUTINE-REMINDERS LANDS.]** Was: **[Next]** **[BUILT AND WALKED at `5a5485a` (build `b6c25cd`, `55b4205` and `5a5485a`; first walk 2026-09-30 found step B FAIL, fixed at `5a5485a`; re-walk 2026-09-30, zero FAILs), AWAITING MERGE. ROUTINES ARE NOT LAUNCH-COMPLETE UNTIL ROUTINE-REMINDERS LANDS.]** Was: **[READY. NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-09-29 under rulings B, C and I of the V1 SCOPE REVISION block at the end of §5.]** RoutineCard returns to Today, subordinate to the protocol *(row added 2026-09-29)* | **RESTORE FROM `33847ca`, WITHOUT "CHECK HABITS":** `mobile/src/components/dashboard/RoutineCard.tsx` and its test, both deleted at `4b7662c`, minus the all-done action (lines 70 to 74 at `33847ca`: the "Check habits" label, testID `dashboard-routine-check-habits`, handler `onNavigateToHabits`); **the `ActiveRoutinePlayer` wiring on Today** (`mobile/src/screens/DashboardScreen.tsx` at `33847ca`: imports at lines 17 to 20, the values taken from `useDashboard()` at lines 130 to 136, the card at lines 898 to 904, the modal at lines 946 to 958); and **the `useDashboard` routine plumbing** (`mobile/src/hooks/useDashboard.ts` at `33847ca`: imports at lines 48 to 54, state at lines 131 to 135, the on-focus routine load from line 347, the handlers from line 678, the returned values at lines 801 to 809). **`handleApplyRoutineTemplate` STAYS OUT** (lines 692 to 714 at `33847ca`): it was dead, and nothing read it. `mobile/src/screens/Time/ActiveRoutinePlayer.tsx` and the routine services are unchanged at `d542352`. **NOT THE OLD COLOURS (ruling C):** no `Colors.surface` fill (line 106 of `RoutineCard.tsx` at `33847ca`) and no Muted Sage Gray text (lines 127 and 131 there). It uses R3a's approved immersive surface (`Colors.surfaceImmersive`, `mobile/src/constants/colors.ts` line 113) and Soft Charcoal secondary text (`Colors.softCharcoal`, line 47). R3b owns its final geometry, typography hierarchy, spacing and visual treatment. **EXTEND THE STRUCTURE SUITE'S `useDashboard` MOCK:** `mobile/src/screens/__tests__/DashboardScreen.structure.test.tsx` lines 125 to 143 carry no routine fields. **AMEND CONTRACT (g)** (lines 748 to 795) to allow `RoutineCard`, `ActiveRoutinePlayer` and the plan route; keep `HabitNoteSheet`, `HabitDetail` and `Insights` forbidden; pin `dashboard-routine-check-habits` as absent. **TWO NEW STRUCTURAL CONTRACTS:** (1) RoutineCard renders after the `good-moment-row` anchor (`DashboardScreen.tsx` lines 864 to 866 at `d542352`), written as a hierarchy and tree-order assertion, not as proof of literal below-fold placement; (2) RoutineCard has no filled-primary action. **THE EXISTING SAGE-TEXT TEST CHECKS NAMES ONLY:** the describe block at lines 449 to 488 checks a fixed list of testIDs, so it does not enforce the colour ruling on a restored card. | V1-HABITS-RETIREMENT merged. | Yes, Kyle's device walk, verifying visual subordination and placement on the device. |
-| ROUTINE-REMINDERS | **[Next]** **[BUILT AND WALKED at e22eaa8, AWAITING MERGE. THE REMINDER TIME INPUT IS NOT LAUNCH-READY UNTIL ROUTINE-REMINDER-TIME-PICKER LANDS.]** Was: **[Next]** **[BUILT, WALK PENDING on journey/routine-reminders]** Was: **[READY. NOT AN R-SERIES ROW. OWN SLICE. LAUNCH-BLOCKING WHILE REMINDER CONTROLS REMAIN EXPOSED. Row added 2026-09-30, Kyle's ruling.]** A routine reminder either works or says honestly that it cannot *(row added 2026-09-30)* | **KYLE'S OPTION A OF THE ROUTINES-RESTORE STEP 0: A WORKING PERMISSION PATH IN `RoutineEditor.handleSave` WHEN A REMINDER TIME IS SET.** In order: validate the time with `parseTimeString` before saving; `ensureNotificationPermission`; `ensureRemindersAllowed`; schedule; and if permission is not granted, save the routine but say so honestly instead of the success alert. **IT MUST CLOSE ALL FOUR SILENT-FAILURE PATHS THE STEP 0 FOUND:** (1) permission is never asked; (2) permission is denied or revoked; (3) the time does not parse; (4) permission is granted but the master notifications flag is off, so the next foreground sync cancels the reminder and never re-creates it. **ALSO IN SCOPE:** the dead PlanScreen opt-in push (ROUTINE-REMINDER-PERMISSION), to be fixed, removed or left as Kyle rules; and replacing the celebration-emoji success alerts. **ALL NEW OR CHANGED COPY IS KYLE'S.** **STEP 0 GATE (Kyle's ruling):** this row's Step 0 must determine whether `ensureRemindersAllowed` changes only routine-reminder permission or state, or enables broader notification categories. **If it changes unrelated notification preferences, STOP for a product ruling.** **STEP 0 LOCATIONS, at `6653b7c` and unchanged at `5a5485a`:** `mobile/src/components/routines/RoutineEditor.tsx` lines 142 to 179 (the save and scheduling; the success alerts are at lines 159 and 181) and lines 338 to 351 (the free-text reminder field); `mobile/src/services/reminderScheduler.service.ts` lines 72 to 118 (`scheduleRoutineReminder`) and lines 138 to 186 (`syncAllReminders`); `mobile/src/services/firebase/notificationPreferences.service.ts` lines 33 and 104 (the master flag's `false` default) and line 374 (`ensureRemindersAllowed`); and `mobile/src/screens/PlanScreen.tsx` lines 54 to 62 (the opt-in check). | ROUTINES-RESTORE merged. | Yes, Kyle's device walk. |
-| ROUTINE-REMINDER-TIME-PICKER | **[READY. NOT AN R-SERIES ROW. OWN SLICE. LAUNCH-BLOCKING. Row added 2026-10-01, Kyle's ruling. Starts after ROUTINE-REMINDERS merges.]** The reminder time is picked, not typed *(row added 2026-10-01; promoted from the ROUTINE-REMINDER-TIME-PICKER ledger row)* | **KYLE'S RULINGS OF 2026-10-01, VERBATIM:** **Interaction:** Replace the free-text input with a tappable reminder row. Tapping opens the existing bottom-sheet time picker. Done commits the selected time; Cancel must discard all changes. If the existing picker mutates state while scrolling, fix that in this slice so Cancel is truthful. When a reminder exists, provide an explicit remove action. **Copy:** Section label: Reminder (optional). Empty row: Add a reminder. Set row: formatted time, e.g. 7:30 PM. Remove action: Remove reminder. Remove the helper line. **Initial picker value:** If a reminder already exists, open at the stored time. If no reminder exists, do not use routine-type defaults. Open at the nearest practical future time, rounded to the next 15 minutes. Avoid hidden assumptions about when a user's Morning, Evening, Sunday, or Custom routine should occur. **Minute interval:** Use 1-minute steps. **Legacy invalid values:** A stored value that fails parseTimeString renders as Add a reminder, not as a time. Preserve the legacy validation path for old data. Opening and cancelling the picker must not mutate that stored value; only an explicit save/change/remove action may resolve it. **Scope:** Keep all scheduling, permission, cancellation, sign-out, and alert behavior from ROUTINE-REMINDERS unchanged. This slice changes only how the reminder time is selected and persisted. | ROUTINE-REMINDERS merged. | Yes, Kyle's device walk. |
+| ROUTINE-REMINDERS | **[DONE, merged at 50c3622. THE REMINDER TIME INPUT IS NOT LAUNCH-READY UNTIL ROUTINE-REMINDER-TIME-PICKER LANDS.]** Was: **[Next]** **[BUILT AND WALKED at e22eaa8, AWAITING MERGE. THE REMINDER TIME INPUT IS NOT LAUNCH-READY UNTIL ROUTINE-REMINDER-TIME-PICKER LANDS.]** Was: **[Next]** **[BUILT, WALK PENDING on journey/routine-reminders]** Was: **[READY. NOT AN R-SERIES ROW. OWN SLICE. LAUNCH-BLOCKING WHILE REMINDER CONTROLS REMAIN EXPOSED. Row added 2026-09-30, Kyle's ruling.]** A routine reminder either works or says honestly that it cannot *(row added 2026-09-30)* | **KYLE'S OPTION A OF THE ROUTINES-RESTORE STEP 0: A WORKING PERMISSION PATH IN `RoutineEditor.handleSave` WHEN A REMINDER TIME IS SET.** In order: validate the time with `parseTimeString` before saving; `ensureNotificationPermission`; `ensureRemindersAllowed`; schedule; and if permission is not granted, save the routine but say so honestly instead of the success alert. **IT MUST CLOSE ALL FOUR SILENT-FAILURE PATHS THE STEP 0 FOUND:** (1) permission is never asked; (2) permission is denied or revoked; (3) the time does not parse; (4) permission is granted but the master notifications flag is off, so the next foreground sync cancels the reminder and never re-creates it. **ALSO IN SCOPE:** the dead PlanScreen opt-in push (ROUTINE-REMINDER-PERMISSION), to be fixed, removed or left as Kyle rules; and replacing the celebration-emoji success alerts. **ALL NEW OR CHANGED COPY IS KYLE'S.** **STEP 0 GATE (Kyle's ruling):** this row's Step 0 must determine whether `ensureRemindersAllowed` changes only routine-reminder permission or state, or enables broader notification categories. **If it changes unrelated notification preferences, STOP for a product ruling.** **STEP 0 LOCATIONS, at `6653b7c` and unchanged at `5a5485a`:** `mobile/src/components/routines/RoutineEditor.tsx` lines 142 to 179 (the save and scheduling; the success alerts are at lines 159 and 181) and lines 338 to 351 (the free-text reminder field); `mobile/src/services/reminderScheduler.service.ts` lines 72 to 118 (`scheduleRoutineReminder`) and lines 138 to 186 (`syncAllReminders`); `mobile/src/services/firebase/notificationPreferences.service.ts` lines 33 and 104 (the master flag's `false` default) and line 374 (`ensureRemindersAllowed`); and `mobile/src/screens/PlanScreen.tsx` lines 54 to 62 (the opt-in check). | ROUTINES-RESTORE merged. | Yes, Kyle's device walk. |
+| ROUTINE-REMINDER-TIME-PICKER | **[Next]** **[BUILT, WALK PENDING on journey/routine-reminder-time-picker]** Was: **[READY. NOT AN R-SERIES ROW. OWN SLICE. LAUNCH-BLOCKING. Row added 2026-10-01, Kyle's ruling. Starts after ROUTINE-REMINDERS merges.]** The reminder time is picked, not typed *(row added 2026-10-01; promoted from the ROUTINE-REMINDER-TIME-PICKER ledger row)* | **KYLE'S RULINGS OF 2026-10-01, VERBATIM:** **Interaction:** Replace the free-text input with a tappable reminder row. Tapping opens the existing bottom-sheet time picker. Done commits the selected time; Cancel must discard all changes. If the existing picker mutates state while scrolling, fix that in this slice so Cancel is truthful. When a reminder exists, provide an explicit remove action. **Copy:** Section label: Reminder (optional). Empty row: Add a reminder. Set row: formatted time, e.g. 7:30 PM. Remove action: Remove reminder. Remove the helper line. **Initial picker value:** If a reminder already exists, open at the stored time. If no reminder exists, do not use routine-type defaults. Open at the nearest practical future time, rounded to the next 15 minutes. Avoid hidden assumptions about when a user's Morning, Evening, Sunday, or Custom routine should occur. **Minute interval:** Use 1-minute steps. **Legacy invalid values:** A stored value that fails parseTimeString renders as Add a reminder, not as a time. Preserve the legacy validation path for old data. Opening and cancelling the picker must not mutate that stored value; only an explicit save/change/remove action may resolve it. **Scope:** Keep all scheduling, permission, cancellation, sign-out, and alert behavior from ROUTINE-REMINDERS unchanged. This slice changes only how the reminder time is selected and persisted. | ROUTINE-REMINDERS merged. | Yes, Kyle's device walk. |
 | NOTIFICATION-PREFERENCES-MODEL | **[READY. PRE-LAUNCH. NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-10-01 at ROUTINE-REMINDERS' build docs, Kyle's ruling R6. IMMEDIATELY AFTER ROUTINE-REMINDERS. NOTHING IN IT IS BUILT BY ROUTINE-REMINDERS.]** The general notification preference means what it says *(row added 2026-10-01)* | **OWNS THE GENERAL NOTIFICATION PREFERENCE MODEL:** what the General notifications control (`allNotificationsEnabled`, renamed on screen by ROUTINE-REMINDERS' ruling R-B, semantics unchanged) turns on and off, how it relates to the per-category preferences, and whether a never-enabled state is distinguished from an explicitly disabled one (ROUTINE-REMINDERS' ruling R-A forbade inferring that from the shared `false`). **OWNS JOURNAL NOTIFICATION SEMANTICS:** the Journal opt-in navigate (`mobile/src/screens/JournalScreen.tsx` lines 482 to 487, whose `useCallback` dependencies at line 499 omit `shouldShowNotifPrompt`) and the opt-in hook's `shown` state, which `mobile/src/hooks/useNotificationOptIn.ts` line 47 does not treat as blocking. **ITS STEP 0 VERIFIES THE DAILY RHYTHM PATH END TO END,** including whether onboarding obtains OS permission and sets the app preference that path needs (`mobile/src/services/notificationScheduler.service.ts` line 132 requires `allNotificationsEnabled` and `dailyRhythm.enabled`; `mobile/src/context/NotificationContext.tsx` gates `initializeUserNotifications` on `allNotificationsEnabled`). **A failure of the core daily rhythm path is LAUNCH-BLOCKING.** **INHERITED LEDGER ROWS:** SOCIAL-PUSH-FLAG-BYPASS, NOTIFICATIONS-CODEBASE-IGNORES-PREFS and LOCAL-MILESTONE-IGNORES-SETTING. | ROUTINE-REMINDERS merged. | Yes, Kyle's device walk. |
 | INSIGHTS-V1 | **[BLOCKED ON KYLE'S PRODUCT SPEC. LAUNCH-BLOCKING. NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-09-29 under rulings D, E and I of the V1 SCOPE REVISION block at the end of §5.]** Insights becomes qualitative observations *(row added 2026-09-29)* | **THE QUALITATIVE OBSERVATIONS MODEL (ruling D), INSIDE THE V1 FREE-TEXT BOUNDARY (ruling E).** **RETIRED** from `mobile/src/screens/InsightsScreen.tsx` (lines at `d542352`): the Wellness Score ring (`HeroSummaryCard`, line 373); the days-active and at-a-glance counters (`AtAGlanceCard`, line 412, computed at lines 268 to 272); the habit heatmap (`HabitHeatmap`, line 405); the daily activity bar chart (`WeeklyBarChart`, line 396); the correlation card (`CorrelationInsightCard`, lines 391 to 392); the habit empty state (line 367, *"Start tracking habits and journaling to see your insights here."*, gated at lines 330 to 335); and the percent-of-habits narrative fallback (line 250, *"This week you completed about ${habitPct}% of your habits."*). **THE SHELL IS KEPT:** the route (registered at `mobile/src/navigation/AppNavigator.tsx` lines 941 to 948) and the screen. **THE FATE OF THE WEEKLY-NARRATIVE AI CALL** (`InsightsScreen.tsx` lines 228 to 229, `/weekly-narrative`) **IS DECIDED UNDER RULING E.** **ADD THE `moments` READ PATH:** `mobile/src/services/firebase/moments.service.ts` is write-only by design and says so at lines 4 to 6. **REVISIT THE `closeNote` COPY**, per the §11 note of 2026-09-10. **JEN REVIEWS** any observation making an efficacy or physiological claim. **THE LOOK BACK ENTRY RETURNS ONLY ONCE THE CONTENT IS HONEST**, using R3b's treatment (ruling I). **ITS STEP 0 DEFINES EXACTLY WHICH STRUCTURED SOURCES FEED OBSERVATIONS AND HOW EACH OBSERVATION IS DERIVED**, starting from the inventory in the Step 0 of 2026-09-29, which found a live writer at `d542352` for `journeyStates`, `dailyLogs`, `weeklyCycles`, `moments`, `journalEntries`, `protocolSessions`, `focusSessions`, routine completions, `capturedTasks` and `dayBlocks`. **STEP 0 FINDINGS, RECORDED HERE:** `brainMetrics` and `brainStateCheckIns` have no live writer. The only `brainMetrics` writer (`mobile/src/components/brain/BrainReadinessWidget.tsx` line 112) is rendered only by `BrainHealthDashboard`, which no navigator registers; the `brainStateCheckIns` writer (`mobile/src/components/checkin/flow/CheckInFlow.tsx` line 113) sits behind the `CheckInFlow` route, whose three callers are rendered nowhere. **So the current sleep, mood and energy correlations run on no data.** And **"Protocols completed" counts focus sessions** (`InsightsScreen.tsx` line 270). | Kyle's product spec. Jen, for any claim-bearing content. | Set at its Step 0. |
 | R4 | **[R3 DEPENDENCY REMOVED 2026-09-29 by Kyle's ruling; the reason is in the AMENDED 2026-09-29 block on R4, below the board. Any remaining hold is sequencing, which is Kyle's to keep or drop. Was: BLOCKED ON R3. Row added 2026-09-12 with the R-series.]** Journey map goes atmospheric *(row added 2026-09-12 with the R-series)* | **`PhasePath` variants, a featured current step, and the hub cards.** `PhasePath` is ONE component serving TWO surfaces - the map with `copy="full"` and the A2 route strip with `copy="short"` and no `onPressPhase` - and **a variant must not become a second implementation**, which is the exact thing building it once in 5a was meant to prevent. **WHAT THE VISUAL LAYER MAY CHANGE:** the rail (`RAIL_WIDTH` 24, 2pt connectors in `Colors.divider`), the marker (12pt, 1.5pt border, `MARKER_TOP_OFFSET` derived from the type scale rather than typed as a literal), the four `MARKER_STYLES`, typography and emphasis, and the featured treatment of the current row. **WHAT IT MAY NOT:** the four states must stay visually distinguishable and each must keep a second non-colour signal, because §16 forbids colour carrying meaning alone - today that is a check glyph for `done`, a 1.25 scale for `current`, and a dashed border for `skipped`. **`skipped` NEVER TAKES CORAL**, which is reserved for genuine errors, and never reads as a reprimand. **`ahead` IS NOT `locked`** and must not acquire a lock, a dim, or a disabled appearance. **EVERY ROW OPENS, INCLUDING THE ONES AHEAD**, and there is no per-row opt out: passing `onPressPhase` is what makes a row a button with a 48pt floor and a chevron, and a path where some rows lead somewhere and others do not draws a door the model does not have. **NO COUNTERS AND NOTHING THAT FILLS AS PHASES CLOSE** - §10.7 permits the rail as wayfinding in a finite flow and bans it as a progress bar, and a "featured current step" must not become a position indicator with a denominator. **THE HUB CARDS BELOW THE DIVIDER ARE LOAD BEARING, NOT DECORATIVE:** `JourneyMapScreen` is the ONLY navigator to `ROUTES.PillarFocus` and `ROUTES.PillarStressRecovery` in the app, and `FocusHubScreen` went dark for two months after IA step 2 with its own unit suite green the whole time. **`StartHereRow` IS A SIBLING OF THE LOADING BRANCH AND NEVER A CHILD OF IT**, so a slow or failed `journeyStates` read cannot take it down; a layout change must not reparent it. **NO GUIDE PILL AND NO HERO BAND ON THIS SCREEN** - both were decided in 5b-i, and R0's 11F stops hubs mandating a band rather than licensing one here. **FROZEN:** journey phase derivation; `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; phase advancement; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement; ahead rows remain tappable; no streaks, scores or completion percentages. | **Gated on R0** (§2.8, §8, new 11H) **and on R1** (primitives, hub card). `components/journey/__tests__/PhasePath.test.tsx` and `screens/journey/__tests__/JourneyMapScreen.test.tsx` green unchanged. | **Yes, the full standing walk**, with (h) no numeric progress as the assertion this row is most able to fail. Walk all four states on seeded accounts, including `skipped`, which no walk has exercised on a redesigned rail. |
@@ -2438,6 +2438,90 @@ case). `wellnessScore.service` de-wiring remains queued and is untouched by this
 > directly after ROUTINE-REMINDERS, LAUNCH-BLOCKING, starting after ROUTINE-REMINDERS merges. That
 > row carries Kyle's rulings of 2026-10-01 verbatim.
 
+> **ADDED 2026-10-01 (ROUTINE-REMINDER-TIME-PICKER's build docs). KYLE'S BUILD RULINGS ON THE
+> ROUTINE-REMINDER-TIME-PICKER ROW.** The row is left unedited apart from its status marker
+> (§12.1). Recorded as Kyle gave them on 2026-10-01, for the build. Binding as written.
+>
+> - **R-1. INTERACTION.** The free-text reminder input in RoutineEditor is replaced by a tappable
+>   reminder row. Tapping it opens the existing TimePickerSheet. Done commits the selected time to
+>   the editor's local model; Cancel discards all changes. On iOS the sheet renders inside a
+>   transparent React Native Modal, the existing Activity Library's pattern, so it sits above the
+>   floating tab bar and is not clipped by PlanScreen. When the local model holds a valid
+>   reminder, an explicit remove action is shown.
+> - **R-2. COPY.** The helper line is removed entirely, with REMINDER_HELPER and its render.
+>   Section label: Reminder (optional). Empty row: Add a reminder. Set row: the formatted time,
+>   for example 7:30 PM. Remove action: Remove reminder.
+> - **R-3. ACCESSIBILITY.** The row does not rely on the section heading having just been
+>   announced. It has accessibilityRole button and its own complete label: "Reminder, add a
+>   reminder" with no reminder, and "Reminder, " followed by the formatted time when set, for
+>   example "Reminder, 7:30 PM". The remove action has accessibilityRole button and the label
+>   "Remove reminder". The visible section label stays Reminder (optional). No spoken hint.
+> - **R-4. INITIAL PICKER VALUE.** A valid reminder in the local model opens the picker at that
+>   time. Otherwise it opens at the next quarter hour strictly after the current time: 2:07 PM
+>   opens at 2:15 PM, 2:15 PM exactly opens at 2:30 PM, 11:50 PM opens at 12:00 AM. The value is
+>   calculated once, when the sheet opens, and held; never recalculated while the sheet stays
+>   open. No routine-type defaults. `nextQuarterHourAfter` and `initialPickerTime` are pure
+>   functions, as proposed at Step 0.
+> - **R-5. MINUTE STEPS.** 1 minute, the shared sheet's existing behaviour.
+> - **R-6. PERSISTENCE AND LEGACY MALFORMED VALUES.** The picker writes the formatted time, for
+>   example 7:30 PM, which parseTimeString accepts. A persisted value that fails parseTimeString
+>   is null in the editor's local model when the editor opens, and displays Add a reminder.
+>   Opening and cancelling the editor, and opening and cancelling the picker, do not mutate
+>   persisted data. Saving persists the current valid model, so an untouched legacy malformed
+>   reminder becomes null. A picked time is stored on save. Remove reminder sets the local model
+>   to null and a save stores null; the editor's own Cancel discards a removal like any other
+>   unsaved edit. The invalid-time alert is not shown merely because an invisible legacy
+>   malformed value existed: a save whose model is null behaves exactly like the empty-field
+>   path (cancel `routine-reminder-{id}`, close, no alert). The invalid-time outcome stays
+>   defensively available at the save boundary, with only its body changed, to exactly: title
+>   "Check the reminder time", body "Your routine is saved without a reminder. Choose a time to
+>   add one.", button "OK". **THE INVARIANT, VERBATIM: "After any successful save through the
+>   picker-era routine editor, the persisted reminder value is either null or parseable by
+>   parseTimeString."**
+> - **R-7. DISPLAY NORMALISATION.** Wherever a persisted reminder is displayed, a value that
+>   parses is shown in the picker-era format (stored 08:00 displays as 8:00 AM), and a value that
+>   does not parse is never shown as a time. Display only: storage is never rewritten merely for
+>   formatting. The RoutinesTab parse guard stays.
+> - **R-8. "CHANGED"** keeps its ROUTINE-REMINDERS definition: the parsed hours and minutes of the
+>   local model against the parsed persisted value, where a persisted value that is null or fails
+>   to parse counts as different. Reminder set, Allow reminders?, Notifications are off and
+>   Reminder not set are unchanged.
+> - **SCOPE, FROM THE BUILD BRIEF.** `mobile/src/components/shared/TimePickerSheet.tsx` is used
+>   as it is and not modified. No scheduling, permission, cancellation, sign-out or alert
+>   behaviour from ROUTINE-REMINDERS changes, apart from the invalid-time body in R-6.
+
+> **ADDED 2026-10-01 (Kyle's ruling on the ROUTINE-REMINDER-TIME-PICKER copy-guard stop).
+> "REMOVE REMINDER" IS EXEMPTED FROM THE FRAMEWORK-WORD CHECK AS ONE EXACT STRING; THE FILE STAYS
+> GUARDED.** The row and the block above are left unedited.
+>
+> - **THE STOP.** The approved string "Remove reminder" (R-2, R-3) failed the journey
+>   framework-word check in `mobile/src/__tests__/brandCopyGuard.test.ts`, which rejects remove,
+>   recover, rewire and refocus in short strings in copy modules. The rulings did not resolve the
+>   conflict, so the build stopped before its code commit and reported.
+> - **THE RULING.** Keep "Remove reminder" for the visible action and its accessibility label. Do
+>   not allowlist `routineEditor.copy.ts` as a whole file. Exempt only the exact full string, with
+>   the reason: "Remove reminder" uses remove as the ordinary verb, not the Remove journey phase;
+>   precedent, the src/screens/Focus/blocks entry in FRAMEWORK_ALLOWLIST. If the guard had no
+>   single-string exemption, add the narrowest mechanism, consulted only by this check, and loosen
+>   the check in no other way.
+> - **WHAT WAS BUILT.** The guard had none, so `FRAMEWORK_EXACT_EXEMPTIONS` was added: an exact,
+>   case-sensitive, whole-string, untrimmed match list, each entry with its reason, consulted only
+>   by the framework-word check. Its one entry is "Remove reminder", with Kyle's reason verbatim.
+>   An entry whose string no longer appears in a guarded copy module fails, on the same integrity
+>   contract as FRAMEWORK_ALLOWLIST. `routineEditor.copy.ts` is not in FRAMEWORK_ALLOWLIST.
+
+> **ADDED 2026-10-01 (ROUTINE-REMINDER-TIME-PICKER's build docs). AN ADDENDUM TO
+> NOTIFICATION-PREFERENCES-MODEL.** The row is left unedited. **THE SETTINGS TIME PICKERS COMMIT ON
+> EVERY SCROLL TICK, SO THEIR CANCEL DISCARDS NOTHING.** In
+> `mobile/src/screens/NotificationSettingsScreen.tsx` the daily reminder time, the Quiet Hours
+> start and the Quiet Hours end share one picker. Its `handleTimeChange` (lines 68 to 89) writes
+> the preference on every `onChange`: `updateCategory('dailyRhythm', ...)` at line 81, and
+> `setQuietHours(...)` at lines 83 and 85. The iOS spinner passes `onChange={handleTimeChange}`
+> (line 329), so each tick is a write. Cancel (line 318) and Done (line 321) both call
+> `closeTimePicker` (line 91), which only hides the sheet, so Cancel discards nothing. This is the
+> pattern `TimePickerSheet` was extracted to fix, and its header names this screen. **OWNED BY
+> NOTIFICATION-PREFERENCES-MODEL. NOT FIXED IN ROUTINE-REMINDER-TIME-PICKER.**
+
 ---
 
 ## 6. Content dependencies (Jen), in build order
@@ -3091,6 +3175,22 @@ rule is cited as §12.1.
 >   2026-10-01, Kyle's ruling. Starts after ROUTINE-REMINDERS merges."* The rationale: Kyle's
 >   post-walk ruling of 2026-10-01.
 > - **NEW LEDGER ROW: ACCOUNT-DELETION-FALSE-FAILURE**, after ROUTINE-DUPLICATE-ACTIVE-EVENING.
+
+> **ADDED 2026-10-01 (ROUTINE-REMINDER-TIME-PICKER's build docs), recording the merge evidence.
+> TWO MARKER UPDATES.** The rule and the blocks above are left unedited. Each update keeps the
+> entire prior marker verbatim after "Was:".
+>
+> **The merge evidence.** ROUTINE-REMINDER-TIME-PICKER's Step 0 and its build, run by CC from
+> `mobile/` on 2026-10-01, observed `git rev-parse HEAD` and `git rev-parse origin/main` both
+> returning `50c3622b14b0304d5c996743faade0baa36bee1d` on `main` with a clean tree, and
+> `50c3622`'s parents as `cff2e98` and `9be2273`, the tip of `origin/journey/routine-reminders`.
+>
+> - **ROUTINE-REMINDERS' MARKER.** It becomes *"DONE, merged at 50c3622. THE REMINDER TIME INPUT
+>   IS NOT LAUNCH-READY UNTIL ROUTINE-REMINDER-TIME-PICKER LANDS."* **[Next]** leaves this row.
+>   The rationale: the merge evidence; the qualifier stands until the picker row lands.
+> - **ROUTINE-REMINDER-TIME-PICKER's MARKER.** **[Next]** moves to this row, with *"BUILT, WALK
+>   PENDING on journey/routine-reminder-time-picker"*. The rationale: the build, and the walk not
+>   yet run.
 
 ---
 
@@ -4351,6 +4451,127 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the map route still offers it. **Record the result in this entry when observed. Until then
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
+
+### 2026-10-01 - ROUTINE-REMINDER-TIME-PICKER: the reminder time is picked, not typed (branch `journey/routine-reminder-time-picker`, `ff6bfc7` the before-state captures, `4a4cb23` the code and tests, this entry the docs; **BUILT, WALK PENDING**, script at `docs/walks/routine-reminder-time-picker/WALK.md`)
+
+**STEP 0 (read-only, on `main` at `50c3622`) FOUND THE SHARED PICKER ALREADY CORRECT.**
+- **`TimePickerSheet` holds a draft until Done.** Scroll only sets local state; Done calls
+  `onChange` once and closes; Cancel only closes; the draft re-seeds each time the sheet opens.
+  Android commits on the system dialog's `set` and discards on `dismissed`. `minuteInterval` is
+  not passed, so the native 1-minute default applies. Its own suite already pinned all of it. The
+  row's clause "if the existing picker mutates state while scrolling, fix that in this slice" had
+  nothing to fix, and the sheet was used as it is.
+- **One other call site, unaffected.** `mobile/src/screens/Focus/AddBlockSheet.tsx`, inline
+  presentation, reachable from the Focus hub and Captured Tasks. No habit call site remains. No
+  behaviour changes for it, so it is outside the walk.
+- **The round trip holds for every minute.** `formatReminderTime` then `parseTimeString` returned
+  the same hours and minutes for all 1,440 minutes of the day, including 12:00 AM, 12:30 AM,
+  12:00 PM, 12:30 PM, 11:59 PM and 1:05 AM.
+- **No native dependency or config change.** `@react-native-community/datetimepicker` 8.4.4 is
+  already installed and in the `app.json` plugins, so no new dev-client build is needed.
+
+**KYLE'S RULINGS** are recorded in full in the ADDED 2026-10-01 blocks at the end of §5: the build
+rulings R-1 to R-8, and the ruling on the copy-guard stop. The invariant, verbatim: **"After any
+successful save through the picker-era routine editor, the persisted reminder value is either null
+or parseable by parseTimeString."**
+
+**THE BUILD STOPPED ONCE, ON THE BRAND COPY GUARD, BEFORE THE CODE COMMIT.** The approved string
+"Remove reminder" failed the journey framework-word check in `brandCopyGuard.test.ts`, and the
+rulings did not resolve it. Kyle ruled: keep the string, do not allowlist `routineEditor.copy.ts`,
+exempt only the exact full string. The guard had no single-string exemption, so
+`FRAMEWORK_EXACT_EXEMPTIONS` was added: exact, case-sensitive, whole-string and untrimmed,
+consulted only by that check, with an integrity test that fails if the string stops being used.
+
+**WHAT WAS BUILT (`4a4cb23`), BY RULING:**
+- **R-1:** `RoutineEditor` renders a tappable row (`testID="routine-reminder-row"`). It opens
+  `TimePickerSheet` in its overlay presentation inside a transparent `Modal` with
+  `animationType="slide"` and `onRequestClose`, the Activity Library's pattern, on iOS. Android
+  renders the sheet directly, which is the system dialog. Done sets the local model; Cancel and
+  Android's dismissal only close. Remove reminder shows only while the model holds a valid time.
+- **R-2 and R-3:** the approved strings in `routineEditor.copy.ts` as `REMINDER_ROW`, landing
+  flat. `REMINDER_HELPER` and its render are gone. The row's label is complete on its own:
+  "Reminder, add a reminder" or "Reminder, 7:30 PM".
+- **R-4:** `nextQuarterHourAfter` and `initialPickerTime` in the new
+  `mobile/src/components/routines/routineReminderTime.ts`. The seed is computed in the row's
+  press handler and held in state while the sheet is open. Holding it matters because the sheet
+  re-seeds its draft whenever its value changes: a seed computed in render would move the wheel
+  as the clock crossed a quarter hour.
+- **R-6:** the local model is a string the parser accepts, or null.
+  - `reminderModelFrom` loads a persisted value only if it parses.
+  - Done writes `formatReminderTime`'s output; Remove sets null.
+  - `handleSave` is unchanged in shape: it still persists null for anything that does not parse,
+    so the invariant holds at two layers.
+  - The invalid-time outcome is unreachable from the UI and keeps only its new body.
+- **R-7:** `displayReminderTime` formats a parseable value and returns null otherwise. The
+  reminder render locations:
+  - **the editor row** (`RoutineEditor.tsx`);
+  - **the RoutinesTab badge** (`mobile/src/screens/Time/RoutinesTab.tsx`; parse guard unchanged,
+    the text is now formatted);
+  - **`RoutinesCard`** (`mobile/src/components/dashboard/RoutinesCard.tsx`), changed the same way.
+    It is imported by nothing and never rendered.
+
+  No other routine reminder render exists. The notification's own text does not include the time.
+  A valid stored value that is not touched is saved as stored: there is no rewrite for formatting.
+- **R-8:** the `changed` calculation is untouched. So are scheduling, permission, cancellation,
+  sign-out and every other alert.
+
+**TESTS.** All the mutations below were run with a scratchpad backup and a byte-identical SHA-256
+restore, never git.
+- **The new suite** `routineReminderTime.test.ts`: 17 tests.
+- **The editor suite** `RoutineEditor.reminders.test.tsx`: reworked from 28 to 42 tests. `setTime`
+  now drives the row, the sheet and Done.
+- **The badge suite:** +1 test. **The guard suite:** +9 tests.
+- **22 mutations of the slice code, all caught.** Among them:
+  - `>=` for strictly after, and the midnight wrap dropped;
+  - the seed computed on every render, and the clock not re-read on a fresh open;
+  - the sheet outside the iOS Modal, and Android wrapped in it;
+  - Cancel committing, and Done not committing;
+  - Remove always shown, and Remove writing at once;
+  - legacy raw text in the model, and unparsed text persisted;
+  - both invariant layers removed together;
+  - the old body restored;
+  - raw text in the badge and in the row;
+  - the set-row label without "Reminder, ";
+  - storage reformatted, and display falling back to raw text;
+  - the old section label;
+  - "changed" comparing raw text.
+- **4 mutations of the guard change, all caught:**
+  - "Recover your routine" added to `routineEditor.copy.ts`;
+  - the exemption matched loosely;
+  - the exemption removed;
+  - a whole-file allowlist.
+- **Three existing tests changed meaning, by ruling:**
+  - The legacy unparseable save now expects null with no alert (R-6), not Check the reminder time.
+  - The trimmed-typed-text test now pins the formatted time (R-6).
+  - The typed `730` E2 test is now the defensive save-boundary test, with the parser forced to
+    reject. The empty-field test clears through Remove reminder.
+
+**REACHABILITY, SEPARATE FROM THE MUTATIONS.** The tests render the editor and press its controls.
+The native picker is a stub, driven by its change event.
+- **The row, the sheet, Done, Cancel, Remove and the iOS Modal:** reachable from the Time screen's
+  Edit and from Today's routine card. Unverified on a device until the walk.
+- **The invalid-time outcome:** not reachable from the UI.
+- **Legacy malformed values and legacy display normalisation:** cannot be created through the app.
+- **`RoutinesCard`:** not mounted.
+
+**BASELINES at `4a4cb23`** (re-measured after the docs commit; see the report):
+- **jest:** 3980 tests in 244 suites, no failures. That is +41 tests and +1 suite on `main`'s
+  3939 and 243. Step 0 predicted about 3955; the difference is the guard's nine tests, which no
+  prediction foresaw, and a larger editor rework than estimated.
+- **tsc:** 137. The sorted error list, with file positions stripped, is identical to `main` at
+  `50c3622`. Two existing `RoutineEditor.tsx` errors moved lines.
+- **lint:** 892 errors, 1253 warnings, unchanged. Per file, only the line counts inside existing
+  `max-lines` warnings changed, and the two new files are clean.
+- **sentinel:** 156.
+
+**MANIFEST:** this slice writes no new Firestore collection or field.
+
+**NEW RECORD:** the ADDED 2026-10-01 addendum to NOTIFICATION-PREFERENCES-MODEL at the end of §5.
+The Settings time pickers commit on every scroll tick, so their Cancel discards nothing. Not fixed
+here.
+
+**THE WALK IS PENDING.** Kyle walks `docs/walks/routine-reminder-time-picker/WALK.md` on the docs
+commit. Nothing here is verified on a device.
 
 ### 2026-10-01 - ROUTINE-REMINDERS: a routine reminder either works or says honestly that it cannot, and no routine reminder survives loss of the owning user session (branch `journey/routine-reminders`, `0a37989` the before-state captures, `d4d714a` the code and tests, this entry the docs; **BUILT, WALK PENDING**, script at `docs/walks/routine-reminders/WALK.md`)
 
