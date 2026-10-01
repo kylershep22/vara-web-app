@@ -6,8 +6,22 @@
  * re-punctuate. They land flat, with no drafted marker.
  */
 
-/** The helper line under the reminder field. */
-export const REMINDER_HELPER = 'Optional. For example, 7:30 AM or 7:30 PM.';
+/**
+ * The reminder row (ROUTINE-REMINDER-TIME-PICKER, Kyle's rulings R-2 and R-3,
+ * 2026-10-01). The helper line is gone: the row is picked, not typed.
+ *
+ * The accessibility labels are complete on their own, so the row never relies
+ * on the section heading having just been announced.
+ */
+export const REMINDER_ROW = {
+  sectionLabel: 'Reminder (optional)',
+  empty: 'Add a reminder',
+  remove: 'Remove reminder',
+  a11yEmpty: 'Reminder, add a reminder',
+  /** `{time}` is the formatted time, for example "7:30 PM". */
+  a11ySet: (time: string) => `Reminder, ${time}`,
+  a11yRemove: 'Remove reminder',
+} as const;
 
 export const REMINDER_ALERTS = {
   scheduled: {
@@ -30,7 +44,11 @@ export const REMINDER_ALERTS = {
   },
   invalidTime: {
     title: 'Check the reminder time',
-    body: 'Your routine is saved without a reminder. Enter a time like 7:30 AM or 7:30 PM.',
+    /**
+     * Defensive only. Unreachable from the picker-era UI, which only ever
+     * holds a valid time or none (R-6). Body revised 2026-10-01.
+     */
+    body: 'Your routine is saved without a reminder. Choose a time to add one.',
     ok: 'OK',
   },
   schedulingFailure: {

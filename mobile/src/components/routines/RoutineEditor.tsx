@@ -46,7 +46,14 @@ import {
 } from '../../services/reminderScheduler.service';
 import { getPermissionsStatus } from '../../services/notifications.service';
 import { formatReminderTime } from '../../services/firebase/notificationPreferences.service';
-import { REMINDER_ALERTS, REMINDER_HELPER } from './routineEditor.copy';
+import { REMINDER_ALERTS, REMINDER_ROW } from './routineEditor.copy';
+import { TimePickerSheet } from '../shared/TimePickerSheet';
+import { ReminderTime } from '../../types';
+import {
+  initialPickerTime,
+  displayReminderTime,
+  reminderModelFrom,
+} from './routineReminderTime';
 
 type ParsedTime = { hour: number; minute: number };
 
@@ -75,7 +82,14 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
 }) => {
   const [routineName, setRoutineName] = useState('');
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [reminderTime, setReminderTime] = useState('');
+  // The reminder's local model (ROUTINE-REMINDER-TIME-PICKER R-6): a time
+  // parseTimeString accepts, or null. Only the picker's Done, Remove reminder
+  // and the load below ever set it, so it never holds malformed text.
+  const [reminder, setReminder] = useState<string | null>(null);
+  // The seed is computed ONCE, when the sheet opens, and held (R-4). Computing
+  // it in render would move the wheel under the user's finger as the clock
+  // crosses a quarter hour, because the sheet re-seeds when its value changes.
+  const [pickerSeed, setPickerSeed] = useState<ReminderTime | null>(null);
   const [showActivityLibrary, setShowActivityLibrary] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -84,13 +98,21 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
     if (existingRoutine) {
       setRoutineName(existingRoutine.name);
       setActivities(existingRoutine.activities);
-      setReminderTime(existingRoutine.reminderTime || '');
+      // A legacy malformed value is null here and displays Add a reminder.
+      // Loading writes nothing (R-6).
+      setReminder(reminderModelFrom(existingRoutine.reminderTime));
     } else {
       setRoutineName(`My ${getRoutineTypeDisplayName(routineType)} Routine`);
       setActivities([]);
-      setReminderTime('');
+      setReminder(null);
     }
   }, [existingRoutine, routineType]);
+
+  const openPicker = () => setPickerSeed(initialPickerTime(reminder, new Date()));
+  // Cancel, and Android's dismissal, discard: the model is untouched.
+  const closePicker = () => setPickerSeed(null);
+  // Done: the picker writes the formatted time, "7:30 PM" (R-6).
+  const commitPicker = (next: ReminderTime) => setReminder(formatReminderTime(next));
 
   const handleAddActivity = (template: ActivityTemplate) => {
     const newActivity = createActivityFromTemplate(template, activities.length);
@@ -160,10 +182,12 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
     }
 
     // Empty means no reminder. A non-empty value is kept only if the single
-    // parser accepts it; a rejected value is persisted as null, never as the
-    // text the user typed (ruling R-D).
+    // parser accepts it; a rejected value is persisted as null (ruling R-D).
+    // The picker-era model only ever holds a valid time or null, so the
+    // rejected branch is defensive (R-6): whatever reaches here, the persisted
+    // value is null or parses.
     const name = routineName.trim();
-    const timeText = reminderTime.trim();
+    const timeText = (reminder ?? '').trim();
     const parsed = timeText ? parseTimeString(timeText) : null;
     const storedTime = parsed ? timeText : null;
 
@@ -227,6 +251,7 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
     }
 
     // E2. Invalid time: already persisted as null. Never asks for permission.
+    // Defensive only: unreachable from the picker-era UI (R-6).
     if (!parsed) {
       await cancelRoutineReminder(routineId);
       Alert.alert(REMINDER_ALERTS.invalidTime.title, REMINDER_ALERTS.invalidTime.body, [
@@ -358,6 +383,17 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
   };
 
   const totalDuration = calculateTotalDuration(activities);
+  // R-7: displayed in the picker-era format; never shown unless it parses.
+  const shownReminder = displayReminderTime(reminder);
+
+  const pickerSheet = pickerSeed ? (
+    <TimePickerSheet
+      visible
+      value={pickerSeed}
+      onChange={commitPicker}
+      onClose={closePicker}
+    />
+  ) : null;
   const activityLibrary = getActivitiesForType(routineType);
 
   return (
@@ -477,17 +513,35 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
           </Button>
         </View>
 
-        {/* Reminder Time (Optional) */}
+        {/* Reminder (optional): picked, not typed (R-1, R-2, R-3) */}
         <View style={styles.section}>
-          <Text style={styles.label}>Reminder Time (Optional)</Text>
-          <TextInput
-            style={styles.input}
-            value={reminderTime}
-            onChangeText={setReminderTime}
-            placeholder="08:00"
-            placeholderTextColor={Colors.textSecondary}
-          />
-          <Text style={styles.helperText}>{REMINDER_HELPER}</Text>
+          <Text style={styles.label}>{REMINDER_ROW.sectionLabel}</Text>
+          <TouchableOpacity
+            style={styles.reminderRow}
+            onPress={openPicker}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={
+              shownReminder ? REMINDER_ROW.a11ySet(shownReminder) : REMINDER_ROW.a11yEmpty
+            }
+            testID="routine-reminder-row"
+          >
+            <Text style={shownReminder ? styles.reminderRowValue : styles.reminderRowEmpty}>
+              {shownReminder ?? REMINDER_ROW.empty}
+            </Text>
+            <Icon name="chevron-right" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
+          {shownReminder && (
+            <TouchableOpacity
+              style={styles.removeReminder}
+              onPress={() => setReminder(null)}
+              accessibilityRole="button"
+              accessibilityLabel={REMINDER_ROW.a11yRemove}
+              testID="routine-reminder-remove"
+            >
+              <Text style={styles.removeReminderLabel}>{REMINDER_ROW.remove}</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Stats */}
@@ -578,6 +632,23 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
           </View>
         </View>
       </Modal>
+
+      {/* Reminder time picker. iOS: the shared sheet's overlay inside a
+          transparent Modal, the Activity Library's pattern, so it sits above
+          the floating tab bar and is not clipped by PlanScreen (R-1). Android:
+          the shared sheet is the system dialog, which is already modal. */}
+      {Platform.OS === 'ios' ? (
+        <Modal
+          visible={pickerSeed !== null}
+          animationType="slide"
+          transparent
+          onRequestClose={closePicker}
+        >
+          {pickerSheet}
+        </Modal>
+      ) : (
+        pickerSheet
+      )}
     </KeyboardAvoidingView>
   );
 };
@@ -633,10 +704,37 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  helperText: {
-    fontSize: 12,
+  reminderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 48,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  reminderRowValue: {
+    fontSize: 16,
+    color: Colors.textPrimary,
+  },
+  reminderRowEmpty: {
+    fontSize: 16,
     color: Colors.textSecondary,
+  },
+  // Housekeeping, not a destructive action: a text button with no fill.
+  removeReminder: {
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    justifyContent: 'center',
     marginTop: Spacing.xs,
+  },
+  removeReminderLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.evergreenTeal,
   },
   emptyCard: {
     padding: Spacing.xl,

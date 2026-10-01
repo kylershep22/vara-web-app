@@ -33,6 +33,7 @@ import {
 import { getTemplatesForType, RoutineTemplate } from '../../constants/routineTemplates';
 import { runMigrationIfNeeded } from '../../services/firebase/routineMigration.service';
 import { cancelRoutineReminder, parseTimeString } from '../../services/reminderScheduler.service';
+import { displayReminderTime } from '../../components/routines/routineReminderTime';
 import {
   ColorTokens,
   SpacingTokens,
@@ -303,12 +304,14 @@ const RoutineView: React.FC<RoutineViewProps> = ({
             <Text style={styles.routineName}>{routine.name}</Text>
             {/* Only a time the single parser accepts is shown. A legacy
                 unparseable value stays stored until the next editor save
-                resolves it; rendering never writes (ruling R-J). */}
+                resolves it; rendering never writes (ruling R-J). A value that
+                parses is shown in the picker-era format, so a stored "08:00"
+                reads "8:00 AM" (ROUTINE-REMINDER-TIME-PICKER R-7). */}
             {routine.reminderTime != null && parseTimeString(routine.reminderTime) !== null && (
               <View style={styles.reminderBadge}>
                 <Icon name="bell" size={14} color={ColorTokens.primary} />
                 <Text style={styles.reminderText}>
-                  {routine.reminderTime}
+                  {displayReminderTime(routine.reminderTime)}
                 </Text>
               </View>
             )}

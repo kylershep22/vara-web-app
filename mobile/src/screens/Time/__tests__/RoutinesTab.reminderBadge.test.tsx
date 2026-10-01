@@ -90,6 +90,18 @@ describe('the RoutinesTab reminder badge', () => {
     expect(mockUpdateRoutine).not.toHaveBeenCalled();
     expect(mockCreateRoutine).not.toHaveBeenCalled();
   });
+
+  test('a stored "08:00" displays as 8:00 AM, and writes nothing (ROUTINE-REMINDER-TIME-PICKER R-7)', async () => {
+    // Mutation caught: rendering the raw stored text in the badge.
+    mockFetchActive.mockResolvedValue(routine('08:00'));
+    const view = render(<RoutinesTab onStartRoutine={jest.fn()} />);
+
+    await waitFor(() => expect(view.getByText('The Essentials')).toBeTruthy());
+    expect(view.getByText('8:00 AM')).toBeTruthy();
+    expect(view.queryByText('08:00')).toBeNull();
+    expect(mockUpdateRoutine).not.toHaveBeenCalled();
+    expect(mockCreateRoutine).not.toHaveBeenCalled();
+  });
 });
 
 describe('R-H at the RoutinesTab template call site', () => {
