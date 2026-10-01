@@ -378,6 +378,7 @@ deploy. Deploy state lives on Kyle's checklist.
 | ROUTINE-LOAD-FAILURE-EMPTY-STATE | **[RECORDED, LEDGER. Row added 2026-10-01 at ROUTINE-REMINDERS' build docs. UNSEQUENCED. THE DEEPER DEFECT IS OPEN.]** A failed first routine load offers to replace the user's routine *(row added 2026-10-01)* | `loadActiveRoutine` in `mobile/src/screens/Time/RoutinesTab.tsx` swallows a fetch error and leaves `activeRoutine` at its initial `null`, so the tab shows the empty state while an active routine of that type exists. Creating from there, through a template or the editor, runs `createRoutine`, whose `deactivateRoutinesOfType` (`mobile/src/services/firebase/routines.service.ts`) silently switches the user's routine off. **ROUTINE-REMINDERS only cancels the replaced routine's reminder (ruling R-H).** The replacement itself, and the absence of an error state, are open. A failed load cannot be induced on demand, so this is not walkable. | None. | Not walkable on demand. |
 | ROUTINE-DUPLICATE-ACTIVE-EVENING | **[RECORDED, LEDGER. Row added 2026-10-01 at ROUTINE-REMINDERS' build docs. PRE-LAUNCH DATA CHECK.]** The bedtime-to-evening migration can leave two active evening routines *(row added 2026-10-01)* | `migrateBedtimeToEvening` (`mobile/src/services/firebase/routineMigration.service.ts` lines 106 and 107) changes `type` to `evening` and leaves `active` alone. An account with an active bedtime routine and an active evening routine ends up with two active evening routines. The UI shows one, because `fetchActiveRoutineByType` returns the first document; `syncAllReminders` (`mobile/src/services/reminderScheduler.service.ts`) schedules a reminder for every active routine, so it schedules both. **Pre-launch data check for multiple active routines of the same type.** If no affected accounts exist, no launch migration is needed. If affected accounts exist, this becomes its own corrective slice before launch. | A pre-launch data query. | None. |
 | ACCOUNT-DELETION-FALSE-FAILURE | **[RECORDED, LEDGER. Row added 2026-10-01 at ROUTINE-REMINDERS' post-walk docs. PRE-EXISTING; OUTSIDE ROUTINE-REMINDERS; NO PRIORITY RULED YET.]** A deleted account can be reported as not deleted *(row added 2026-10-01)* | In `mobile/src/hooks/useAccountActions.ts` the deletion handler awaits the deleteAccount Cloud Function (line 73), cancels routine reminders (line 77), then awaits `logout()` (line 80) inside one `try`. If `deleteAccount` succeeds and `logout()` then throws, the `catch` (lines 81 to 87) shows a **Deletion Failed** alert ("Something went wrong. Please try again or contact support@varawellness.co for help.") although the account was deleted. The user may retry, contact support, or believe their data still exists. ROUTINE-REMINDERS' cancel at line 77 runs before `logout()`, so routine reminders are cancelled in this case either way. | None. | None until ruled. |
+| DAILY-RHYTHM-ONBOARDING-WRITE-FAILURE | **[RECORDED, LEDGER. Row added 2026-10-01 at NPM-1's build docs. RECOVERY OWNED BY NPM-2.]** A user can finish onboarding with General notifications off and no daily rhythm time *(row added 2026-10-01)* | **AFTER ONE RETRY THE ONBOARDING WRITE CAN STILL FAIL.** The Reminder step (`mobile/src/screens/onboarding/v3/OnboardingV3ReminderScreen.tsx`) writes General ON with the chosen time and retries once (NPM-1 ruling 5); if both attempts fail, the arc continues and the user is left with the document's defaults, General off and `dailyRhythm.reminderTime` null, so no daily rhythm exists and NotificationSettingsScreen has no time row to recover with until NPM-2's Add a time state. **THE NAVIGATOR'S FAIL-OPEN PATHS SKIP ONBOARDING ENTIRELY** and leave the same state: an onboarding-listener error (`mobile/src/navigation/AppNavigator.tsx` lines 1697 to 1701) and a user-document create error (lines 1689 to 1693) both set `hasCompletedOnboarding` to true; legacy accounts whose field is undefined are treated as onboarded (line 1614). These are outside D3's proviso, which covers completing onboarding paths. | None. | None until NPM-2. |
 | LANDING-HOOKS-ASYNC-OWNERSHIP | **[RECORDED, LEDGER. Row added 2026-09-27 from ASYNC-LOAD-OWNERSHIP's Step 0.]** The same shared-flag defect exists in two more hooks *(row added 2026-09-27)* | `useJourneyLanding.ts:84` and `useWeeklyLanding.ts:67` carry the identical shared-`activeRef` pattern that ASYNC-LOAD-OWNERSHIP replaced in `useTodayCard`. An out-of-order resolve in either can hand `useTodayCard` an older `sourceKey` after a newer one, which no fix inside `useTodayCard` can catch and none should attempt. Same defect class, same house-pattern remedy, not scoped or sequenced. **Gates nothing.** | None. | Not scoped. |
 | ADVANCE-OFFER-STARVATION | **[READY. NOT AN R-SERIES ROW. Row added 2026-09-27.]** An eligible user can be permanently unable to discover that they can advance *(row added 2026-09-27)* | The Remove capture card outranks the advance offer in Today's single slot (`journey/journeyAction.ts:76-85`), and dismissing the capture card lasts only the session. So a Remove user who never does the capture sees the capture card every time they open the app and never sees the advance offer. They cannot reach the next phase page from the journey map either, because that page shows "Start this" only once an offer has been recorded (`JourneyPhaseScreen.tsx:217`) — and it never was. That user is stuck with no visible path forward and no indication one exists. **A DEFECT, NOT PRODUCT PHILOSOPHY.** **NOTE:** JOURNEY-ELIGIBILITY-VISIBLE may subsume this — if the Journey screen shows eligibility independently of the Today slot, a starved user is no longer stuck. Check before scoping both. | None. | Yes. |
 | JOURNEY-ELIGIBILITY-VISIBLE | **[READY. NOT AN R-SERIES ROW. Row added 2026-09-27, Kyle's product ruling.]** Eligibility and discoverability are coupled, so advancing depends on catching the Today offer *(row added 2026-09-27)* | **THE PROBLEM IN THE USER'S WORDS:** no way to tell whether they are progressing or stuck, and no indication the phase will ever move. Kyle's ruling keeps advancement **GUIDED** — Vara decides when the next phase is available, the user decides when to enter it — and rejects exposing the four phases as freely navigable, which would make the journey map a content library. What changes is that **the Journey screen carries the state** rather than the Today slot alone: before eligibility the next phase is visible but informational; after eligibility it reads as available, something like "Ready when you are"; after declining, nothing punitive happens and the phase stays reachable from Journey while Today stops pushing it. The 8-completion / 14-day rule is unchanged for V1. **A COUNTDOWN WAS CONSIDERED AND REJECTED:** a "days left" counter is a progress number on a surface whose standards ban visible counters, it collides with slice 8's reasoning that repeated praise reads as a scoreboard, and it makes the 14-day door visible, which invites waiting it out against Kyle's own caution about forced graduation. The state change is the answer rather than the number. **IF SOMETHING IS STILL WANTED BEFORE ELIGIBILITY,** the honest form is qualitative and it is Jen's, because it concerns what Vara claims progress is. | Jen, if any pre-eligibility language is added. None otherwise. | Yes. |
@@ -411,9 +412,15 @@ deploy. Deploy state lives on Kyle's checklist.
 | V1-LEGACY-RETIREMENT | **[SUPERSEDED 2026-09-29 by Kyle's revised V1 scope rulings (the V1 SCOPE REVISION block at the end of §5). NO WORK SHIPPED UNDER THIS ID. Its successors: V1-HABITS-RETIREMENT (habits, ruling A), ROUTINES-RESTORE (routines stay, rulings B and C) and INSIGHTS-V1 (Insights stays, ruling D). This marker update is recorded in the §12.1 append of 2026-09-29.]** Was: **[READY. NOT AN R-SERIES ROW. OWN SLICE, LAUNCH-BLOCKING. Row added 2026-09-29, Kyle's product ruling: Rulings 2, 3 and 4 of the V1 launch scope block at the end of §5.]** Habits, routines as currently implemented, and the Insights screen's launch entry points leave V1 *(row added 2026-09-29)* | **FULL RETIREMENT** of habits, of routines as currently implemented, and of the Insights screen's launch entry points, **preserving implementation and data where that is cheaper and safe.** **IT MUST ENUMERATE EVERY REMAINING HABIT ENTRY POINT, INCLUDING BUT NOT LIMITED TO** (locations at `7bd11be`, under `mobile/src/`): `WeeklyHabitGrid`'s "Add a habit" (`components/dashboard/WeeklyHabitGrid.tsx` lines 97 to 122, wired at `screens/DashboardScreen.tsx` line 895); `RoutineCard`'s "Check habits" (`components/dashboard/RoutineCard.tsx` lines 70 to 71, wired at `DashboardScreen.tsx` line 903); PlanScreen defaulting to its Habits tab (`screens/PlanScreen.tsx` line 163), **including via Journey to Routines**, where the Habits tab is one tap away in the tab switch (`PlanScreen.tsx` line 256); the habit-reminder notification (`context/NotificationContext.tsx` lines 200 to 201, plus its foreground handler at line 100); HabitDetail (registered at `navigation/AppNavigator.tsx` line 1111, reached from `DashboardScreen.tsx` line 892 and `screens/HabitsScreen.tsx` line 63); and the Insights empty state (`screens/InsightsScreen.tsx` line 367, *"Start tracking habits and journaling to see your insights here."*). **THE ROUTINE SURFACES:** the Journey Routines card (`screens/journey/JourneyMapScreen.tsx` lines 159 to 169), the PlanScreen Routines tab (`PlanScreen.tsx` line 301), and the routine-reminder notification (`NotificationContext.tsx` lines 202 to 203). **IT VERIFIES THE UNVERIFIED INSIGHTS PATHS:** `BrainStateCheckin` (`components/dashboard/BrainStateCheckin.tsx` line 61), the `useNotifications` listener (`hooks/useNotifications.ts` line 83) and featureDiscovery (`constants/featureDiscovery.ts` line 279). Their reachability changes implementation scope, not Ruling 3. | Launch-blocking. **Does not block R3b once TODAY-LEGACY-REMOVAL lands, unless its investigation finds a direct Today dependency.** | Set at its Step 0. |
 | V1-HABITS-RETIREMENT | **[DONE, merged `6653b7c`, 2026-09-29; built `f0d339c` and `da57386`; walked 2026-09-29, zero FAILs. MOBILE CODE COMPLETE; OPERATIONALLY INCOMPLETE FOR LAUNCH UNTIL KYLE CONFIRMS THE SERVER FLAGS (row LEGACY-SERVER-PUSHES).]** Was: **[Next]** **[BUILT AND WALKED at `8046d1f` (build `f0d339c` and `da57386`; walked 2026-09-29, zero FAILs), AWAITING MERGE. MOBILE CODE COMPLETE; OPERATIONALLY INCOMPLETE FOR LAUNCH UNTIL KYLE CONFIRMS THE SERVER FLAGS (row LEGACY-SERVER-PUSHES).]** Was: **[READY. NOT AN R-SERIES ROW. OWN SLICE, LAUNCH-BLOCKING. Row added 2026-09-29 under ruling A of the V1 SCOPE REVISION block at the end of §5.]** Habits leave V1, and PlanScreen becomes routines only *(row added 2026-09-29)* | **EVERY EXPLICIT HABIT ENTRY POINT LEAVES V1, INCLUDING BUT NOT LIMITED TO** the list inherited from V1-LEGACY-RETIREMENT, re-cited at `d542352` under `mobile/src/`. Two of its items already left with TODAY-LEGACY-REMOVAL at `4b7662c`: `WeeklyHabitGrid`'s "Add a habit" and `RoutineCard`'s "Check habits". What remains: PlanScreen's Habits tab (the tab list at `screens/PlanScreen.tsx` lines 255 to 258, `HabitsScreen` rendered at lines 294 to 300); the habit-reminder notification tap (`context/NotificationContext.tsx` lines 200 to 201) and its foreground handler (lines 98 to 100); and HabitDetail (registered at `navigation/AppNavigator.tsx` lines 1110 to 1112, reached only from `screens/HabitsScreen.tsx` line 63). **HABITDETAIL CARRIES THE ONLY LIVE ROUTE INTO INSIGHTS**, its Look back row (`screens/HabitDetailScreen.tsx` lines 492 to 494); the Step 0 of 2026-09-29 found the other routes into Insights unmounted or unconsumed. Removing it leaves Insights unreachable until INSIGHTS-V1, per ruling D. **PLANSCREEN BECOMES ROUTINES ONLY (ruling B), with no route or screen rename unless the removal requires it.** This includes the default tab (`PlanScreen.tsx` line 163, which falls back to `'habits'`), the habit-reminder tap (it passes no tab param, so it lands on that default), and the test that pins the habits default, *"keeps the habits default for entry points that pass no tab param"* (`screens/__tests__/PlanScreen.tabParam.test.tsx`, the describe block at line 70, that case at line 87). **JOURNEY TO ROUTINES LANDS ON ROUTINES:** `screens/journey/JourneyMapScreen.tsx` line 169 passes `{ tab: 'routines' }`. **HABIT CREATION, SETTINGS AND REMINDER ENTRY POINTS ARE REMOVED FOR NEW V1 USE:** "Add a habit" (`HabitsScreen.tsx` line 137, and the create button at line 174 when inline create is off) opening `SimpleHabitCreateScreen` (line 182); `createHabit` at `hooks/useHabitsScreen.ts` lines 171 and 246; per-habit reminder scheduling at `useHabitsScreen.ts` line 264 and `HabitDetailScreen.tsx` line 304. A source search at `d542352` found no habit entry in `screens/SettingsScreen.tsx` or `screens/NotificationSettingsScreen.tsx`, and found no navigator registering the legacy onboarding screens that call `createHabit` (`screens/onboarding/OnboardingConfirmationScreen.tsx` line 59, `screens/onboarding/OnboardingQuickStartScreen.tsx` lines 232 and 263); this row's Step 0 confirms both. Dead `'Habits'` targets name a route that is not registered: `constants/featureDiscovery.ts` line 399 and `services/firebase/wellnessScore.service.ts` lines 378 and 434. **EXISTING STORED HABIT DATA AND ALREADY-SCHEDULED REMINDERS NEED NO MIGRATION HANDLING (ruling G).** The server-side `sendHabitReminders` export (`functions/index.js` line 26) is recorded for this row's Step 0. **THE FEATURE-DISCOVERY UNLOCK TOASTS ARE SWITCHED OFF (ruling F):** they are queued from `hooks/useDashboard.ts` line 255, with the `sessionCount` engagement call at line 247. **LEDGER ROWS IT OWNS:** TODAY-HABITS-SUBSCRIPTION-RESIDUAL (`useHabits(true)` at `useDashboard.ts` line 58), TODAY-BANNER-JOURNAL-ONLY and LEGACY-UNLOCK-TOASTS. **IT INHERITS THE MODAL-INVENTORY NOTE** at board lines 2837 to 2842 at `d542352`: five of the twelve modals are habits-owned (`HabitCompletionSheet`, `IntentionEditSheet`, `SimpleHabitCreateScreen`, `WizardContainer`, `HabitDetailScreen`), and that note's blast radius is re-read at this row. Mobile only (ruling H). | This docs slice, `docs/v1-scope-revision`, merged. | Yes, Kyle's device walk, confirming by sight that the habit entry points are gone, without walking any habit screen. |
 | ROUTINES-RESTORE | **[DONE, merged at cff2e98. ROUTINES ARE NOT LAUNCH-COMPLETE UNTIL ROUTINE-REMINDERS LANDS.]** Was: **[Next]** **[BUILT AND WALKED at `5a5485a` (build `b6c25cd`, `55b4205` and `5a5485a`; first walk 2026-09-30 found step B FAIL, fixed at `5a5485a`; re-walk 2026-09-30, zero FAILs), AWAITING MERGE. ROUTINES ARE NOT LAUNCH-COMPLETE UNTIL ROUTINE-REMINDERS LANDS.]** Was: **[READY. NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-09-29 under rulings B, C and I of the V1 SCOPE REVISION block at the end of §5.]** RoutineCard returns to Today, subordinate to the protocol *(row added 2026-09-29)* | **RESTORE FROM `33847ca`, WITHOUT "CHECK HABITS":** `mobile/src/components/dashboard/RoutineCard.tsx` and its test, both deleted at `4b7662c`, minus the all-done action (lines 70 to 74 at `33847ca`: the "Check habits" label, testID `dashboard-routine-check-habits`, handler `onNavigateToHabits`); **the `ActiveRoutinePlayer` wiring on Today** (`mobile/src/screens/DashboardScreen.tsx` at `33847ca`: imports at lines 17 to 20, the values taken from `useDashboard()` at lines 130 to 136, the card at lines 898 to 904, the modal at lines 946 to 958); and **the `useDashboard` routine plumbing** (`mobile/src/hooks/useDashboard.ts` at `33847ca`: imports at lines 48 to 54, state at lines 131 to 135, the on-focus routine load from line 347, the handlers from line 678, the returned values at lines 801 to 809). **`handleApplyRoutineTemplate` STAYS OUT** (lines 692 to 714 at `33847ca`): it was dead, and nothing read it. `mobile/src/screens/Time/ActiveRoutinePlayer.tsx` and the routine services are unchanged at `d542352`. **NOT THE OLD COLOURS (ruling C):** no `Colors.surface` fill (line 106 of `RoutineCard.tsx` at `33847ca`) and no Muted Sage Gray text (lines 127 and 131 there). It uses R3a's approved immersive surface (`Colors.surfaceImmersive`, `mobile/src/constants/colors.ts` line 113) and Soft Charcoal secondary text (`Colors.softCharcoal`, line 47). R3b owns its final geometry, typography hierarchy, spacing and visual treatment. **EXTEND THE STRUCTURE SUITE'S `useDashboard` MOCK:** `mobile/src/screens/__tests__/DashboardScreen.structure.test.tsx` lines 125 to 143 carry no routine fields. **AMEND CONTRACT (g)** (lines 748 to 795) to allow `RoutineCard`, `ActiveRoutinePlayer` and the plan route; keep `HabitNoteSheet`, `HabitDetail` and `Insights` forbidden; pin `dashboard-routine-check-habits` as absent. **TWO NEW STRUCTURAL CONTRACTS:** (1) RoutineCard renders after the `good-moment-row` anchor (`DashboardScreen.tsx` lines 864 to 866 at `d542352`), written as a hierarchy and tree-order assertion, not as proof of literal below-fold placement; (2) RoutineCard has no filled-primary action. **THE EXISTING SAGE-TEXT TEST CHECKS NAMES ONLY:** the describe block at lines 449 to 488 checks a fixed list of testIDs, so it does not enforce the colour ruling on a restored card. | V1-HABITS-RETIREMENT merged. | Yes, Kyle's device walk, verifying visual subordination and placement on the device. |
-| ROUTINE-REMINDERS | **[DONE, merged at 50c3622. THE REMINDER TIME INPUT IS NOT LAUNCH-READY UNTIL ROUTINE-REMINDER-TIME-PICKER LANDS.]** Was: **[Next]** **[BUILT AND WALKED at e22eaa8, AWAITING MERGE. THE REMINDER TIME INPUT IS NOT LAUNCH-READY UNTIL ROUTINE-REMINDER-TIME-PICKER LANDS.]** Was: **[Next]** **[BUILT, WALK PENDING on journey/routine-reminders]** Was: **[READY. NOT AN R-SERIES ROW. OWN SLICE. LAUNCH-BLOCKING WHILE REMINDER CONTROLS REMAIN EXPOSED. Row added 2026-09-30, Kyle's ruling.]** A routine reminder either works or says honestly that it cannot *(row added 2026-09-30)* | **KYLE'S OPTION A OF THE ROUTINES-RESTORE STEP 0: A WORKING PERMISSION PATH IN `RoutineEditor.handleSave` WHEN A REMINDER TIME IS SET.** In order: validate the time with `parseTimeString` before saving; `ensureNotificationPermission`; `ensureRemindersAllowed`; schedule; and if permission is not granted, save the routine but say so honestly instead of the success alert. **IT MUST CLOSE ALL FOUR SILENT-FAILURE PATHS THE STEP 0 FOUND:** (1) permission is never asked; (2) permission is denied or revoked; (3) the time does not parse; (4) permission is granted but the master notifications flag is off, so the next foreground sync cancels the reminder and never re-creates it. **ALSO IN SCOPE:** the dead PlanScreen opt-in push (ROUTINE-REMINDER-PERMISSION), to be fixed, removed or left as Kyle rules; and replacing the celebration-emoji success alerts. **ALL NEW OR CHANGED COPY IS KYLE'S.** **STEP 0 GATE (Kyle's ruling):** this row's Step 0 must determine whether `ensureRemindersAllowed` changes only routine-reminder permission or state, or enables broader notification categories. **If it changes unrelated notification preferences, STOP for a product ruling.** **STEP 0 LOCATIONS, at `6653b7c` and unchanged at `5a5485a`:** `mobile/src/components/routines/RoutineEditor.tsx` lines 142 to 179 (the save and scheduling; the success alerts are at lines 159 and 181) and lines 338 to 351 (the free-text reminder field); `mobile/src/services/reminderScheduler.service.ts` lines 72 to 118 (`scheduleRoutineReminder`) and lines 138 to 186 (`syncAllReminders`); `mobile/src/services/firebase/notificationPreferences.service.ts` lines 33 and 104 (the master flag's `false` default) and line 374 (`ensureRemindersAllowed`); and `mobile/src/screens/PlanScreen.tsx` lines 54 to 62 (the opt-in check). | ROUTINES-RESTORE merged. | Yes, Kyle's device walk. |
-| ROUTINE-REMINDER-TIME-PICKER | **[Next]** **[BUILT AND WALKED at fb9d303, AWAITING MERGE.]** Was: **[Next]** **[BUILT, WALK PENDING on journey/routine-reminder-time-picker]** Was: **[READY. NOT AN R-SERIES ROW. OWN SLICE. LAUNCH-BLOCKING. Row added 2026-10-01, Kyle's ruling. Starts after ROUTINE-REMINDERS merges.]** The reminder time is picked, not typed *(row added 2026-10-01; promoted from the ROUTINE-REMINDER-TIME-PICKER ledger row)* | **KYLE'S RULINGS OF 2026-10-01, VERBATIM:** **Interaction:** Replace the free-text input with a tappable reminder row. Tapping opens the existing bottom-sheet time picker. Done commits the selected time; Cancel must discard all changes. If the existing picker mutates state while scrolling, fix that in this slice so Cancel is truthful. When a reminder exists, provide an explicit remove action. **Copy:** Section label: Reminder (optional). Empty row: Add a reminder. Set row: formatted time, e.g. 7:30 PM. Remove action: Remove reminder. Remove the helper line. **Initial picker value:** If a reminder already exists, open at the stored time. If no reminder exists, do not use routine-type defaults. Open at the nearest practical future time, rounded to the next 15 minutes. Avoid hidden assumptions about when a user's Morning, Evening, Sunday, or Custom routine should occur. **Minute interval:** Use 1-minute steps. **Legacy invalid values:** A stored value that fails parseTimeString renders as Add a reminder, not as a time. Preserve the legacy validation path for old data. Opening and cancelling the picker must not mutate that stored value; only an explicit save/change/remove action may resolve it. **Scope:** Keep all scheduling, permission, cancellation, sign-out, and alert behavior from ROUTINE-REMINDERS unchanged. This slice changes only how the reminder time is selected and persisted. | ROUTINE-REMINDERS merged. | Yes, Kyle's device walk. |
-| NOTIFICATION-PREFERENCES-MODEL | **[READY. PRE-LAUNCH. NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-10-01 at ROUTINE-REMINDERS' build docs, Kyle's ruling R6. IMMEDIATELY AFTER ROUTINE-REMINDERS. NOTHING IN IT IS BUILT BY ROUTINE-REMINDERS.]** The general notification preference means what it says *(row added 2026-10-01)* | **OWNS THE GENERAL NOTIFICATION PREFERENCE MODEL:** what the General notifications control (`allNotificationsEnabled`, renamed on screen by ROUTINE-REMINDERS' ruling R-B, semantics unchanged) turns on and off, how it relates to the per-category preferences, and whether a never-enabled state is distinguished from an explicitly disabled one (ROUTINE-REMINDERS' ruling R-A forbade inferring that from the shared `false`). **OWNS JOURNAL NOTIFICATION SEMANTICS:** the Journal opt-in navigate (`mobile/src/screens/JournalScreen.tsx` lines 482 to 487, whose `useCallback` dependencies at line 499 omit `shouldShowNotifPrompt`) and the opt-in hook's `shown` state, which `mobile/src/hooks/useNotificationOptIn.ts` line 47 does not treat as blocking. **ITS STEP 0 VERIFIES THE DAILY RHYTHM PATH END TO END,** including whether onboarding obtains OS permission and sets the app preference that path needs (`mobile/src/services/notificationScheduler.service.ts` line 132 requires `allNotificationsEnabled` and `dailyRhythm.enabled`; `mobile/src/context/NotificationContext.tsx` gates `initializeUserNotifications` on `allNotificationsEnabled`). **A failure of the core daily rhythm path is LAUNCH-BLOCKING.** **INHERITED LEDGER ROWS:** SOCIAL-PUSH-FLAG-BYPASS, NOTIFICATIONS-CODEBASE-IGNORES-PREFS and LOCAL-MILESTONE-IGNORES-SETTING. | ROUTINE-REMINDERS merged. | Yes, Kyle's device walk. |
+| ROUTINE-REMINDERS | **[DONE, merged at 50c3622. THE REMINDER TIME INPUT LANDED WITH ROUTINE-REMINDER-TIME-PICKER AT 5277031.]** Was: **[DONE, merged at 50c3622. THE REMINDER TIME INPUT IS NOT LAUNCH-READY UNTIL ROUTINE-REMINDER-TIME-PICKER LANDS.]** Was: **[Next]** **[BUILT AND WALKED at e22eaa8, AWAITING MERGE. THE REMINDER TIME INPUT IS NOT LAUNCH-READY UNTIL ROUTINE-REMINDER-TIME-PICKER LANDS.]** Was: **[Next]** **[BUILT, WALK PENDING on journey/routine-reminders]** Was: **[READY. NOT AN R-SERIES ROW. OWN SLICE. LAUNCH-BLOCKING WHILE REMINDER CONTROLS REMAIN EXPOSED. Row added 2026-09-30, Kyle's ruling.]** A routine reminder either works or says honestly that it cannot *(row added 2026-09-30)* | **KYLE'S OPTION A OF THE ROUTINES-RESTORE STEP 0: A WORKING PERMISSION PATH IN `RoutineEditor.handleSave` WHEN A REMINDER TIME IS SET.** In order: validate the time with `parseTimeString` before saving; `ensureNotificationPermission`; `ensureRemindersAllowed`; schedule; and if permission is not granted, save the routine but say so honestly instead of the success alert. **IT MUST CLOSE ALL FOUR SILENT-FAILURE PATHS THE STEP 0 FOUND:** (1) permission is never asked; (2) permission is denied or revoked; (3) the time does not parse; (4) permission is granted but the master notifications flag is off, so the next foreground sync cancels the reminder and never re-creates it. **ALSO IN SCOPE:** the dead PlanScreen opt-in push (ROUTINE-REMINDER-PERMISSION), to be fixed, removed or left as Kyle rules; and replacing the celebration-emoji success alerts. **ALL NEW OR CHANGED COPY IS KYLE'S.** **STEP 0 GATE (Kyle's ruling):** this row's Step 0 must determine whether `ensureRemindersAllowed` changes only routine-reminder permission or state, or enables broader notification categories. **If it changes unrelated notification preferences, STOP for a product ruling.** **STEP 0 LOCATIONS, at `6653b7c` and unchanged at `5a5485a`:** `mobile/src/components/routines/RoutineEditor.tsx` lines 142 to 179 (the save and scheduling; the success alerts are at lines 159 and 181) and lines 338 to 351 (the free-text reminder field); `mobile/src/services/reminderScheduler.service.ts` lines 72 to 118 (`scheduleRoutineReminder`) and lines 138 to 186 (`syncAllReminders`); `mobile/src/services/firebase/notificationPreferences.service.ts` lines 33 and 104 (the master flag's `false` default) and line 374 (`ensureRemindersAllowed`); and `mobile/src/screens/PlanScreen.tsx` lines 54 to 62 (the opt-in check). | ROUTINES-RESTORE merged. | Yes, Kyle's device walk. |
+| ROUTINE-REMINDER-TIME-PICKER | **[DONE, merged at 5277031.]** Was: **[Next]** **[BUILT AND WALKED at fb9d303, AWAITING MERGE.]** Was: **[Next]** **[BUILT, WALK PENDING on journey/routine-reminder-time-picker]** Was: **[READY. NOT AN R-SERIES ROW. OWN SLICE. LAUNCH-BLOCKING. Row added 2026-10-01, Kyle's ruling. Starts after ROUTINE-REMINDERS merges.]** The reminder time is picked, not typed *(row added 2026-10-01; promoted from the ROUTINE-REMINDER-TIME-PICKER ledger row)* | **KYLE'S RULINGS OF 2026-10-01, VERBATIM:** **Interaction:** Replace the free-text input with a tappable reminder row. Tapping opens the existing bottom-sheet time picker. Done commits the selected time; Cancel must discard all changes. If the existing picker mutates state while scrolling, fix that in this slice so Cancel is truthful. When a reminder exists, provide an explicit remove action. **Copy:** Section label: Reminder (optional). Empty row: Add a reminder. Set row: formatted time, e.g. 7:30 PM. Remove action: Remove reminder. Remove the helper line. **Initial picker value:** If a reminder already exists, open at the stored time. If no reminder exists, do not use routine-type defaults. Open at the nearest practical future time, rounded to the next 15 minutes. Avoid hidden assumptions about when a user's Morning, Evening, Sunday, or Custom routine should occur. **Minute interval:** Use 1-minute steps. **Legacy invalid values:** A stored value that fails parseTimeString renders as Add a reminder, not as a time. Preserve the legacy validation path for old data. Opening and cancelling the picker must not mutate that stored value; only an explicit save/change/remove action may resolve it. **Scope:** Keep all scheduling, permission, cancellation, sign-out, and alert behavior from ROUTINE-REMINDERS unchanged. This slice changes only how the reminder time is selected and persisted. | ROUTINE-REMINDERS merged. | Yes, Kyle's device walk. |
+| NOTIFICATION-PREFERENCES-MODEL | **[SPLIT 2026-10-01 under Kyle's rulings D1 to D9 into NPM-1, NPM-2, NPM-3a, NPM-3b, NPM-4 and NPM-TZ.]** Was: **[READY. PRE-LAUNCH. NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-10-01 at ROUTINE-REMINDERS' build docs, Kyle's ruling R6. IMMEDIATELY AFTER ROUTINE-REMINDERS. NOTHING IN IT IS BUILT BY ROUTINE-REMINDERS.]** The general notification preference means what it says *(row added 2026-10-01)* | **OWNS THE GENERAL NOTIFICATION PREFERENCE MODEL:** what the General notifications control (`allNotificationsEnabled`, renamed on screen by ROUTINE-REMINDERS' ruling R-B, semantics unchanged) turns on and off, how it relates to the per-category preferences, and whether a never-enabled state is distinguished from an explicitly disabled one (ROUTINE-REMINDERS' ruling R-A forbade inferring that from the shared `false`). **OWNS JOURNAL NOTIFICATION SEMANTICS:** the Journal opt-in navigate (`mobile/src/screens/JournalScreen.tsx` lines 482 to 487, whose `useCallback` dependencies at line 499 omit `shouldShowNotifPrompt`) and the opt-in hook's `shown` state, which `mobile/src/hooks/useNotificationOptIn.ts` line 47 does not treat as blocking. **ITS STEP 0 VERIFIES THE DAILY RHYTHM PATH END TO END,** including whether onboarding obtains OS permission and sets the app preference that path needs (`mobile/src/services/notificationScheduler.service.ts` line 132 requires `allNotificationsEnabled` and `dailyRhythm.enabled`; `mobile/src/context/NotificationContext.tsx` gates `initializeUserNotifications` on `allNotificationsEnabled`). **A failure of the core daily rhythm path is LAUNCH-BLOCKING.** **INHERITED LEDGER ROWS:** SOCIAL-PUSH-FLAG-BYPASS, NOTIFICATIONS-CODEBASE-IGNORES-PREFS and LOCAL-MILESTONE-IGNORES-SETTING. | ROUTINE-REMINDERS merged. | Yes, Kyle's device walk. |
+| NPM-1 DAILY-RHYTHM-RELIABILITY | **[Next]** **[BUILT, WALK PENDING on journey/npm-1-daily-rhythm-reliability]** **[LAUNCH-BLOCKING. NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-10-01, split from NOTIFICATION-PREFERENCES-MODEL under Kyle's rulings D1 to D9.]** The daily rhythm is reliable from a user's first day *(row added 2026-10-01)* | **KYLE'S RULING D1:** V1's daily rhythm is phone/local delivery only, and NPM-1 owns making it reliable from the user's first day onward. **NPM-1 RULINGS 1 TO 5** are recorded verbatim in the ADDED 2026-10-01 (NPM-1's build docs) block at the end of §5. **SCOPE:** `reconcileDailyRhythm` decides from a fresh preferences read, serialized, never consulting a hook copy or `serverPushEnabled`; NotificationProvider's foreground and sign-in paths call it; the foreground sweep spares the daily rhythm id; the same-uid cancel is guarded; Insights notifications are cancelled and never scheduled; the onboarding Reminder step retries its write once and reconciles on both branches; the opt-in screen's one-line alignment; the approved practice copy. **NOT IN SCOPE:** NotificationSettingsScreen's controls and pickers, Quiet Hours, push-token registration, anything under `functions/` or `functions-notifications/`. | ROUTINE-REMINDER-TIME-PICKER merged. | Yes, Kyle's device walk: `docs/walks/npm-1-daily-rhythm-reliability/WALK.md`. |
+| NPM-2 NOTIFICATION-SETTINGS-TRUTHFULNESS | **[READY. LAUNCH-BLOCKING. Starts after NPM-1 merges.]** **[NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-10-01, split from NOTIFICATION-PREFERENCES-MODEL.]** The Notifications settings say what the app does *(row added 2026-10-01)* | **OWNS KYLE'S RULINGS D4, D6, D7, D8, AND D9'S REACHABLE REMOVAL**, verbatim in the ADDED 2026-10-01 (NPM-1's build docs) block at the end of §5: the OS-permission status/action row; removing Community Activity and the dead Push Notifications control, replacing the latter with OS notification-permission status; hiding Completion Sound, Insights and Milestone notification controls; the draft/Done/Cancel pickers with an Add a time state; hiding Quiet Hours; removing the reachable Journal opt-in. **ABSORBS** NOTIFICATION-SETTINGS-SWITCH-LABELS and the ADDED 2026-10-01 addendum on the Settings time pickers committing on every scroll tick. **OWNS RECOVERY FOR THE ONBOARDING WRITE-FAILURE CASE** (ledger row DAILY-RHYTHM-ONBOARDING-WRITE-FAILURE). Whether a Settings commit reconciles the daily rhythm immediately, rather than at the next return, is decided here. | NPM-1 merged. | Yes, Kyle's device walk. |
+| NPM-3a COMMUNITY-NOTIFICATION-CORRECTNESS | **[READY. LAUNCH-BLOCKING.]** **[NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-10-01, split from NOTIFICATION-PREFERENCES-MODEL.]** One correct push per Community event *(row added 2026-10-01)* | **KYLE'S RULING, VERBATIM (D5 and ruling 6, as revised):** "Community is part of V1, including its current Messages, People and Connect functionality. Do not create a retirement slice for those entry points. The DM and connection issues belong to a separate launch-blocking NPM-3a COMMUNITY-NOTIFICATION-CORRECTNESS row. It must resolve the duplicate DM sender architecture, the connection-request field mismatch, preference enforcement, and prove one correct push per relevant event. Do not widen NPM-1 with that server work." **ALSO OWNS** push-token registration for Community pushes, and what the server does with stored Quiet Hours once NPM-2 hides that control. **INHERITS** SOCIAL-PUSH-FLAG-BYPASS and NOTIFICATIONS-CODEBASE-IGNORES-PREFS (whose `notifyOnInviteCreated` sends no push, and triggers on `connectionInvites`, which mobile never writes; see NPM-1's §13 entry). **NEEDS A FUNCTIONS DEPLOY, with `npm test` in `functions/` first.** | None. | Yes, Kyle's walk with two accounts after the deploy. |
+| NPM-3b SERVER-SCHEDULED-SENDER-RETIREMENT | **[QUEUED. NOT A LAUNCH BLOCKER WHILE THE FOUR SCHEDULED JOBS REMAIN PAUSED.]** **[NOT AN R-SERIES ROW. Row added 2026-10-01, split from NOTIFICATION-PREFERENCES-MODEL.]** The four scheduled server senders retire *(row added 2026-10-01)* | **CARRIES A PRE-LAUNCH CHECK, AND A RE-CHECK AFTER ANY FUNCTIONS DEPLOY, THAT THE `sendDailyRhythm`, `sendHabitReminders`, `sendInsights` AND `sendMilestones` JOBS REMAIN PAUSED** (Kyle paused all four at 5:50 PM Eastern on 2026-10-01; a later functions deploy may recreate or re-enable the schedules). **INHERITS** the function removals in LEGACY-SERVER-PUSHES. **RECORDS THAT THE SERVER DAILY RHYTHM COPY STILL SAYS ROUTINE** (`functions/src/notifications/dailyRhythm.js` lines 15 to 27), against the local practice copy NPM-1 shipped and the taxonomy rule that routine is reserved for the user-created Routines feature. | None. | Kyle's console check. |
+| NPM-4 NOTIFICATION-DEAD-CODE-CLEANUP | **[QUEUED. NON-BLOCKING.]** **[Row added 2026-10-01, split from NOTIFICATION-PREFERENCES-MODEL.]** Dead notification code leaves *(row added 2026-10-01)* | **INHERITS** LOCAL-MILESTONE-IGNORES-SETTING and the remaining Journal opt-in implementation after NPM-2 removes its reachable entry. **ALSO NOW DEAD AFTER NPM-1:** `isServerPushEnabled` (no caller), `scheduleInsightsNotification` (no caller), `initializeUserNotifications` and `updateNotificationsFromPreferences` (no caller), the `scheduleDailyReminder` alias, and NotificationContext's unconsumed context API (`onDailyCompletionAchieved` and the `notify*` senders). | None. | None. |
+| NPM-TZ SERVER-NOTIFICATION-TIMEZONE | **[QUEUED. POST-LAUNCH.]** **[Row added 2026-10-01, split from NOTIFICATION-PREFERENCES-MODEL.]** Server senders evaluate hours in the user's time zone *(row added 2026-10-01)* | **DORMANT WHILE SERVER DAILY RHYTHM DELIVERY STAYS DISABLED** (Kyle's ruling D1). The scheduled senders compare a stored local hour with the server clock, and evaluate Quiet Hours on it. **RECORDS THE SERVER COPY MISMATCH:** the server daily rhythm copy still says routine; the local copy says practice. | None. | Kyle's walk, when it is scheduled. |
 | INSIGHTS-V1 | **[BLOCKED ON KYLE'S PRODUCT SPEC. LAUNCH-BLOCKING. NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-09-29 under rulings D, E and I of the V1 SCOPE REVISION block at the end of §5.]** Insights becomes qualitative observations *(row added 2026-09-29)* | **THE QUALITATIVE OBSERVATIONS MODEL (ruling D), INSIDE THE V1 FREE-TEXT BOUNDARY (ruling E).** **RETIRED** from `mobile/src/screens/InsightsScreen.tsx` (lines at `d542352`): the Wellness Score ring (`HeroSummaryCard`, line 373); the days-active and at-a-glance counters (`AtAGlanceCard`, line 412, computed at lines 268 to 272); the habit heatmap (`HabitHeatmap`, line 405); the daily activity bar chart (`WeeklyBarChart`, line 396); the correlation card (`CorrelationInsightCard`, lines 391 to 392); the habit empty state (line 367, *"Start tracking habits and journaling to see your insights here."*, gated at lines 330 to 335); and the percent-of-habits narrative fallback (line 250, *"This week you completed about ${habitPct}% of your habits."*). **THE SHELL IS KEPT:** the route (registered at `mobile/src/navigation/AppNavigator.tsx` lines 941 to 948) and the screen. **THE FATE OF THE WEEKLY-NARRATIVE AI CALL** (`InsightsScreen.tsx` lines 228 to 229, `/weekly-narrative`) **IS DECIDED UNDER RULING E.** **ADD THE `moments` READ PATH:** `mobile/src/services/firebase/moments.service.ts` is write-only by design and says so at lines 4 to 6. **REVISIT THE `closeNote` COPY**, per the §11 note of 2026-09-10. **JEN REVIEWS** any observation making an efficacy or physiological claim. **THE LOOK BACK ENTRY RETURNS ONLY ONCE THE CONTENT IS HONEST**, using R3b's treatment (ruling I). **ITS STEP 0 DEFINES EXACTLY WHICH STRUCTURED SOURCES FEED OBSERVATIONS AND HOW EACH OBSERVATION IS DERIVED**, starting from the inventory in the Step 0 of 2026-09-29, which found a live writer at `d542352` for `journeyStates`, `dailyLogs`, `weeklyCycles`, `moments`, `journalEntries`, `protocolSessions`, `focusSessions`, routine completions, `capturedTasks` and `dayBlocks`. **STEP 0 FINDINGS, RECORDED HERE:** `brainMetrics` and `brainStateCheckIns` have no live writer. The only `brainMetrics` writer (`mobile/src/components/brain/BrainReadinessWidget.tsx` line 112) is rendered only by `BrainHealthDashboard`, which no navigator registers; the `brainStateCheckIns` writer (`mobile/src/components/checkin/flow/CheckInFlow.tsx` line 113) sits behind the `CheckInFlow` route, whose three callers are rendered nowhere. **So the current sleep, mood and energy correlations run on no data.** And **"Protocols completed" counts focus sessions** (`InsightsScreen.tsx` line 270). | Kyle's product spec. Jen, for any claim-bearing content. | Set at its Step 0. |
 | R4 | **[R3 DEPENDENCY REMOVED 2026-09-29 by Kyle's ruling; the reason is in the AMENDED 2026-09-29 block on R4, below the board. Any remaining hold is sequencing, which is Kyle's to keep or drop. Was: BLOCKED ON R3. Row added 2026-09-12 with the R-series.]** Journey map goes atmospheric *(row added 2026-09-12 with the R-series)* | **`PhasePath` variants, a featured current step, and the hub cards.** `PhasePath` is ONE component serving TWO surfaces - the map with `copy="full"` and the A2 route strip with `copy="short"` and no `onPressPhase` - and **a variant must not become a second implementation**, which is the exact thing building it once in 5a was meant to prevent. **WHAT THE VISUAL LAYER MAY CHANGE:** the rail (`RAIL_WIDTH` 24, 2pt connectors in `Colors.divider`), the marker (12pt, 1.5pt border, `MARKER_TOP_OFFSET` derived from the type scale rather than typed as a literal), the four `MARKER_STYLES`, typography and emphasis, and the featured treatment of the current row. **WHAT IT MAY NOT:** the four states must stay visually distinguishable and each must keep a second non-colour signal, because §16 forbids colour carrying meaning alone - today that is a check glyph for `done`, a 1.25 scale for `current`, and a dashed border for `skipped`. **`skipped` NEVER TAKES CORAL**, which is reserved for genuine errors, and never reads as a reprimand. **`ahead` IS NOT `locked`** and must not acquire a lock, a dim, or a disabled appearance. **EVERY ROW OPENS, INCLUDING THE ONES AHEAD**, and there is no per-row opt out: passing `onPressPhase` is what makes a row a button with a 48pt floor and a chevron, and a path where some rows lead somewhere and others do not draws a door the model does not have. **NO COUNTERS AND NOTHING THAT FILLS AS PHASES CLOSE** - §10.7 permits the rail as wayfinding in a finite flow and bans it as a progress bar, and a "featured current step" must not become a position indicator with a denominator. **THE HUB CARDS BELOW THE DIVIDER ARE LOAD BEARING, NOT DECORATIVE:** `JourneyMapScreen` is the ONLY navigator to `ROUTES.PillarFocus` and `ROUTES.PillarStressRecovery` in the app, and `FocusHubScreen` went dark for two months after IA step 2 with its own unit suite green the whole time. **`StartHereRow` IS A SIBLING OF THE LOADING BRANCH AND NEVER A CHILD OF IT**, so a slow or failed `journeyStates` read cannot take it down; a layout change must not reparent it. **NO GUIDE PILL AND NO HERO BAND ON THIS SCREEN** - both were decided in 5b-i, and R0's 11F stops hubs mandating a band rather than licensing one here. **FROZEN:** journey phase derivation; `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; phase advancement; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement; ahead rows remain tappable; no streaks, scores or completion percentages. | **Gated on R0** (§2.8, §8, new 11H) **and on R1** (primitives, hub card). `components/journey/__tests__/PhasePath.test.tsx` and `screens/journey/__tests__/JourneyMapScreen.test.tsx` green unchanged. | **Yes, the full standing walk**, with (h) no numeric progress as the assertion this row is most able to fail. Walk all four states on seeded accounts, including `skipped`, which no walk has exercised on a redesigned rail. |
 | R5 | **[BLOCKED ON R4. Row added 2026-09-12 with the R-series.]** Journey detail gets a reusable presentation *(row added 2026-09-12 with the R-series)* | **A PRESENTATION, NOT A CONTROLLER.** The page is already a fixed sequence of optional slots - eyebrow, title and gloss, body, stored intention, the door, the commit - and a shared layout lifts that sequence while every condition stays in the screen. **ORDER IS BEHAVIOURAL, NOT COSMETIC:** the controls sit at the BOTTOM, after the explanation, and that position is the whole argument of 7a decision 4 - the user reads what the stretch IS before being asked to start it, and a control above the body turns an explanation with an offer at the end into an offer with an explanation attached. **THE TWO CTA CONDITIONS ARE DERIVED, NOT PASSED, AND ARE MUTUALLY EXCLUSIVE BY CONSTRUCTION:** preview requires `phase === nextPhase` and the door requires `phase === journey.phaseKey`, and `PHASE_ORDER[idx + 1]` is never `PHASE_ORDER[idx]`. **A SHARED LAYOUT MUST NOT UNIFY THEM INTO ONE CTA SLOT** without re-deriving that guarantee, and the reason each is derived rather than passed is that the demoted offer and the post-cap door both have to be reachable from the map, which knows nothing about either. **THE NATIVE STACK HEADER STAYS.** It renders OUTSIDE the per-screen error boundary, which is what leaves a way out of a screen that throws; replacing it with an in-content back control removes that. `title` is empty because the page renders its own H1 and the destination titles are longer than a header bar carries, and `headerBackTitle` moves with 7n's rename. **THEN MIGRATE:** `JourneyPhaseScreen`, `MigrationRouteScreen`, and **possibly** the `removeCapture` screens - possibly, because that flow is a nested stack with `headerShown: false` and each screen carries its own scaffold, so whether the presentation fits is a Step-0 question and not an assumption this row is allowed to carry in. **THE EYEBROW ON THIS PAGE RENDERS `PHASE_STATE_LABELS`, WHICH IS STATE**, and R0's rule is what permits it; the phase descriptor does not enter this slot. **FROZEN:** journey phase derivation; `PHASE_ORDER`; `PHASE_DISPLAY` and the sixteen approved strings; `journeyActionFor`'s one-slot precedence; offer placement and exposure rules; **phase advancement - `advancePhase` in `onStartThis` is the ONLY control in the whole advancement flow that mutates a phase, and it navigates only on success, because going back on a failed write reads as the tap having done nothing**; the daily pick and its write behaviour; journey service writes; route names; tab order; `screenLayout` error-boundary placement; ahead rows remain tappable; no streaks, scores or completion percentages. | **Gated on R0** (new 11H) **and on R1**. `screens/journey/__tests__/JourneyPhaseScreen.test.tsx` green unchanged, including the assertion that preview and the door never co-render. | **Yes, the full standing walk**, on four accounts: a phase page with neither control, one in preview with `advanceOfferedAt` set, one with the door open via `adjustOfferedAt`, and the `remove` page with a stored replacement. |
@@ -2522,6 +2529,105 @@ case). `wellnessScore.service` de-wiring remains queued and is untouched by this
 > pattern `TimePickerSheet` was extracted to fix, and its header names this screen. **OWNED BY
 > NOTIFICATION-PREFERENCES-MODEL. NOT FIXED IN ROUTINE-REMINDER-TIME-PICKER.**
 
+> **ADDED 2026-10-01 (NPM-1's build docs). THE SPLIT OF NOTIFICATION-PREFERENCES-MODEL, KYLE'S
+> RULINGS VERBATIM, THE OPERATIONAL STATE, AND THE TAXONOMY RULE.** The rows above are left
+> unedited apart from their status markers (§12.1).
+>
+> **THE OPERATIONAL STATE, recorded from Kyle on 2026-10-01 (operational evidence from the
+> Firebase console, not from the repo):**
+> - There is no config collection in Firestore, so `config/notifications.serverPushEnabled` is
+>   missing.
+> - All eight notification functions are deployed.
+> - Kyle states he paused the scheduled jobs for `sendDailyRhythm`, `sendHabitReminders`,
+>   `sendInsights` and `sendMilestones` at 5:50 PM Eastern on 2026-10-01. The event-triggered
+>   Community functions are left running.
+> - This is the V1 operational state. The pause is reversible. A later functions deploy may
+>   recreate or re-enable the schedules.
+>
+> **KYLE'S RULINGS (2026-10-01), VERBATIM:**
+>
+> D1. Daily rhythm. V1 uses phone/local delivery only. serverPushEnabled must remain OFF for V1
+> until the server timezone model is corrected. NPM-1 owns making local daily rhythm reliable
+> from the user's first day onward.
+>
+> D2. General notifications. Define the product contract as: General notifications controls
+> Vara-initiated general reminders and updates, including the daily rhythm. It does not control
+> reminders/alerts that the user explicitly configured as part of a specific feature. Routine
+> reminders remain controlled per routine. Timer/focus alerts remain independent. Keep the
+> approved Settings copy: General notifications / Controls Vara’s general reminders and updates.
+> Routine reminders are managed within each routine.
+>
+> D3. Preference-state distinction. Do not add a never-on versus deliberately-off distinction for
+> V1, provided the implementation verification continues to show that every current onboarding
+> path writes the General preference ON.
+>
+> D4. OS permission. Keep General ON when OS permission is denied. Add an OS-permission
+> status/action row so Settings accurately distinguishes app preference from device permission.
+>
+> D5 and ruling 6, as revised. Community is part of V1, including its current Messages, People and
+> Connect functionality. Do not create a retirement slice for those entry points. The DM and
+> connection issues belong to a separate launch-blocking NPM-3a COMMUNITY-NOTIFICATION-CORRECTNESS
+> row. It must resolve the duplicate DM sender architecture, the connection-request field
+> mismatch, preference enforcement, and prove one correct push per relevant event. Do not widen
+> NPM-1 with that server work.
+>
+> D6. Controls. Remove Community Activity and the dead Push Notifications control. Replace the
+> latter with OS notification-permission status. Hide Completion Sound, Insights notification
+> controls and Milestone notification controls for V1.
+>
+> D7. Settings time pickers. Reuse the picker interaction model established by the routine
+> reminder work: scrolling edits a draft; Done commits; Cancel discards. Provide an Add a time
+> state when no daily reminder time exists.
+>
+> D8. Quiet Hours. Hide Quiet Hours for V1. Do not ship a control that currently affects neither
+> local daily delivery nor server timing correctly.
+>
+> D9. Journal opt-in. Remove the reachable Journal notification opt-in as part of NPM-2. NPM-4 may
+> own deletion of its remaining dead implementation afterward.
+>
+> NPM-1 rulings:
+> 1. Daily rhythm. V1 daily rhythm is phone/local only and does not read serverPushEnabled to
+>    decide whether the local reminder should exist. The core daily reminder must not depend on a
+>    remote feature flag.
+> 2. Insights notifications. Cancel existing local Insights notifications and do not schedule new
+>    ones while the control/feature is hidden pending INSIGHTS-V1.
+> 3. Onboarding OS denial. Keep the General preference ON and continue reconciliation even when OS
+>    permission is currently denied. If the user later grants Vara notification permission in iOS
+>    Settings, the next app return must be able to schedule the daily rhythm without requiring
+>    them to revisit onboarding.
+> 4. Journal opt-in. Approve the narrow alignment in NPM-1 if it is the confirmed one-line
+>    removal/disable. Do not leave a known-broken reachable path between NPM-1 and NPM-2 solely
+>    for slice purity.
+> 5. Onboarding settings-write failure. Approve one automatic retry. If it still fails, continue
+>    onboarding and ledger the residual recovery case for NPM-2 rather than blocking the user.
+>
+> Operational server control. Pause only sendDailyRhythm, sendHabitReminders, sendInsights and
+> sendMilestones. Leave the event-triggered Community functions running for NPM-3a. NPM-3b must
+> carry a pre-launch check, and a re-check after any Functions deploy, that all four scheduled
+> jobs remain paused.
+>
+> Daily rhythm copy. Use only these three daily-rhythm bodies. Morning: Your morning practice is
+> ready when you are. Midday: Your daily practice is ready when you are. Evening: Your evening
+> practice is ready when you are. If any local daily-rhythm notification title also uses routine,
+> replace that usage with practice as appropriate. NPM-1 should establish the taxonomy rule that
+> routine is reserved for the user-created Routines feature; Vara's daily recommendation is a
+> practice. Do not use the former evening wording containing "if it feels right." Server-side
+> copies remain untouched in NPM-1 because those senders are paused; record the mismatch on the
+> server retirement and timezone rows.
+>
+> Sequencing: 1. NPM-1 DAILY-RHYTHM-RELIABILITY, launch-blocking. 2. NPM-2
+> NOTIFICATION-SETTINGS-TRUTHFULNESS, launch-blocking. 3. Server notification guarding/retirement,
+> not a feature launch blocker once server delivery is confirmed disabled and no V1 social
+> triggers remain. 4. Dead notification code cleanup, non-blocking. Keep the server timezone
+> correction post-launch while server daily-rhythm delivery remains disabled.
+>
+> **THE TAXONOMY RULE, ESTABLISHED BY NPM-1:** routine is reserved for the user-created Routines
+> feature; Vara's daily recommendation is a practice.
+>
+> **ONE PROVISO OF THE SEQUENCING LINE IS SUPERSEDED BY D5 AS REVISED.** "No V1 social triggers
+> remain" no longer applies: Community is part of V1, and its pushes are made correct by the
+> launch-blocking NPM-3a rather than removed. The sequencing line is recorded as given.
+
 ---
 
 ## 6. Content dependencies (Jen), in build order
@@ -3204,6 +3310,30 @@ rule is cited as §12.1.
 >   fb9d303, AWAITING MERGE."* **[Next]** stays on this row. The rationale: the walk evidence. The
 >   ROUTINE-REMINDERS marker and its qualifier are unchanged here; the step after this merge
 >   updates it with the merge evidence.
+
+> **ADDED 2026-10-01 (NPM-1's build docs), recording the merge evidence and Kyle's rulings. THREE
+> MARKER UPDATES, SIX NEW ROWS AND ONE NEW LEDGER ROW.** The rule and the blocks above are left
+> unedited. Each update keeps the entire prior marker verbatim after "Was:".
+>
+> **The merge evidence.** NPM-1's Step 0 and its build, run by CC from `mobile/` on 2026-10-01,
+> observed `git rev-parse HEAD` and `git rev-parse origin/main` both returning
+> `527703163b2eb6a050a8244d0f6f8e6ff6cab24e` on `main`, clean apart from the untracked before/
+> folder, and `5277031`'s parents as `50c3622` and `3588449`, the tip of
+> `origin/journey/routine-reminder-time-picker`.
+>
+> - **ROUTINE-REMINDER-TIME-PICKER's MARKER.** It becomes *"DONE, merged at 5277031."* **[Next]**
+>   leaves this row. The rationale: the merge evidence.
+> - **ROUTINE-REMINDERS' MARKER.** Its qualifier becomes *"THE REMINDER TIME INPUT LANDED WITH
+>   ROUTINE-REMINDER-TIME-PICKER AT 5277031."* The rationale: the merge evidence.
+> - **NOTIFICATION-PREFERENCES-MODEL's MARKER.** It becomes *"SPLIT 2026-10-01 under Kyle's rulings
+>   D1 to D9 into NPM-1, NPM-2, NPM-3a, NPM-3b, NPM-4 and NPM-TZ."* The rationale: Kyle's rulings,
+>   recorded verbatim in the ADDED 2026-10-01 (NPM-1's build docs) block at the end of §5.
+> - **NEW ROWS,** directly after NOTIFICATION-PREFERENCES-MODEL: NPM-1 DAILY-RHYTHM-RELIABILITY,
+>   NPM-2 NOTIFICATION-SETTINGS-TRUTHFULNESS, NPM-3a COMMUNITY-NOTIFICATION-CORRECTNESS, NPM-3b
+>   SERVER-SCHEDULED-SENDER-RETIREMENT, NPM-4 NOTIFICATION-DEAD-CODE-CLEANUP and NPM-TZ
+>   SERVER-NOTIFICATION-TIMEZONE. **[Next]** moves to NPM-1, with *"BUILT, WALK PENDING on
+>   journey/npm-1-daily-rhythm-reliability"*. The rationale: the build, and the walk not yet run.
+> - **NEW LEDGER ROW: DAILY-RHYTHM-ONBOARDING-WRITE-FAILURE**, after ACCOUNT-DELETION-FALSE-FAILURE.
 
 ---
 
@@ -4464,6 +4594,217 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the map route still offers it. **Record the result in this entry when observed. Until then
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
+
+### 2026-10-01 - NPM-1 DAILY-RHYTHM-RELIABILITY: a new user's first daily reminder survives a leave-and-return (branch `journey/npm-1-daily-rhythm-reliability`, `c63f951` the before-state evidence, `536b6ab` the code and tests, this entry the docs; **BUILT, WALK PENDING**, script at `docs/walks/npm-1-daily-rhythm-reliability/WALK.md`)
+
+**STEP 0 (two read-only passes on `main` at `5277031`) FOUND THE FIRST-DAY DEFECT IN THE CODE.**
+- **Two Step 0s.** NOTIFICATION-PREFERENCES-MODEL's own Step 0 inventoried every notification, its
+  gates and the Settings controls. NPM-1's Step 0 then traced the daily rhythm end to end.
+- **The defect.** `useNotificationPreferences` keeps a copy per caller, loaded once per uid.
+  NotificationProvider sits above the navigator, so a new user's copy is created at sign-up with
+  General off. Onboarding then writes General ON with a time, through the service, which no hook
+  copy sees, and schedules the reminder.
+  - On the first leave-and-return, the foreground handler cancelled every pending notification.
+  - It rescheduled the daily rhythm only if that stale copy said General was on.
+  - So the reminder was lost until a cold start.
+- **The permission sheet's own inactive-then-active transition** runs the foreground cancel before
+  onboarding's schedule call, which waits on Firestore round-trips. That order keeps the reminder.
+- **`emailVerified`.** An unverified user is routed to verification and never reaches onboarding
+  or Today.
+- **Community is reachable.** Messages, People and Connect are mounted in V1, so direct-message and
+  connection events are generated. That finding is what Kyle's revised D5 and NPM-3a answer.
+- **NOTIFICATIONS-CODEBASE-IGNORES-PREFS overstates one sender.** `notifyOnInviteCreated` sends no
+  push (a bell document and an optional email) and triggers on `connectionInvites`, which mobile
+  never writes.
+- **One console reading does not match the repo.** `sendDailyRhythm` logs on every run in the
+  repo's source, so 96 runs with no logs suggests the deployed version may differ. Kyle's to check.
+
+**THE BEFORE-STATE, AS CORROBORATING EVIDENCE ONLY.** Kyle captured two screenshots on `main` at
+`5277031`, committed unchanged in `before/` as C1.
+
+What each screenshot shows:
+- **`01-onboarding-reminder-time.png`:** the V3 Reminder step at 6:08 by the status bar, titled
+  When should we check in?, with the picker at 8:00 PM and the floor echo We will nudge you
+  toward: Push ups.
+- **`02-lock-screen-after-reminder-time.png`:** the lock screen on Thu Oct 1 at 6:22, showing a
+  Vara notification marked now, titled Good evening, body Your evening routine is ready whenever
+  you are.
+
+Kyle's statements, attributed to him:
+- He created a new test account and set the onboarding reminder for 6:20 PM.
+- The time visible in the picker in screenshot 01 is not the time he finally selected.
+- The reminder was delivered.
+- The notification that fired said routine, although it is not related to a routine; it was the
+  floor commitment from onboarding.
+- He did not state whether he left and returned to the app before the reminder time, or whether
+  the account was on a fresh reinstall.
+
+**Under Kyle's ruling this result is corroborating evidence only:** a delivery means that run did
+not reproduce, and it does not by itself overturn the code-level finding or the failing regression
+test.
+
+**HOW THAT REMINDER COULD HAVE BEEN DELIVERED, FROM THE CODE ON `main`:**
+- **(a) No leave-and-return between onboarding and 6:20 PM.** The reminder the Reminder step
+  scheduled stays pending, and the permission sheet's own transition runs its cancel before
+  that schedule.
+- **(b) A cold start, or a dev-client JavaScript reload, before 6:20 PM.** The provider then loads
+  General ON fresh, and its sign-in effect and every later return keep the reminder scheduled.
+- **The server is excluded on three counts:**
+  - `config/notifications` does not exist, so `sendDailyRhythm` returns before reading any
+    preference.
+  - Kyle states the schedule was paused at 5:50 PM.
+  - The server compares the stored hour with the UTC clock, so an 18:20 reminder would match at
+    about 2:20 PM Eastern, not 6:20 PM.
+- **Not determinable:** whether he left and returned, whether a reload or cold start happened, and
+  whether the install was fresh. The text cannot tell local from server: both copy pools carried
+  that evening string.
+
+**THE CODE-LEVEL BEFORE EVIDENCE.** `before/03-regression-test-on-main.txt` is the first-day
+regression test run against unmodified production code at `5277031`, failing. The test uses the
+real provider, real hook and real scheduler over an in-memory preferences document and OS store.
+
+The scenario:
+1. Sign-up creates the preferences document with General off.
+2. Onboarding writes General ON with a time, then schedules.
+3. The user leaves and returns.
+4. The test asserts the reminder is still pending.
+
+On `main` it is not (`Received: undefined`). It ships green in C2.
+
+**KYLE'S RULINGS** are recorded verbatim in the ADDED 2026-10-01 (NPM-1's build docs) block at the
+end of §5, with the operational state and the taxonomy rule: **routine is reserved for the
+user-created Routines feature; Vara's daily recommendation is a practice.**
+
+**WHAT WAS BUILT (`536b6ab`), BY TASK:**
+- **T1, the reconcile.** `reconcileDailyRhythm(uid)` in
+  `mobile/src/services/notificationScheduler.service.ts`.
+  - It reads the preferences fresh, with a 10-second timeout.
+  - **A failed, offline or hung read changes nothing.**
+  - When General, the daily rhythm and a time are all present, it schedules the uid daily rhythm
+    at that time under the same identifier, which replaces any pending request. Otherwise it
+    cancels that id.
+  - A run that schedules the id never cancels it.
+  - It is serialized by a module-level queue, so a reconcile from onboarding queues behind one
+    from the foreground handler.
+  - It reads neither OS permission (NPM-1 ruling 3) nor `serverPushEnabled` (ruling 1), and it
+    never rejects.
+- **T2, the callers.**
+  - NotificationProvider's foreground handler and its sign-in or cold-start effect call the
+    reconcile. The `emailVerified` condition is kept.
+  - The provider holds no preferences copy any more.
+  - The preferences-changed effect and the flag branch are gone. `isServerPushEnabled` now has no
+    caller and stays for NPM-4.
+  - The onboarding Reminder step calls the reconcile after its write, on both branches.
+  - NotificationOptInScreen's change is the confirmed one line: its `scheduleDailyRhythm` call
+    becomes `reconcileDailyRhythm`, with the import. Its permission gate is unchanged, so on that
+    screen a denied user is reconciled at the next return.
+- **T3, the foreground cancel. PARTLY BUILT; THE FULL REPLACEMENT STOPPED ON ITS ORPHAN CLAUSE.**
+  - **Why it stopped.** Older builds scheduled ids that nothing in today's code schedules or
+    cancels, recovered from git history: `${uid}-streak-protection`, `${uid}-weekly-summary`,
+    `${uid}-challenge-reminder-*` and others. The blanket foreground cancel is their only
+    canceller (`cancelAllUserNotifications` reaches them only on sign-out or General off). A
+    purely targeted list would leave them with no canceller, which is the condition on which the
+    task said to stop.
+  - **What was built.** Only what T1 requires: the sweep now spares the current user's daily rhythm
+    id, so a failed or offline reconcile cannot leave it cancelled. It is otherwise unchanged.
+  - **Kyle's ruling is needed:** keep the sweep for ids nothing owns, as built, or supply the legacy
+    list to cancel by name. The inventory is in the build report.
+- **T4, Insights.** Every reconcile cancels the uid insights-learning notification.
+  `initializeUserNotifications` no longer schedules one, and nothing else does. The stored
+  preference is untouched.
+- **T5, the same-uid guard.** NotificationProvider's session cleanup cancels the user's
+  notifications only when the uid became null or another uid. Replacing the same user's object
+  cancels nothing; sign-out and a different uid still cancel.
+- **T6, the write retry.** The Reminder step's preference write gets one automatic retry. If both
+  attempts fail, the arc continues as before. The residual case is the new ledger row
+  DAILY-RHYTHM-ONBOARDING-WRITE-FAILURE, recovered in NPM-2.
+- **T7, the copy.** One variant per time of day, with no random selection; Kyle's approved strings,
+  landing flat. The hour boundaries are unchanged.
+
+  | Time of day | Title | Body |
+  |---|---|---|
+  | Morning, before 12:00 | Good morning | Your morning practice is ready when you are. |
+  | Midday, 12:00 to 16:59 | Your practice is ready | Your daily practice is ready when you are. |
+  | Evening, 17:00 and later | Good evening | Your evening practice is ready when you are. |
+
+  The former pool is removed:
+  - Good morning / Your morning routine is ready whenever you are.
+  - A small moment / Your morning routine is here when you're ready.
+  - Good evening / Your evening routine is ready whenever you are.
+  - Wind down / A small moment for your evening routine, if it feels right.
+  - Your routine is ready / A small moment for yourself, whenever you're ready.
+
+  The server copy is untouched; NPM-3b and NPM-TZ record the mismatch.
+- **T8, D3 as a test.** `onboardingWritesGeneralOn.test.ts` pins three things:
+  - V3 is the mounted arc.
+  - Done is reached only from the Reminder step.
+  - The Reminder step's one write sets `allNotificationsEnabled: true`, and nothing in onboarding
+    writes it false.
+
+  The behavioural tests pin both branches.
+
+**TESTS.** Four new suites and three reworked:
+- **New:**
+  - `NotificationContext.dailyRhythmFirstDay.test.tsx` (4);
+  - `NotificationContext.foregroundSurvivors.test.tsx` (3);
+  - `notificationScheduler.reconcile.test.ts` (19);
+  - `onboardingWritesGeneralOn.test.ts` (3).
+- **Reworked:**
+  - `NotificationContext.test.tsx`: it no longer mocks a preferences hook the provider does not
+    use.
+  - `OnboardingV3ReminderScreen.test.tsx`: the denied branch now asserts General ON and the
+    reconcile, not "schedules nothing", by ruling 3.
+  - `NotificationOptInScreen.test.tsx`.
+
+**MUTATIONS.** 23 mutations, every one caught, each restored from a scratchpad backup with a
+byte-identical SHA-256, never git. The C2 commit body says 22; M1b was added after it. Among them:
+- deciding from the provider's copy, both as written and faithfully re-subscribed;
+- an early return without the cancel; cancel-then-decide; cancel-then-schedule;
+- the reconcile before the write, and gated on permission;
+- the queue removed; the same-uid guard removed; the flag check reintroduced;
+- each insights path; the sweep without its spare;
+- the routine sync dropped; the focus exemption removed;
+- the retry removed, doubled, and blocking the arc;
+- the former evening copy restored; General written from the permission result;
+- the sign-in and foreground reconciles dropped.
+
+**A finding from the first mutation run.** The original first-day test also passes when the
+reminder survives only because the sweep spares it. A second first-day test isolates the fresh
+read: General ON written, nothing pending, then a return. The provider-copy mutation fails it.
+
+**REACHABILITY, SEPARATE FROM THE MUTATIONS.** Every test drives the provider through an AppState
+handler captured from a spy, and the onboarding screen through a stub scaffold. The OS
+notification store is in memory.
+- **Reachable and walkable:**
+  - the onboarding Reminder step (every new account);
+  - NotificationProvider's foreground and sign-in paths (every signed-in session);
+  - the daily rhythm copy (W1);
+  - the denied-then-granted path (W6).
+- **Reachable, not inducible on demand:**
+  - the failed or offline read;
+  - overlapping reconciles;
+  - the write retry;
+  - the same-uid guard.
+- **Reachable only from Journal's first entry, which NPM-2 removes:** NotificationOptInScreen.
+- **No account available:** Insights cancellation.
+
+Nothing here is verified on a device until the walk.
+
+**BASELINES at `536b6ab`** (re-measured after this docs commit; see the report):
+- **jest:** 4016 tests in 248 suites, no failures. That is +33 tests and +4 suites on `main`'s
+  3983 and 244.
+- **tsc:** 137. The sorted error list, with file positions stripped, is identical to `main` at
+  `5277031`.
+- **lint:** 891 errors, 1251 warnings, down from 892 and 1253.
+  - One unused-variable error in `notificationScheduler.service.ts` and two `any` warnings in
+    `NotificationContext.test.tsx` went with the refactor.
+  - The four new suites are clean.
+- **sentinel:** 156. An approved-for-approved substitution, the contract's flat case.
+
+**MANIFEST:** this slice writes no new Firestore collection and no new field.
+
+**THE WALK IS PENDING.** Kyle walks `docs/walks/npm-1-daily-rhythm-reliability/WALK.md` on the
+docs commit. Nothing here is verified on a device.
 
 ### 2026-10-01 - ROUTINE-REMINDER-TIME-PICKER: the reminder time is picked, not typed (branch `journey/routine-reminder-time-picker`, `ff6bfc7` the before-state captures, `4a4cb23` the code and tests, this entry the docs; **BUILT, WALK PENDING**, script at `docs/walks/routine-reminder-time-picker/WALK.md`)
 
