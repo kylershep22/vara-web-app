@@ -95,3 +95,5 @@ Walked and attested by Kyle on 2026-10-01, iPhone 14 Plus, default Dynamic Type.
 | W4 | PASS | |
 | W5 | PASS | |
 | W6 | PASS | |
+
+**Observation, Kyle, 2026-10-01.** Tapping the daily rhythm notification returns him to the Today page, but nothing there is directly related to the floor commitment defined in onboarding, and there is no action tied to the reminder. Recorded as the ledger row DAILY-RHYTHM-TAP-DESTINATION in the roadmap; it is not a step of this walk and does not change any result above.
