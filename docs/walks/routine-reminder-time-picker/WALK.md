@@ -1,8 +1,8 @@
 # ROUTINE-REMINDER-TIME-PICKER - the reminder time is picked, not typed - device walk
 
 **Row:** ROUTINE-REMINDER-TIME-PICKER. The routine editor's free-text reminder field becomes a tappable row that opens the shared time picker. Done commits, Cancel discards, and a set reminder can be removed. Scheduling, permission, cancellation, sign-out and alert behaviour are unchanged from ROUTINE-REMINDERS.
-**Build:** branch `journey/routine-reminder-time-picker`: `ff6bfc7` (the before-state captures, C1), `4a4cb23` (the code and tests, C2) and the docs commit that carries this script (C3). **Walk the C3 commit**, which runs the same code as C2. The hashes are recorded in the roadmap's §13 entry for this slice.
-**Device:** iPhone 14 Plus, dev client, default Dynamic Type. No new dev-client build is needed: the date-time picker package is already installed.
+**Build:** branch `journey/routine-reminder-time-picker`: `ff6bfc7` (the before-state captures, C1), `4a4cb23` (the code and tests, C2), `b74e006` (the docs, C3), `bf8f225` (the fixes before the walk, C4) and the docs commit that carries this line (C5). **Walk the C5 commit, the tip of the branch, not `b74e006`.** It runs the same code as C4. A commit cannot carry its own hash: `git rev-parse HEAD` on the branch gives it, and it is recorded in the hand-off. The other hashes are in the roadmap's §13 entry for this slice.
+**Device:** iPhone 14 Plus, dev client, default Dynamic Type. No new dev-client build is needed: the date-time picker package is already installed, and the fixes are JavaScript only.
 **Walker:** Kyle. **Status: NOT YET WALKED.**
 
 ---

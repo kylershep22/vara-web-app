@@ -4573,6 +4573,44 @@ here.
 **THE WALK IS PENDING.** Kyle walks `docs/walks/routine-reminder-time-picker/WALK.md` on the docs
 commit. Nothing here is verified on a device.
 
+**AMENDED 2026-10-01, BEFORE THE WALK (`bf8f225`, C4). THREE FIXES, KYLE'S INSTRUCTION.** The walk
+moves to the C5 docs commit, the tip of the branch, which runs the same code as C4. It no longer
+walks `b74e006`. No new dev-client build is needed.
+- **The touch target.** Remove reminder's `minHeight` is `Layout.buttonHeight.sm` (48), up from 44,
+  the UI Standards 18.2 minimum. Its top margin drops from `Spacing.xs` (4) to `Spacing['2xs']`
+  (2), so the label sits exactly where it did. The one visible difference is 2pt more space below
+  it.
+- **Tokens.** Every raw value C2 added to the row and Remove reminder styles now uses an existing
+  token, and each is an exact match, so nothing renders differently:
+  - `minHeight` 48 became `Layout.buttonHeight.sm`;
+  - `borderRadius` 12 became `Layout.borderRadius.lg`;
+  - `borderWidth` 1 became `Layout.borderWidth.thin`;
+  - `fontSize` 16 became `Typography.fontSize.base`, twice;
+  - `fontSize` 14 became `Typography.fontSize.sm`;
+  - `fontWeight` '600' became `Typography.fontWeight.semibold`;
+  - the chevron's size 20 became `Layout.iconSize.sm`.
+
+  No token was added or changed. Pre-existing raw values in the file are untouched.
+- **Disabled while saving.** The row and Remove reminder take `disabled` and
+  `accessibilityState.disabled` from `saving`, as the save button is disabled.
+  - **Three tests:**
+    - pressing the row mid-save does not open the picker;
+    - pressing Remove mid-save does not change the model;
+    - the row is enabled again once the save ends.
+  - **Each is mutation-checked with a byte-identical restore:**
+    - the row not disabled;
+    - Remove not disabled;
+    - `saving` never cleared.
+  - **A finding from the first mutation run.** Dropping only `disabled` did not re-enable either
+    control. React Native's `TouchableOpacity` disables itself from `disabled`, `aria-disabled` or
+    `accessibilityState.disabled` (`_createPressabilityConfig`), so the faithful mutation drops both
+    props, and with both dropped each test failed as it should.
+- **Baselines after C4,** re-measured after the C5 docs commit:
+  - **jest:** 3983 tests in 244 suites, no failures. That is +3 tests.
+  - **tsc:** 137. The sorted list with file positions stripped is identical to `main` at `50c3622`.
+  - **lint:** 892 errors, 1253 warnings.
+  - **sentinel:** 156.
+
 ### 2026-10-01 - ROUTINE-REMINDERS: a routine reminder either works or says honestly that it cannot, and no routine reminder survives loss of the owning user session (branch `journey/routine-reminders`, `0a37989` the before-state captures, `d4d714a` the code and tests, this entry the docs; **BUILT, WALK PENDING**, script at `docs/walks/routine-reminders/WALK.md`)
 
 **THE STEP 0 GATE STOPPED AT `ensureRemindersAllowed`, AS KYLE'S RULING OF 2026-09-30 REQUIRED.**
