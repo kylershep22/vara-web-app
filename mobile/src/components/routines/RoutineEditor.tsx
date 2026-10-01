@@ -13,7 +13,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  Linking,
 } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import Text from '../shared/Text';
 import TextInput from '../shared/TextInput';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -34,7 +36,27 @@ import {
   createActivityFromTemplate,
   ActivityTemplate,
 } from '../../constants/activityLibrary';
-import { scheduleRoutineReminder, cancelRoutineReminder } from '../../services/reminderScheduler.service';
+import {
+  scheduleRoutineReminder,
+  cancelRoutineReminder,
+  parseTimeString,
+  classifyReminderPermission,
+  ReminderPermission,
+  RoutineReminderInput,
+} from '../../services/reminderScheduler.service';
+import { getPermissionsStatus } from '../../services/notifications.service';
+import { formatReminderTime } from '../../services/firebase/notificationPreferences.service';
+import { REMINDER_ALERTS, REMINDER_HELPER } from './routineEditor.copy';
+
+type ParsedTime = { hour: number; minute: number };
+
+async function readReminderPermission(): Promise<ReminderPermission> {
+  try {
+    return classifyReminderPermission(await getPermissionsStatus());
+  } catch {
+    return 'undetermined';
+  }
+}
 
 interface RoutineEditorProps {
   userId: string;
@@ -137,56 +159,173 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
       return;
     }
 
+    // Empty means no reminder. A non-empty value is kept only if the single
+    // parser accepts it; a rejected value is persisted as null, never as the
+    // text the user typed (ruling R-D).
+    const name = routineName.trim();
+    const timeText = reminderTime.trim();
+    const parsed = timeText ? parseTimeString(timeText) : null;
+    const storedTime = parsed ? timeText : null;
+
     setSaving(true);
+    let routineId: string;
     try {
       if (existingRoutine) {
-        // Update existing routine
         await updateRoutine(existingRoutine.id, {
-          name: routineName.trim(),
+          name,
           activities,
-          reminderTime: reminderTime.trim() || null,
+          reminderTime: storedTime,
         });
-        // Re-schedule reminder
-        await cancelRoutineReminder(existingRoutine.id);
-        if (reminderTime.trim()) {
-          await scheduleRoutineReminder({
-            ...existingRoutine,
-            name: routineName.trim(),
-            activities,
-            reminderTime: reminderTime.trim(),
-          });
-        }
-        Alert.alert('Success', 'Routine updated successfully!');
+        routineId = existingRoutine.id;
       } else {
-        // Create new routine
-        const routineId = await createRoutine(userId, {
-          name: routineName.trim(),
+        const created = await createRoutine(userId, {
+          name,
           type: routineType,
           mode: 'checklist',
           activities,
           active: true,
-          reminderTime: reminderTime.trim() || null,
+          reminderTime: storedTime,
         });
-        if (reminderTime.trim()) {
-          await scheduleRoutineReminder({
-            id: routineId,
-            userId,
-            name: routineName.trim(),
-            type: routineType,
-            activities,
-            active: true,
-            reminderTime: reminderTime.trim(),
-          } as any);
+        routineId = created.id;
+        // A routine this create switched off loses its reminder now, not at
+        // the next foreground sync (ruling R-H).
+        for (const id of created.deactivatedIds) {
+          await cancelRoutineReminder(id);
         }
-        Alert.alert('Success', 'Routine created successfully! 🎉');
       }
-      onSave();
     } catch (error) {
       console.error('Error saving routine:', error);
       Alert.alert('Error', 'Failed to save routine. Please try again.');
+      setSaving(false);
+      return;
+    }
+
+    try {
+      await resolveReminder(routineId, timeText, parsed);
     } finally {
       setSaving(false);
     }
+  };
+
+  /**
+   * The save outcome flow (ruling R-E). Runs only here, on an explicit save,
+   * after the routine write has succeeded. onSave runs exactly once: when the
+   * last alert's button is pressed, or straight away when there is no alert.
+   */
+  const resolveReminder = async (
+    routineId: string,
+    timeText: string,
+    parsed: ParsedTime | null
+  ) => {
+    const close = () => onSave();
+
+    // E1. No reminder.
+    if (!timeText) {
+      if (existingRoutine) await cancelRoutineReminder(routineId);
+      close();
+      return;
+    }
+
+    // E2. Invalid time: already persisted as null. Never asks for permission.
+    if (!parsed) {
+      await cancelRoutineReminder(routineId);
+      Alert.alert(REMINDER_ALERTS.invalidTime.title, REMINDER_ALERTS.invalidTime.body, [
+        { text: REMINDER_ALERTS.invalidTime.ok, onPress: close },
+      ]);
+      return;
+    }
+
+    // E3. A valid time.
+    const previous = existingRoutine?.reminderTime
+      ? parseTimeString(existingRoutine.reminderTime)
+      : null;
+    const changed =
+      !existingRoutine ||
+      !previous ||
+      previous.hour !== parsed.hour ||
+      previous.minute !== parsed.minute;
+
+    const input: RoutineReminderInput = {
+      id: routineId,
+      name: routineName.trim(),
+      type: existingRoutine ? existingRoutine.type : routineType,
+      activities,
+      active: existingRoutine ? existingRoutine.active : true,
+      reminderTime: timeText,
+    };
+
+    const showScheduled = () =>
+      Alert.alert(
+        REMINDER_ALERTS.scheduled.title,
+        REMINDER_ALERTS.scheduled.body(formatReminderTime(parsed)),
+        [{ text: REMINDER_ALERTS.scheduled.ok, onPress: close }]
+      );
+    const showFailure = () =>
+      Alert.alert(REMINDER_ALERTS.schedulingFailure.title, REMINDER_ALERTS.schedulingFailure.body, [
+        { text: REMINDER_ALERTS.schedulingFailure.ok, onPress: close },
+      ]);
+    const showDenied = () =>
+      Alert.alert(REMINDER_ALERTS.deniedOff.title, REMINDER_ALERTS.deniedOff.body, [
+        {
+          text: REMINDER_ALERTS.deniedOff.openSettings,
+          onPress: async () => {
+            try {
+              await Linking.openSettings();
+            } catch (error) {
+              console.error('Error opening settings:', error);
+            }
+            close();
+          },
+        },
+        { text: REMINDER_ALERTS.deniedOff.notNow, onPress: close },
+      ]);
+    // Anything but a successful schedule means the reminder is not set.
+    const schedule = async (announce: boolean) => {
+      const outcome = await scheduleRoutineReminder(input);
+      if (outcome !== 'scheduled') {
+        showFailure();
+      } else if (announce) {
+        showScheduled();
+      } else {
+        close();
+      }
+    };
+
+    await cancelRoutineReminder(routineId);
+    const permission = await readReminderPermission();
+
+    if (permission === 'granted') {
+      await schedule(changed);
+      return;
+    }
+
+    if (permission === 'denied') {
+      if (changed) showDenied();
+      else close();
+      return;
+    }
+
+    // Undetermined: asked on every save with a reminder configured.
+    Alert.alert(REMINDER_ALERTS.permissionNeeded.title, REMINDER_ALERTS.permissionNeeded.body, [
+      {
+        text: REMINDER_ALERTS.permissionNeeded.allow,
+        onPress: async () => {
+          let after: ReminderPermission;
+          try {
+            await Notifications.requestPermissionsAsync();
+            after = classifyReminderPermission(await getPermissionsStatus());
+          } catch (error) {
+            console.error('Error requesting notification permission:', error);
+            showFailure();
+            return;
+          }
+          if (after === 'granted') await schedule(true);
+          else if (after === 'denied') showDenied();
+          else showFailure();
+        },
+      },
+      { text: REMINDER_ALERTS.permissionNeeded.notNow, onPress: close },
+    ]);
   };
 
   const handleDelete = () => {
@@ -203,6 +342,9 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
           onPress: async () => {
             try {
               await deleteRoutine(existingRoutine.id);
+              // Only after the delete succeeds: a failed delete keeps its
+              // reminder (ruling R-G).
+              await cancelRoutineReminder(existingRoutine.id);
               Alert.alert('Success', 'Routine deleted');
               onSave();
             } catch (error) {
@@ -345,9 +487,7 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
             placeholder="08:00"
             placeholderTextColor={Colors.textSecondary}
           />
-          <Text style={styles.helperText}>
-            Set a daily reminder time (HH:MM format)
-          </Text>
+          <Text style={styles.helperText}>{REMINDER_HELPER}</Text>
         </View>
 
         {/* Stats */}

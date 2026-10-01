@@ -22,6 +22,7 @@ let mockUser: { uid: string; emailVerified: boolean } | null = {
   emailVerified: true,
 };
 let mockPrefs: any = { allNotificationsEnabled: true };
+let mockAuthReady = true;
 
 /** Ordered log of the reconciliation calls, for the ordering assertion. */
 const callLog: string[] = [];
@@ -52,7 +53,9 @@ const mockInitializeUserNotifications = jest.fn(async () => {
   callLog.push('initialize');
 });
 
-jest.mock('../AuthContext', () => ({ useAuth: () => ({ user: mockUser }) }));
+jest.mock('../AuthContext', () => ({
+  useAuth: () => ({ user: mockUser, isAuthReady: mockAuthReady }),
+}));
 jest.mock('../ToastContext', () => ({
   useToast: () => ({
     showNotificationToast: (title: string, body: string) => mockShowNotificationToast(title, body),
@@ -74,8 +77,12 @@ jest.mock('../../services/notifications.service', () => ({
   },
   getLastNotificationResponse: jest.fn().mockResolvedValue(null),
 }));
+const mockCancelAllRoutineReminders = jest.fn(async () => {
+  callLog.push('cancelRoutineReminders');
+});
 jest.mock('../../services/reminderScheduler.service', () => ({
   syncAllReminders: (...a: any[]) => mockSyncAllReminders(...(a as [])),
+  cancelAllRoutineReminders: () => mockCancelAllRoutineReminders(),
 }));
 jest.mock('../../services/notificationScheduler.service', () => ({
   initializeUserNotifications: (...a: any[]) => mockInitializeUserNotifications(...(a as [])),
@@ -99,6 +106,7 @@ jest.mock('../../navigation/AppNavigator', () => ({
 }));
 
 import { NotificationProvider } from '../NotificationContext';
+import { cancelAllUserNotifications } from '../../services/notificationScheduler.service';
 import { NAV_TARGETS } from '../../navigation/navTargets';
 import { ROUTES } from '../../navigation/routes';
 
@@ -114,6 +122,7 @@ beforeEach(() => {
   mockNavReady = true;
   mockUser = { uid: 'u1', emailVerified: true };
   mockPrefs = { allNotificationsEnabled: true };
+  mockAuthReady = true;
 
   jest.spyOn(AppState, 'addEventListener').mockImplementation(((
     _type: string,
@@ -347,5 +356,106 @@ describe('the in-flight guard', () => {
     await waitFor(() => expect(mockCancelExceptFocus).toHaveBeenCalledTimes(2));
     // Each run completes fully before the next begins.
     expect(callLog).toEqual(['cancel', 'sync', 'cancel', 'sync']);
+  });
+});
+
+describe('routine reminders and the General notifications preference (ROUTINE-REMINDERS)', () => {
+  test('sign-in syncs routine reminders with General off, and still does not initialise the daily rhythm', async () => {
+    // Mutations caught: gating the sign-in sync on allNotificationsEnabled
+    // again; and dropping the flag condition from the initialise effect.
+    mockPrefs = { allNotificationsEnabled: false };
+    mount();
+
+    await waitFor(() => expect(mockSyncAllReminders).toHaveBeenCalledWith('u1'));
+    expect(mockInitializeUserNotifications).not.toHaveBeenCalled();
+  });
+});
+
+describe('no routine reminder survives loss of the owning user session (ROUTINE-REMINDERS R-I)', () => {
+  const tree = () => <NotificationProvider>{null}</NotificationProvider>;
+
+  test('a uid change to null (sign-out, account deletion, a lost token) cancels every routine reminder', async () => {
+    // Mutation caught: removing the cancelAllRoutineReminders call from the
+    // sign-out cleanup.
+    const view = mount();
+    await waitFor(() => expect(mockSyncAllReminders).toHaveBeenCalled());
+    mockCancelAllRoutineReminders.mockClear();
+
+    // Auth reported as unresolved for this one render so the cold-start
+    // effect (which also cancels whenever auth is resolved with no user)
+    // stays out, and the count below belongs to the sign-out cleanup alone.
+    mockAuthReady = false;
+    mockUser = null;
+    view.rerender(tree());
+
+    await waitFor(() => expect(mockCancelAllRoutineReminders).toHaveBeenCalledTimes(1));
+    // cancelAllUserNotifications is unchanged: still called, with the old uid.
+    expect(cancelAllUserNotifications).toHaveBeenCalledWith('u1');
+  });
+
+  test('a uid change to another uid cancels every routine reminder', async () => {
+    // Mutation caught: cancelling only when the uid becomes null.
+    const view = mount();
+    await waitFor(() => expect(mockSyncAllReminders).toHaveBeenCalled());
+    mockCancelAllRoutineReminders.mockClear();
+
+    mockUser = { uid: 'u2', emailVerified: true };
+    view.rerender(tree());
+
+    await waitFor(() => expect(mockCancelAllRoutineReminders).toHaveBeenCalledTimes(1));
+    expect(cancelAllUserNotifications).toHaveBeenCalledWith('u1');
+    // And the new account's own reminders are synced afterwards.
+    await waitFor(() => expect(mockSyncAllReminders).toHaveBeenCalledWith('u2'));
+  });
+
+  test("replacing the same user's object does not cancel them", async () => {
+    // Mutation caught: dropping the uid comparison, which would wipe a signed-in
+    // user's reminders whenever their user object is refreshed.
+    const view = mount();
+    await waitFor(() => expect(mockSyncAllReminders).toHaveBeenCalled());
+    mockCancelAllRoutineReminders.mockClear();
+
+    mockUser = { uid: 'u1', emailVerified: true };
+    view.rerender(tree());
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(mockCancelAllRoutineReminders).not.toHaveBeenCalled();
+  });
+});
+
+describe('cold start with no signed-in user (ROUTINE-REMINDERS R-I)', () => {
+  const tree = () => <NotificationProvider>{null}</NotificationProvider>;
+
+  test('auth resolves with no user: every routine reminder is cancelled', async () => {
+    // Mutation caught: removing the resolved-with-no-user effect. The
+    // cancellation of each pending routine-reminder- id is pinned by
+    // cancelAllRoutineReminders' own test in reminderScheduler.routines.
+    mockUser = null;
+    mount();
+    await waitFor(() => expect(mockCancelAllRoutineReminders).toHaveBeenCalledTimes(1));
+  });
+
+  test('while auth is still resolving nothing is cancelled, and it is once auth resolves', async () => {
+    // Mutation caught: dropping the isAuthReady condition.
+    mockUser = null;
+    mockAuthReady = false;
+    const view = mount();
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(mockCancelAllRoutineReminders).not.toHaveBeenCalled();
+
+    mockAuthReady = true;
+    view.rerender(tree());
+    await waitFor(() => expect(mockCancelAllRoutineReminders).toHaveBeenCalledTimes(1));
+  });
+
+  test('auth resolves with a user: the sign-in sync runs and nothing else cancels', async () => {
+    // Mutation caught: dropping the no-user condition.
+    mount();
+    await waitFor(() => expect(mockSyncAllReminders).toHaveBeenCalledWith('u1'));
+    expect(mockCancelAllRoutineReminders).not.toHaveBeenCalled();
   });
 });

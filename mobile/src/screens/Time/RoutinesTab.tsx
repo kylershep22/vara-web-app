@@ -32,6 +32,7 @@ import {
 } from '../../services/firebase/routines.service';
 import { getTemplatesForType, RoutineTemplate } from '../../constants/routineTemplates';
 import { runMigrationIfNeeded } from '../../services/firebase/routineMigration.service';
+import { cancelRoutineReminder, parseTimeString } from '../../services/reminderScheduler.service';
 import {
   ColorTokens,
   SpacingTokens,
@@ -300,7 +301,10 @@ const RoutineView: React.FC<RoutineViewProps> = ({
         <View style={styles.routineHeader}>
           <View style={styles.routineHeaderLeft}>
             <Text style={styles.routineName}>{routine.name}</Text>
-            {routine.reminderTime && (
+            {/* Only a time the single parser accepts is shown. A legacy
+                unparseable value stays stored until the next editor save
+                resolves it; rendering never writes (ruling R-J). */}
+            {routine.reminderTime != null && parseTimeString(routine.reminderTime) !== null && (
               <View style={styles.reminderBadge}>
                 <Icon name="bell" size={14} color={ColorTokens.primary} />
                 <Text style={styles.reminderText}>
@@ -414,7 +418,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onCreate, selectedTime, userId,
       }));
 
       const routineType = template.type as RoutineType;
-      await createRoutine(userId, {
+      const created = await createRoutine(userId, {
         name: template.name,
         type: routineType,
         activities,
@@ -422,6 +426,10 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onCreate, selectedTime, userId,
         reminderTime: null,
         mode: 'checklist',
       });
+      // A routine this create switched off loses its reminder now (ruling R-H).
+      for (const id of created.deactivatedIds) {
+        await cancelRoutineReminder(id);
+      }
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onTemplateApplied();
