@@ -31,7 +31,7 @@ import {
   registerPushToken,
   requestNotificationPermission,
 } from '../../../services/notifications.service';
-import { scheduleDailyRhythm } from '../../../services/notificationScheduler.service';
+import { reconcileDailyRhythm } from '../../../services/notificationScheduler.service';
 import { logger } from '../../../utils/logger';
 import { REMINDER_COPY } from './copy';
 import { useOnboardingV3 } from './OnboardingV3Context';
@@ -81,10 +81,10 @@ export const OnboardingV3ReminderScreen: React.FC = () => {
    * refusal copy promises exactly that, and NotificationSettingsScreen only
    * offers the time row once `dailyRhythm.reminderTime` exists, so dropping the
    * write on refusal would strand anyone who later turns notifications on in
-   * iOS Settings. Only the scheduling is conditional.
+   * iOS Settings. The reconcile that follows runs on both branches.
    *
    * Writes the canonical V2 `dailyRhythm` field, which is what
-   * scheduleDailyRhythm actually reads. getNotificationPreferences first because
+   * reconcileDailyRhythm actually reads. getNotificationPreferences first because
    * updateNotificationPreferences uses updateDoc and would reject a user who has
    * never had a prefs document.
    *
@@ -125,19 +125,33 @@ export const OnboardingV3ReminderScreen: React.FC = () => {
     // THE SHEET. Local, native, first.
     const granted = await requestNotificationPermission();
 
-    try {
-      await getNotificationPreferences(user.uid);
-      await updateNotificationPreferences(user.uid, {
+    // The write gets one automatic retry (NPM-1 ruling 5). If both attempts
+    // fail the arc continues as before; recovery belongs to NPM-2 (ledger row
+    // DAILY-RHYTHM-ONBOARDING-WRITE-FAILURE).
+    const uid = user.uid;
+    const writeReminderPreference = async () => {
+      await getNotificationPreferences(uid);
+      await updateNotificationPreferences(uid, {
         allNotificationsEnabled: true,
         dailyRhythm: { enabled: true, reminderTime: { hour, minute } },
       });
-
-      if (granted) {
-        await scheduleDailyRhythm(user.uid);
+    };
+    try {
+      await writeReminderPreference();
+    } catch (firstError) {
+      logger.warn('[OnboardingV3Reminder] reminder write failed, retrying once:', firstError);
+      try {
+        await writeReminderPreference();
+      } catch (error) {
+        logger.error('[OnboardingV3Reminder] reminder setup failed:', error);
       }
-    } catch (error) {
-      logger.error('[OnboardingV3Reminder] reminder setup failed:', error);
     }
+
+    // Granted or refused, the reconcile runs (NPM-1 ruling 3): it decides from
+    // the stored preference, not from OS permission, so a user who later allows
+    // notifications in iOS Settings has a reminder without revisiting this step.
+    // It never rejects.
+    await reconcileDailyRhythm(uid);
 
     if (!granted) {
       // Time saved, nothing scheduled, no penalty copy.

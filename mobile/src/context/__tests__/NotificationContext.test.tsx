@@ -21,7 +21,6 @@ let mockUser: { uid: string; emailVerified: boolean } | null = {
   uid: 'u1',
   emailVerified: true,
 };
-let mockPrefs: any = { allNotificationsEnabled: true };
 let mockAuthReady = true;
 
 /** Ordered log of the reconciliation calls, for the ordering assertion. */
@@ -46,11 +45,9 @@ const mockCancelExceptFocus = jest.fn(async () => {
 const mockSyncAllReminders = jest.fn(async () => {
   callLog.push('sync');
 });
-const mockScheduleDailyReminder = jest.fn(async () => {
-  callLog.push('scheduleDailyRhythm');
-});
-const mockInitializeUserNotifications = jest.fn(async () => {
-  callLog.push('initialize');
+const mockReconcileDailyRhythm = jest.fn(async () => {
+  callLog.push('reconcile');
+  return 'scheduled';
 });
 
 jest.mock('../AuthContext', () => ({
@@ -60,9 +57,6 @@ jest.mock('../ToastContext', () => ({
   useToast: () => ({
     showNotificationToast: (title: string, body: string) => mockShowNotificationToast(title, body),
   }),
-}));
-jest.mock('../../hooks/useNotificationPreferences', () => ({
-  useNotificationPreferences: () => ({ preferences: mockPrefs }),
 }));
 jest.mock('../../services/notifications.service', () => ({
   setForegroundNotificationHandler: (handler: NonNullable<typeof foregroundHandler>) => {
@@ -85,11 +79,10 @@ jest.mock('../../services/reminderScheduler.service', () => ({
   cancelAllRoutineReminders: () => mockCancelAllRoutineReminders(),
 }));
 jest.mock('../../services/notificationScheduler.service', () => ({
-  initializeUserNotifications: (...a: any[]) => mockInitializeUserNotifications(...(a as [])),
-  updateNotificationsFromPreferences: jest.fn().mockResolvedValue(undefined),
+  reconcileDailyRhythm: (...a: any[]) => mockReconcileDailyRhythm(...(a as [])),
+  dailyRhythmNotificationId: (uid: string) => `${uid}-daily-rhythm`,
   cancelAllUserNotifications: jest.fn().mockResolvedValue(undefined),
   sendMilestoneNotification: jest.fn(),
-  scheduleDailyReminder: (...a: any[]) => mockScheduleDailyReminder(...(a as [])),
   sendConnectionRequestNotification: jest.fn(),
   sendMessageNotification: jest.fn(),
   sendGroupPostNotification: jest.fn(),
@@ -121,7 +114,6 @@ beforeEach(() => {
   foregroundHandler = null;
   mockNavReady = true;
   mockUser = { uid: 'u1', emailVerified: true };
-  mockPrefs = { allNotificationsEnabled: true };
   mockAuthReady = true;
 
   jest.spyOn(AppState, 'addEventListener').mockImplementation(((
@@ -180,34 +172,53 @@ describe('resuming the app', () => {
     expect(callLog.indexOf('sync')).toBeGreaterThan(callLog.indexOf('cancel'));
   });
 
-  test('still reschedules the daily rhythm', async () => {
+  test('reconciles the daily rhythm, between the cancel and the routine sync (NPM-1)', async () => {
+    // Mutation caught: dropping the reconcile from the foreground handler.
     mount();
     await waitFor(() => expect(appStateHandler).not.toBeNull());
     callLog.length = 0;
 
     await resume();
 
-    expect(mockScheduleDailyReminder).toHaveBeenCalledWith('u1');
+    expect(mockReconcileDailyRhythm).toHaveBeenCalledWith('u1');
+    expect(callLog.indexOf('cancel')).toBeLessThan(callLog.indexOf('reconcile'));
+    expect(callLog.indexOf('reconcile')).toBeLessThan(callLog.indexOf('sync'));
   });
 
-  test('syncs reminders even when server push is on', async () => {
+  test('the foreground cancel spares only the current user’s daily rhythm (NPM-1)', async () => {
+    // A failed or offline reconcile must leave the daily rhythm scheduled, so
+    // the sweep before it may not touch that id. Everything else is cleared as
+    // before: routine reminders (re-synced after), insights, other accounts'
+    // ids, and ids older builds left behind.
+    // Mutation caught: calling the cancel without the spare predicate.
+    mount();
+    await waitFor(() => expect(appStateHandler).not.toBeNull());
+
+    await resume();
+
+    const spare = (mockCancelExceptFocus.mock.calls[0] as unknown as [(id: string) => boolean])[0];
+    expect(typeof spare).toBe('function');
+    expect(spare('u1-daily-rhythm')).toBe(true);
+    expect(spare('u2-daily-rhythm')).toBe(false);
+    expect(spare('u1-insights-learning')).toBe(false);
+    expect(spare('routine-reminder-r1')).toBe(false);
+    expect(spare('u1-weekly-summary')).toBe(false);
+  });
+
+  test('with serverPushEnabled true the daily rhythm is still reconciled locally (NPM-1 ruling 1)', async () => {
+    // Mutation caught: reintroducing the flag check on the local daily rhythm.
     const notifications = require('../../services/notifications.service');
     notifications.isServerPushEnabled.mockResolvedValue(true);
 
     mount();
-    await waitFor(() => expect(appStateHandler).not.toBeNull());
-    await waitFor(() =>
-      expect(notifications.isServerPushEnabled).toHaveBeenCalled()
-    );
+    await waitFor(() => expect(mockReconcileDailyRhythm).toHaveBeenCalledWith('u1'));
     mockSyncAllReminders.mockClear();
-    mockScheduleDailyReminder.mockClear();
+    mockReconcileDailyRhythm.mockClear();
 
     await resume();
 
-    // Server push covers the daily rhythm and insights, never habit or routine
-    // reminders — so the resync is deliberately outside that gate.
     expect(mockSyncAllReminders).toHaveBeenCalledWith('u1');
-    expect(mockScheduleDailyReminder).not.toHaveBeenCalled();
+    expect(mockReconcileDailyRhythm).toHaveBeenCalledWith('u1');
   });
 
   test('does nothing without a signed-in user', async () => {
@@ -355,19 +366,30 @@ describe('the in-flight guard', () => {
 
     await waitFor(() => expect(mockCancelExceptFocus).toHaveBeenCalledTimes(2));
     // Each run completes fully before the next begins.
-    expect(callLog).toEqual(['cancel', 'sync', 'cancel', 'sync']);
+    expect(callLog).toEqual(['cancel', 'reconcile', 'sync', 'cancel', 'reconcile', 'sync']);
   });
 });
 
 describe('routine reminders and the General notifications preference (ROUTINE-REMINDERS)', () => {
-  test('sign-in syncs routine reminders with General off, and still does not initialise the daily rhythm', async () => {
-    // Mutations caught: gating the sign-in sync on allNotificationsEnabled
-    // again; and dropping the flag condition from the initialise effect.
-    mockPrefs = { allNotificationsEnabled: false };
+  test('sign-in syncs routine reminders and reconciles the daily rhythm, with no stored preference consulted', async () => {
+    // NPM-1: the provider holds no preferences copy any more. Whether the daily
+    // rhythm should exist is the reconcile's fresh read to decide, General off
+    // included. Mutation caught: dropping the sign-in reconcile.
     mount();
 
     await waitFor(() => expect(mockSyncAllReminders).toHaveBeenCalledWith('u1'));
-    expect(mockInitializeUserNotifications).not.toHaveBeenCalled();
+    await waitFor(() => expect(mockReconcileDailyRhythm).toHaveBeenCalledWith('u1'));
+  });
+
+  test('an unverified user gets no sign-in reconcile', async () => {
+    // The emailVerified condition is kept as it was.
+    mockUser = { uid: 'u1', emailVerified: false };
+    mount();
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(mockReconcileDailyRhythm).not.toHaveBeenCalled();
   });
 });
 
@@ -408,12 +430,14 @@ describe('no routine reminder survives loss of the owning user session (ROUTINE-
     await waitFor(() => expect(mockSyncAllReminders).toHaveBeenCalledWith('u2'));
   });
 
-  test("replacing the same user's object does not cancel them", async () => {
-    // Mutation caught: dropping the uid comparison, which would wipe a signed-in
-    // user's reminders whenever their user object is refreshed.
+  test("replacing the same user's object does not cancel them, nor the daily rhythm (NPM-1 T5)", async () => {
+    // Mutations caught: dropping the uid comparison, which would wipe a
+    // signed-in user's reminders whenever their user object is refreshed; and
+    // calling cancelAllUserNotifications outside it, which wiped the daily rhythm.
     const view = mount();
     await waitFor(() => expect(mockSyncAllReminders).toHaveBeenCalled());
     mockCancelAllRoutineReminders.mockClear();
+    (cancelAllUserNotifications as jest.Mock).mockClear();
 
     mockUser = { uid: 'u1', emailVerified: true };
     view.rerender(tree());
@@ -422,6 +446,7 @@ describe('no routine reminder survives loss of the owning user session (ROUTINE-
     });
 
     expect(mockCancelAllRoutineReminders).not.toHaveBeenCalled();
+    expect(cancelAllUserNotifications).not.toHaveBeenCalled();
   });
 });
 

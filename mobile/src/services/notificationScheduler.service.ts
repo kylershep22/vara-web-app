@@ -18,6 +18,7 @@ import {
   isWithinQuietHours,
 } from './firebase/notificationPreferences.service';
 import { canSendSystemNotification, markNotificationSent } from './notificationThrottle';
+import { logger } from '../utils/logger';
 
 // ==========================================
 // NOTIFICATION IDENTIFIERS
@@ -32,18 +33,15 @@ const NOTIFICATION_IDS = {
 // CONTENT POOLS (brand-compliant)
 // ==========================================
 
+// One message per time of day, Kyle's approved strings (NPM-1, 2026-10-01).
+// TAXONOMY: "routine" is reserved for the user-created Routines feature; Vara's
+// daily recommendation is a practice. The server copy in
+// functions/src/notifications/dailyRhythm.js still says routine; its sender is
+// paused and that mismatch is ledgered on the server rows.
 const DAILY_RHYTHM_MESSAGES = {
-  morning: [
-    { title: 'Good morning', body: 'Your morning routine is ready whenever you are.' },
-    { title: 'A small moment', body: 'Your morning routine is here when you\'re ready.' },
-  ],
-  evening: [
-    { title: 'Good evening', body: 'Your evening routine is ready whenever you are.' },
-    { title: 'Wind down', body: 'A small moment for your evening routine, if it feels right.' },
-  ],
-  default: [
-    { title: 'Your routine is ready', body: 'A small moment for yourself, whenever you\'re ready.' },
-  ],
+  morning: { title: 'Good morning', body: 'Your morning practice is ready when you are.' },
+  evening: { title: 'Good evening', body: 'Your evening practice is ready when you are.' },
+  default: { title: 'Your practice is ready', body: 'Your daily practice is ready when you are.' },
 };
 
 // Static content pool: 22 insights (6 brain health + 16 intention)
@@ -125,6 +123,37 @@ async function sendThrottledNotification(
 // One notification per day at user-selected time
 // ==========================================
 
+/** The pending-notification id of a user's daily rhythm. */
+export function dailyRhythmNotificationId(userId: string): string {
+  return getNotificationId(userId, NOTIFICATION_IDS.DAILY_RHYTHM);
+}
+
+/** The daily rhythm notification for a reminder at `hour`: one message per time of day. */
+export function dailyRhythmContent(hour: number): Notifications.NotificationContentInput {
+  const message = DAILY_RHYTHM_MESSAGES[getTimeOfDay(hour)];
+  return {
+    title: message.title,
+    body: message.body,
+    sound: true,
+    priority: Notifications.AndroidNotificationPriority.DEFAULT,
+    data: { type: 'daily_reminder' as NotificationType, category: 'daily_rhythm' },
+  };
+}
+
+function dailyTrigger(time: ReminderTime): Notifications.DailyTriggerInput {
+  return {
+    type: Notifications.SchedulableTriggerInputTypes.DAILY,
+    hour: time.hour,
+    minute: time.minute,
+  };
+}
+
+/** The time the daily rhythm should fire at, or null when it should not exist. */
+function desiredDailyRhythmTime(preferences: NotificationPreferences): ReminderTime | null {
+  if (!preferences.allNotificationsEnabled || !preferences.dailyRhythm?.enabled) return null;
+  return preferences.dailyRhythm.reminderTime ?? null;
+}
+
 export async function scheduleDailyRhythm(userId: string): Promise<string | null> {
   try {
     const preferences = await getNotificationPreferences(userId);
@@ -136,29 +165,13 @@ export async function scheduleDailyRhythm(userId: string): Promise<string | null
     const reminderTime = preferences.dailyRhythm.reminderTime;
     if (!reminderTime) return null;
 
-    const notificationId = getNotificationId(userId, NOTIFICATION_IDS.DAILY_RHYTHM);
+    const notificationId = dailyRhythmNotificationId(userId);
     await cancelNotificationById(notificationId);
-
-    const timeOfDay = getTimeOfDay(reminderTime.hour);
-    const messages = DAILY_RHYTHM_MESSAGES[timeOfDay];
-    const message = messages[Math.floor(Math.random() * messages.length)];
-
-    const trigger: Notifications.DailyTriggerInput = {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: reminderTime.hour,
-      minute: reminderTime.minute,
-    };
 
     const id = await Notifications.scheduleNotificationAsync({
       identifier: notificationId,
-      content: {
-        title: message.title,
-        body: message.body,
-        sound: true,
-        priority: Notifications.AndroidNotificationPriority.DEFAULT,
-        data: { type: 'daily_reminder' as NotificationType, category: 'daily_rhythm' },
-      },
-      trigger,
+      content: dailyRhythmContent(reminderTime.hour),
+      trigger: dailyTrigger(reminderTime),
     });
 
     return id;
@@ -166,6 +179,101 @@ export async function scheduleDailyRhythm(userId: string): Promise<string | null
     console.error('Error scheduling daily rhythm:', error);
     return null;
   }
+}
+
+// ==========================================
+// DAILY RHYTHM RECONCILE (NPM-1)
+// ==========================================
+
+export type DailyRhythmReconcileOutcome =
+  | 'scheduled'
+  | 'cancelled'
+  | 'read-failed'
+  | 'schedule-failed';
+
+/** A preference read that has not answered by then is treated as a failed read. */
+const RECONCILE_READ_TIMEOUT_MS = 10_000;
+
+/**
+ * Overlapping reconciles run one at a time, in call order. Module-level rather
+ * than per provider, so a reconcile started by onboarding is serialized with one
+ * started by the foreground handler.
+ */
+let reconcileQueue: Promise<unknown> = Promise.resolve();
+
+function readPreferencesWithTimeout(userId: string): Promise<NotificationPreferences> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error('notification preferences read timed out')),
+      RECONCILE_READ_TIMEOUT_MS
+    );
+    getNotificationPreferences(userId).then(
+      (prefs) => {
+        clearTimeout(timer);
+        resolve(prefs);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
+async function reconcileDailyRhythmNow(userId: string): Promise<DailyRhythmReconcileOutcome> {
+  // The desired state comes first, from a FRESH read. Never a hook copy: those
+  // are loaded once per uid and miss every write made through the service.
+  let preferences: NotificationPreferences;
+  try {
+    preferences = await readPreferencesWithTimeout(userId);
+  } catch (error) {
+    // Failed or offline: change nothing. Whatever is scheduled stays.
+    logger.warn('[notificationScheduler] daily rhythm reconcile skipped, preferences unreadable', error);
+    return 'read-failed';
+  }
+
+  // Insights notifications are hidden pending INSIGHTS-V1 (NPM-1 ruling 2):
+  // cancel any a previous build scheduled, and never schedule one. The stored
+  // preference is left as it is.
+  await cancelNotificationById(getNotificationId(userId, NOTIFICATION_IDS.INSIGHTS));
+
+  // OS permission is not part of the decision (NPM-1 ruling 3), and neither is
+  // serverPushEnabled (ruling 1): V1's daily rhythm is local only.
+  const id = dailyRhythmNotificationId(userId);
+  const time = desiredDailyRhythmTime(preferences);
+  if (!time) {
+    await cancelNotificationById(id);
+    return 'cancelled';
+  }
+
+  // Scheduling under the same identifier replaces the pending request, so there
+  // is no cancel of this id anywhere in a run that schedules it: a failure here
+  // cannot leave the reminder cancelled.
+  try {
+    await Notifications.scheduleNotificationAsync({
+      identifier: id,
+      content: dailyRhythmContent(time.hour),
+      trigger: dailyTrigger(time),
+    });
+    return 'scheduled';
+  } catch (error) {
+    logger.warn('[notificationScheduler] daily rhythm schedule failed', error);
+    return 'schedule-failed';
+  }
+}
+
+/**
+ * Make the device's daily rhythm match the user's stored preferences: scheduled
+ * at reminderTime when General notifications and the daily rhythm are on and a
+ * time exists, cancelled otherwise. Never rejects.
+ */
+export function reconcileDailyRhythm(userId: string): Promise<DailyRhythmReconcileOutcome> {
+  const run = reconcileQueue.then(
+    () => reconcileDailyRhythmNow(userId),
+    () => reconcileDailyRhythmNow(userId)
+  );
+  reconcileQueue = run.catch(() => undefined);
+  return run;
 }
 
 // Alias for backward compatibility
@@ -409,10 +517,8 @@ export async function initializeUserNotifications(userId: string): Promise<void>
     }
 
     await scheduleDailyRhythm(userId);
-
-    if (preferences.insightsLearning?.enabled) {
-      await scheduleInsightsNotification(userId);
-    }
+    // Insights notifications are not scheduled while hidden pending INSIGHTS-V1
+    // (NPM-1 ruling 2); reconcileDailyRhythm cancels any already pending.
   } catch (error) {
     console.error('Error initializing user notifications:', error);
   }
