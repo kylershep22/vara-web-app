@@ -107,6 +107,7 @@ Report every step as **PASS**, **FAIL** or **NOT RUN**, with what you saw.
   - deactivation through a failed load;
   - account deletion.
   Deletion is destructive to Kyle's account, and a failed load cannot be induced on demand.
+- **Cold start with no signed-in user:** automated tests only. That is a device signed out on an older build, which still holds routine reminders and starts with no auth transition (amendment `a0a2eb9`).
 - **The daily rhythm:** owned by NOTIFICATION-PREFERENCES-MODEL.
 - **Reduce Transparency and larger text sizes:** NOT RUN, deferred by Kyle 2026-09-29 until after the initial generally available release.
 

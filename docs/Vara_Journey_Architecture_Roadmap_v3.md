@@ -4443,6 +4443,32 @@ code change):**
 iPhone 14 Plus at default Dynamic Type. Nothing here is verified on a device. A mutation-checked
 test proves an assertion is sensitive to the logic, not that the path is reachable.
 
+**AMENDED 2026-10-01, BEFORE THE WALK (`a0a2eb9`). A GAP IN THE SESSION-LOSS INVARIANT, CLOSED.**
+- **The gap.** Every routine-reminder cancel fired on an auth transition. None fired when the app
+  started and auth resolved with no user. A device signed out on an older build still held that
+  account's routine reminders, and after updating it started signed out with no transition, so
+  they kept firing.
+- **The fix.** `NotificationContext` cancels every `routine-reminder-` id once the auth context's
+  `isAuthReady` is true and there is no user. It never cancels while auth is still resolving, and
+  never with a user: the sign-in sync still cancels and reschedules as built.
+- **One edge, recorded rather than changed.** `isAuthReady` also turns true on AuthContext's
+  5-second safety timeout, if Firebase never reports. If a signed-in user's auth were that slow,
+  their routine reminders would be cancelled at the timeout. The sign-in sync would then reschedule
+  them when the user arrives, because that effect is keyed on the uid.
+- **Tests.** Three tests, each mutation-checked with a byte-identical restore:
+  - auth resolved with no user cancels;
+  - auth still resolving cancels nothing until it resolves;
+  - auth resolved with a user leaves only the sign-in sync.
+  The sign-out test now isolates the cleanup path, and its mutation was re-run and caught.
+- **Account deletion needed no change.** Its explicit cancel runs before `logout()`, so it runs even
+  when `logout()` throws after a successful deletion.
+- **Baselines after this amendment:**
+  - **jest:** 3939 tests across 243 suites, no failures.
+  - **tsc:** 137, with the sorted list identical to `main` at `cff2e98`.
+  - **lint:** 892 errors, 1253 warnings. The +1 is max-lines on `NotificationContext.test.tsx`, now
+    329 lines.
+  - **sentinel:** 156.
+
 ### 2026-09-30 - ROUTINES-RESTORE: the routine card returns to Today below the good moments, on the immersive surface, reading local-day completions (branch `journey/routines-restore`, `d074e20` the before-state captures, `b6c25cd` the restore, `55b4205` the contracts and the hook suite, `3959ef0` the walk script, `5a5485a` the walk fix, this entry the docs; **WALKED 2026-09-30, FIRST WALK STEP B FAIL FIXED, RE-WALK ZERO FAILs; BUILT AND WALKED, AWAITING MERGE**)
 
 **RULINGS B, C AND I OF THE V1 SCOPE REVISION BLOCK, BUILT UNDER KYLE'S RULINGS OF 2026-09-30**
