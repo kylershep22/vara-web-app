@@ -20,6 +20,7 @@ import { useState } from 'react';
 import { Alert } from 'react-native';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useAuth } from '../context/AuthContext';
+import { cancelAllRoutineReminders } from '../services/reminderScheduler.service';
 
 export function useAccountActions() {
   const { logout } = useAuth();
@@ -70,6 +71,10 @@ export function useAccountActions() {
                       const functions = getFunctions();
                       const deleteAccountFn = httpsCallable(functions, 'deleteAccount');
                       await deleteAccountFn();
+                      // The account is gone: its routine reminders go now,
+                      // before local teardown, so this does not depend on the
+                      // sign-out below succeeding (ruling R-I).
+                      await cancelAllRoutineReminders();
                       // Sign out locally so auth listener navigates to login,
                       // not onboarding (the user doc is already deleted).
                       await logout();

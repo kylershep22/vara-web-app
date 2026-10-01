@@ -12,23 +12,20 @@
  * ignored: there is only one thing this screen can show.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Text from '../components/shared/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, TextStyles } from '../constants';
 import { GuidePill } from '../components/ai/GuidePill';
-import { useNotificationOptIn } from '../hooks/useNotificationOptIn';
 import { RoutinesTab } from './Time/RoutinesTab';
 import { ActiveRoutinePlayer } from './Time/ActiveRoutinePlayer';
 import { Routine } from '../services/firebase/routines.service';
 
+// No notification opt-in push here. The mount-time one never fired, and a
+// routine reminder now asks for permission at the moment it is set
+// (ROUTINE-REMINDERS, ruling R-K, 2026-10-01).
 const PlanScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
-  const notifOptInChecked = useRef(false);
-  const { shouldShowPrompt, markPromptShown } = useNotificationOptIn();
-
   // Routine player state
   const [playerVisible, setPlayerVisible] = useState(false);
   const [activeRoutine, setActiveRoutine] = useState<Routine | null>(null);
@@ -47,19 +44,6 @@ const PlanScreen: React.FC = () => {
     setPlayerVisible(false);
     // Routine editing is handled within RoutinesTab
   }, []);
-
-  // Notification opt-in: trigger on first routine tab interaction.
-  // Left exactly as it behaved when this screen mounted on its Routines tab
-  // (Kyle's ruling 6 of 2026-09-29; ledgered after the walk).
-  useEffect(() => {
-    if (!notifOptInChecked.current) {
-      notifOptInChecked.current = true;
-      if (shouldShowPrompt) {
-        markPromptShown();
-        navigation.navigate('NotificationOptIn');
-      }
-    }
-  }, [shouldShowPrompt]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

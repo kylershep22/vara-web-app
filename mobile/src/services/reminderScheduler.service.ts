@@ -9,7 +9,13 @@
 import * as Notifications from 'expo-notifications';
 import { logger } from '../utils/logger';
 import { Routine, fetchUserRoutines, calculateTotalDuration } from './firebase/routines.service';
-import { getNotificationPreferences } from './firebase/notificationPreferences.service';
+
+// Every routine reminder is scheduled under this prefix plus the routine id.
+const ROUTINE_REMINDER_PREFIX = 'routine-reminder-';
+
+function routineReminderId(routineId: string): string {
+  return `${ROUTINE_REMINDER_PREFIX}${routineId}`;
+}
 
 // ─── Time Parsing ──────────────────────────────────────────────
 
@@ -63,29 +69,82 @@ async function hasNotificationPermission(): Promise<boolean> {
   }
 }
 
+export type ReminderPermission = 'granted' | 'denied' | 'undetermined';
+
+/**
+ * Collapse an OS permission response to the three states a routine reminder
+ * cares about. iOS provisional and ephemeral authorisation, and anything else
+ * that is neither granted nor denied, count as undetermined.
+ */
+export function classifyReminderPermission(
+  perm: Pick<Notifications.NotificationPermissionsStatus, 'status' | 'ios'>
+): ReminderPermission {
+  const iosStatus = perm.ios?.status;
+  if (
+    iosStatus === Notifications.IosAuthorizationStatus.PROVISIONAL ||
+    iosStatus === Notifications.IosAuthorizationStatus.EPHEMERAL
+  ) {
+    return 'undetermined';
+  }
+  if (perm.status === 'granted') return 'granted';
+  if (perm.status === 'denied') return 'denied';
+  return 'undetermined';
+}
+
 // ─── Routine Reminders ────────────────────────────────────────
+
+/**
+ * What happened when a routine reminder was asked for. `not-set` means the
+ * routine has no reminder time; it is internal and carries no copy.
+ */
+export type RoutineReminderOutcome =
+  | 'scheduled'
+  | 'not-set'
+  | 'inactive'
+  | 'invalid-time'
+  | 'permission-undetermined'
+  | 'permission-denied'
+  | 'failed';
+
+/** The fields scheduling reads. A full Routine satisfies it. */
+export type RoutineReminderInput = Pick<
+  Routine,
+  'id' | 'name' | 'type' | 'activities' | 'active' | 'reminderTime'
+>;
 
 /**
  * Schedule a daily notification for a routine's reminderTime.
  * Only schedules if routine.active === true and reminderTime is non-null and parseable.
+ * Never asks for permission; it only reads the current status.
  */
-export async function scheduleRoutineReminder(routine: Routine): Promise<void> {
-  if (!routine.active || !routine.reminderTime) {
-    return;
+export async function scheduleRoutineReminder(
+  routine: RoutineReminderInput
+): Promise<RoutineReminderOutcome> {
+  if (!routine.reminderTime) {
+    return 'not-set';
+  }
+  if (!routine.active) {
+    return 'inactive';
   }
 
   const parsed = parseTimeString(routine.reminderTime);
   if (!parsed) {
     logger.warn(`[reminderScheduler] Cannot parse routine reminderTime: "${routine.reminderTime}" for routine ${routine.id}`);
-    return;
+    return 'invalid-time';
   }
 
-  if (!(await hasNotificationPermission())) {
+  let permission: ReminderPermission;
+  try {
+    permission = classifyReminderPermission(await Notifications.getPermissionsAsync());
+  } catch {
+    permission = 'undetermined';
+  }
+  if (permission !== 'granted') {
     logger.warn('[reminderScheduler] Notification permission not granted, skipping routine reminder');
-    return;
+    return permission === 'denied' ? 'permission-denied' : 'permission-undetermined';
   }
 
-  const identifier = `routine-reminder-${routine.id}`;
+  const identifier = routineReminderId(routine.id);
 
   try {
     await Notifications.cancelScheduledNotificationAsync(identifier);
@@ -112,8 +171,10 @@ export async function scheduleRoutineReminder(routine: Routine): Promise<void> {
       },
     });
     logger.log(`[reminderScheduler] Scheduled routine reminder: ${identifier} at ${parsed.hour}:${String(parsed.minute).padStart(2, '0')}`);
+    return 'scheduled';
   } catch (error) {
     logger.error(`[reminderScheduler] Failed to schedule routine reminder:`, error);
+    return 'failed';
   }
 }
 
@@ -122,10 +183,30 @@ export async function scheduleRoutineReminder(routine: Routine): Promise<void> {
  */
 export async function cancelRoutineReminder(routineId: string): Promise<void> {
   try {
-    await Notifications.cancelScheduledNotificationAsync(`routine-reminder-${routineId}`);
-    logger.log(`[reminderScheduler] Cancelled routine reminder: routine-reminder-${routineId}`);
+    await Notifications.cancelScheduledNotificationAsync(routineReminderId(routineId));
+    logger.log(`[reminderScheduler] Cancelled routine reminder: ${routineReminderId(routineId)}`);
   } catch {
     // May not exist
+  }
+}
+
+/**
+ * Cancel every scheduled routine reminder on this device, whoever's routine it
+ * belongs to. Routine reminder ids carry no user id, so a session that ends
+ * (sign-out, account deletion, a lost token, a switch to another account) has
+ * no other way to take its reminders with it. Invariant: no routine reminder
+ * survives loss of the owning user session.
+ */
+export async function cancelAllRoutineReminders(): Promise<void> {
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    for (const n of scheduled) {
+      if (n.identifier.startsWith(ROUTINE_REMINDER_PREFIX)) {
+        await Notifications.cancelScheduledNotificationAsync(n.identifier);
+      }
+    }
+  } catch (error) {
+    logger.warn('[reminderScheduler] Could not cancel routine reminders:', error);
   }
 }
 
@@ -136,21 +217,19 @@ export async function cancelRoutineReminder(routineId: string): Promise<void> {
  * Called on app foreground to handle routines changed while app was killed.
  */
 export async function syncAllReminders(userId: string): Promise<void> {
+  // First, before anything can bail: whatever routine reminders this device
+  // holds, including another account's, go. Only the current user's active
+  // routines are scheduled again below.
+  await cancelAllRoutineReminders();
+
   if (!(await hasNotificationPermission())) {
     logger.log('[reminderScheduler] No notification permission, skipping sync');
     return;
   }
 
-  try {
-    const prefs = await getNotificationPreferences(userId);
-    if (!prefs?.allNotificationsEnabled) {
-      logger.log('[reminderScheduler] Notifications disabled, skipping sync');
-      return;
-    }
-  } catch {
-    logger.warn('[reminderScheduler] Could not read preferences, skipping sync');
-    return;
-  }
+  // Routine reminders do not read the General notifications preference
+  // (allNotificationsEnabled). They depend only on the user setting one, a
+  // valid time and OS permission (Kyle's ruling R-A, 2026-10-01).
 
   // 1. Get all scheduled notifications and cancel reminder ones
   try {

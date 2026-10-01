@@ -74,8 +74,12 @@ jest.mock('../../services/notifications.service', () => ({
   },
   getLastNotificationResponse: jest.fn().mockResolvedValue(null),
 }));
+const mockCancelAllRoutineReminders = jest.fn(async () => {
+  callLog.push('cancelRoutineReminders');
+});
 jest.mock('../../services/reminderScheduler.service', () => ({
   syncAllReminders: (...a: any[]) => mockSyncAllReminders(...(a as [])),
+  cancelAllRoutineReminders: () => mockCancelAllRoutineReminders(),
 }));
 jest.mock('../../services/notificationScheduler.service', () => ({
   initializeUserNotifications: (...a: any[]) => mockInitializeUserNotifications(...(a as [])),
@@ -99,6 +103,7 @@ jest.mock('../../navigation/AppNavigator', () => ({
 }));
 
 import { NotificationProvider } from '../NotificationContext';
+import { cancelAllUserNotifications } from '../../services/notificationScheduler.service';
 import { NAV_TARGETS } from '../../navigation/navTargets';
 import { ROUTES } from '../../navigation/routes';
 
@@ -347,5 +352,67 @@ describe('the in-flight guard', () => {
     await waitFor(() => expect(mockCancelExceptFocus).toHaveBeenCalledTimes(2));
     // Each run completes fully before the next begins.
     expect(callLog).toEqual(['cancel', 'sync', 'cancel', 'sync']);
+  });
+});
+
+describe('routine reminders and the General notifications preference (ROUTINE-REMINDERS)', () => {
+  test('sign-in syncs routine reminders with General off, and still does not initialise the daily rhythm', async () => {
+    // Mutations caught: gating the sign-in sync on allNotificationsEnabled
+    // again; and dropping the flag condition from the initialise effect.
+    mockPrefs = { allNotificationsEnabled: false };
+    mount();
+
+    await waitFor(() => expect(mockSyncAllReminders).toHaveBeenCalledWith('u1'));
+    expect(mockInitializeUserNotifications).not.toHaveBeenCalled();
+  });
+});
+
+describe('no routine reminder survives loss of the owning user session (ROUTINE-REMINDERS R-I)', () => {
+  const tree = () => <NotificationProvider>{null}</NotificationProvider>;
+
+  test('a uid change to null (sign-out, account deletion, a lost token) cancels every routine reminder', async () => {
+    // Mutation caught: removing the cancelAllRoutineReminders call from the
+    // sign-out cleanup.
+    const view = mount();
+    await waitFor(() => expect(mockSyncAllReminders).toHaveBeenCalled());
+    mockCancelAllRoutineReminders.mockClear();
+
+    mockUser = null;
+    view.rerender(tree());
+
+    await waitFor(() => expect(mockCancelAllRoutineReminders).toHaveBeenCalledTimes(1));
+    // cancelAllUserNotifications is unchanged: still called, with the old uid.
+    expect(cancelAllUserNotifications).toHaveBeenCalledWith('u1');
+  });
+
+  test('a uid change to another uid cancels every routine reminder', async () => {
+    // Mutation caught: cancelling only when the uid becomes null.
+    const view = mount();
+    await waitFor(() => expect(mockSyncAllReminders).toHaveBeenCalled());
+    mockCancelAllRoutineReminders.mockClear();
+
+    mockUser = { uid: 'u2', emailVerified: true };
+    view.rerender(tree());
+
+    await waitFor(() => expect(mockCancelAllRoutineReminders).toHaveBeenCalledTimes(1));
+    expect(cancelAllUserNotifications).toHaveBeenCalledWith('u1');
+    // And the new account's own reminders are synced afterwards.
+    await waitFor(() => expect(mockSyncAllReminders).toHaveBeenCalledWith('u2'));
+  });
+
+  test("replacing the same user's object does not cancel them", async () => {
+    // Mutation caught: dropping the uid comparison, which would wipe a signed-in
+    // user's reminders whenever their user object is refreshed.
+    const view = mount();
+    await waitFor(() => expect(mockSyncAllReminders).toHaveBeenCalled());
+    mockCancelAllRoutineReminders.mockClear();
+
+    mockUser = { uid: 'u1', emailVerified: true };
+    view.rerender(tree());
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(mockCancelAllRoutineReminders).not.toHaveBeenCalled();
   });
 });

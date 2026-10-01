@@ -28,7 +28,7 @@ import {
   planFocusCompleteLaunch,
 } from '../services/firebase/focusSession.service';
 import { logger } from '../utils/logger';
-import { syncAllReminders } from '../services/reminderScheduler.service';
+import { syncAllReminders, cancelAllRoutineReminders } from '../services/reminderScheduler.service';
 import { navigationRef } from '../navigation/AppNavigator';
 import { ROUTES } from '../navigation/routes';
 import { NAV_TARGETS } from '../navigation/navTargets';
@@ -157,11 +157,20 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           // Local scheduling as fallback when server push is off
           await initializeUserNotifications(uid);
         }
-        // Always sync reminders (independent of server push toggle)
-        await syncAllReminders(uid);
       });
     }
   }, [user?.uid, user?.emailVerified, preferences?.allNotificationsEnabled, serverPush, runExclusive]);
+
+  // Sync routine reminders on sign-in. Independent of the General notifications
+  // preference and of server push: a routine reminder depends only on the user
+  // setting one, a valid time and OS permission (Kyle's ruling R-A, 2026-10-01).
+  useEffect(() => {
+    if (user?.uid && user?.emailVerified) {
+      const uid = user.uid;
+      // Serialized against the foreground handler above; see runExclusive.
+      runExclusive(() => syncAllReminders(uid));
+    }
+  }, [user?.uid, user?.emailVerified, runExclusive]);
 
   // Update notifications when preferences change
   useEffect(() => {
@@ -249,15 +258,29 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
   }, [user?.uid]);
 
+  // The uid as of the latest render, so the cleanup below can tell a session
+  // that ended from the same user's object being replaced.
+  const currentUidRef = useRef(user?.uid);
+  currentUidRef.current = user?.uid;
+
   // Cancel all notifications when user logs out
   useEffect(() => {
     if (!user) return;
     return () => {
       if (user?.uid) {
         cancelAllUserNotifications(user.uid);
+        // No routine reminder survives loss of the owning user session
+        // (ruling R-I). Routine reminder ids carry no user id, so the call
+        // above never matches them. Runs when the uid becomes null (sign-out,
+        // account deletion, a lost token) or a different uid; not when the
+        // same user's object is replaced, and not on unmount.
+        // Serialized, so the next account's sign-in sync cannot interleave.
+        if (currentUidRef.current !== user.uid) {
+          runExclusive(cancelAllRoutineReminders);
+        }
       }
     };
-  }, [user]);
+  }, [user, runExclusive]);
 
   const initializeNotifications = useCallback(async () => {
     if (!user?.uid) return;

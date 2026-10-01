@@ -100,17 +100,27 @@ export async function fetchActiveRoutineByType(
 }
 
 /**
+ * What createRoutine did: the new routine's id, and the ids of the routines of
+ * the same type it switched off. Callers cancel those routines' reminders; this
+ * service cannot, because reminderScheduler.service imports it.
+ */
+export interface CreatedRoutine {
+  id: string;
+  deactivatedIds: string[];
+}
+
+/**
  * Create a new routine
  * Automatically deactivates other routines of the same type
  */
 export async function createRoutine(
   userId: string,
   routineData: Omit<Routine, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
-): Promise<string> {
+): Promise<CreatedRoutine> {
   if (!db) throw new Error('Firestore is not initialized');
   try {
     // First, deactivate all existing routines of the same type
-    await deactivateRoutinesOfType(userId, routineData.type);
+    const deactivatedIds = await deactivateRoutinesOfType(userId, routineData.type);
 
     // Create the new routine
     const docRef = await addDoc(collection(db, 'routines'), {
@@ -122,7 +132,7 @@ export async function createRoutine(
       updatedAt: serverTimestamp(),
     });
 
-    return docRef.id;
+    return { id: docRef.id, deactivatedIds };
   } catch (error) {
     console.error('Error creating routine:', error);
     throw error;
@@ -164,12 +174,13 @@ export async function deleteRoutine(routineId: string): Promise<void> {
 }
 
 /**
- * Deactivate all routines of a specific type for a user
+ * Deactivate all routines of a specific type for a user. Returns the ids it
+ * deactivated.
  */
 async function deactivateRoutinesOfType(
   userId: string,
   type: RoutineType
-): Promise<void> {
+): Promise<string[]> {
   if (!db) throw new Error('Firestore is not initialized');
   try {
     const routinesQuery = query(
@@ -188,6 +199,7 @@ async function deactivateRoutinesOfType(
     );
 
     await Promise.all(updatePromises);
+    return snapshot.docs.map((docSnap) => docSnap.id);
   } catch (error) {
     console.error('Error deactivating routines:', error);
     throw error;

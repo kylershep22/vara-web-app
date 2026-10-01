@@ -124,8 +124,8 @@ const NotificationSettingsScreen: React.FC = () => {
             icon="bell"
             iconBg={Colors.evergreenTeal + '20'}
             iconColor={Colors.evergreenTeal}
-            label="All Notifications"
-            description="Master toggle for all notifications"
+            label="General notifications"
+            description="Controls Vara’s general reminders and updates. Routine reminders are managed within each routine."
             value={preferences.allNotificationsEnabled}
             onToggle={(v) => toggleAll(v)}
           />
