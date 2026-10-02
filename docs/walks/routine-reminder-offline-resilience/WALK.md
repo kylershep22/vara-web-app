@@ -3,7 +3,7 @@
 **Row:** ROUTINE-REMINDER-OFFLINE-RESILIENCE. A failed or timed-out routine refresh never makes the scheduled routine reminders less correct than they were before it began. Routine reminders are reconciled only after a successful server read, bounded at 10 seconds; on failure, timeout or no OS permission they are left as they are. Sign-out, account deletion and account switching still cancel the departing user's reminders.
 **Build:** branch `journey/routine-reminder-offline-resilience`: `87a8e5b` (the before-state evidence, C1), `6dd5e12` (the code and tests, C2) and the docs commit that carries this line (C3). **Walk the C3 commit, the tip of the branch.** It runs the same code as C2. A commit cannot carry its own hash: `git rev-parse HEAD` on the branch gives it, and it is recorded in the hand-off. The other hashes are in the roadmap's §13 entry for this slice.
 **Device:** iPhone 14 Plus, dev client, default Dynamic Type. No new dev-client build is needed: the change is JavaScript only.
-**Walker:** Kyle. **Status: NOT YET WALKED.**
+**Walker:** Kyle. **Status: WALKED AND ATTESTED by Kyle on 2026-10-01 at `19ded4b`, iPhone 14 Plus, default Dynamic Type. ALL STEPS PASS. The offline cold start is a REQUIRED PRE-LAUNCH DEVICE CHECK on the first standalone build (ledger row OFFLINE-COLD-START-DEVICE-CHECK).**
 
 ---
 
@@ -65,22 +65,22 @@ Report every step as **PASS**, **FAIL** or **NOT RUN**, with what you saw.
 **Not walked, with reasons:**
 - A read that hangs past the timeout, a late completion, and an attempt superseded mid-reconcile: not inducible on demand. Automated tests only.
 - Account deletion: destructive, and it cannot run offline. Automated tests only.
-- An offline cold start: the dev client cannot load its bundle offline. Automated tests only.
+- An offline cold start: the dev client cannot load its bundle offline, so this is covered by automated tests only until the first standalone build; it is a REQUIRED PRE-LAUNCH DEVICE CHECK on that build (ledger row OFFLINE-COLD-START-DEVICE-CHECK, Kyle's ruling of 2026-10-01).
 - Reduce Transparency and larger text sizes: NOT RUN, deferred by Kyle 2026-09-29 until after the initial generally available release.
 
 ---
 
 ## Part 3 - Results
 
-Not yet walked.
+Walked and attested by Kyle, iPhone 14 Plus, default Dynamic Type, on 2026-10-01.
 
 | Step | Result | What was seen |
 |---|---|---|
-| W0 | NOT YET WALKED | |
-| W1 | NOT YET WALKED | |
-| W2 | NOT YET WALKED | |
-| W3 | NOT YET WALKED | |
-| W4 | NOT YET WALKED | |
-| W5 | NOT YET WALKED | |
-| W6 | NOT YET WALKED | |
-| W7 | NOT YET WALKED | |
+| W0 | Recorded | Build 19ded4b; iOS 26.3; notifications allowed for Vara. |
+| W1 | PASS | |
+| W2 | PASS | |
+| W3 | PASS | |
+| W4 | PASS | |
+| W5 | PASS | |
+| W6 | PASS | |
+| W7 | PASS | |

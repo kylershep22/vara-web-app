@@ -175,6 +175,7 @@ eas submit --platform ios --latest
 - [ ] Fresh install
 - [ ] Force close and reopen
 - [ ] Airplane mode (offline functionality)
+- [ ] **Offline cold start keeps reminders (REQUIRED BEFORE LAUNCH, first standalone build; added 2026-10-01, ledger row OFFLINE-COLD-START-DEVICE-CHECK in `docs/Vara_Journey_Architecture_Roadmap_v3.md`).** With the device online, set a routine reminder a few minutes ahead and save. Force-quit Vara. Turn on airplane mode with Wi-Fi off. Open Vara and wait 15 seconds. Lock the device. Pass: the routine reminder fires at the set time. Repeat the same check for the daily rhythm reminder (set in Settings, Notifications); pass: it fires at the set time.
 - [ ] Background and resume
 - [ ] Rotate device (portrait/landscape if supported)
 
