@@ -16,6 +16,11 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { NotificationPreferences, ReminderTime } from '../../types';
+import { isValidReminderTime } from '../../utils/reminderTime';
+
+// The single reminder-time validity check (NPM-2), defined in utils/reminderTime
+// and re-exported here as the preferences service's own.
+export { isValidReminderTime };
 
 // ==========================================
 // V2 DEFAULT PREFERENCES
@@ -189,20 +194,7 @@ async function migratePreferencesToV2(
  * So: a narrow, idempotent copy-and-clean, applied on read.
  */
 function hasSalvageableReminderTime(data: Record<string, any>): boolean {
-  const stranded = data.dailyReminders?.reminderTime;
-  if (!stranded || typeof stranded !== 'object') return false;
-
-  const { hour, minute } = stranded as Partial<ReminderTime>;
-  const valid =
-    typeof hour === 'number' &&
-    Number.isInteger(hour) &&
-    hour >= 0 &&
-    hour <= 23 &&
-    typeof minute === 'number' &&
-    Number.isInteger(minute) &&
-    minute >= 0 &&
-    minute <= 59;
-  if (!valid) return false;
+  if (!isValidReminderTime(data.dailyReminders?.reminderTime)) return false;
 
   // Only when the canonical field has nothing to lose. A document whose
   // dailyRhythm.reminderTime is already set is left exactly as it is.

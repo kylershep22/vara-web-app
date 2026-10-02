@@ -3,8 +3,9 @@
  *
  * The reconcile works out the desired state from a FRESH preferences read, then
  * makes the device match it: the daily rhythm scheduled at reminderTime when
- * General notifications and the daily rhythm are on and a time exists, cancelled
- * otherwise. A failed read changes nothing. Overlapping calls run one at a time.
+ * General notifications is on and the time is valid (NPM-2: the legacy
+ * dailyRhythm.enabled flag is no longer consulted), cancelled otherwise. A failed
+ * read changes nothing. Overlapping calls run one at a time.
  *
  * The OS notification store is in memory, and every cancel and schedule is
  * logged in order, so "no cancel after the schedule" is checkable.
@@ -89,8 +90,15 @@ describe('the desired state, from a fresh read', () => {
 
   test.each([
     ['General off', prefs({ allNotificationsEnabled: false })],
-    ['the daily rhythm disabled', prefs({ dailyRhythm: { enabled: false, reminderTime: { hour: 18, minute: 20 } } })],
     ['no time', prefs({ dailyRhythm: { enabled: true, reminderTime: null } })],
+    // S2 (NPM-2): a time is only a time if it passes isValidReminderTime.
+    // Mutation caught: the rule weakened to a truthiness check on reminderTime.
+    ['a time with a null minute', prefs({ dailyRhythm: { enabled: true, reminderTime: { hour: 18, minute: null } } })],
+    ['a time with null parts', prefs({ dailyRhythm: { enabled: true, reminderTime: { hour: null, minute: null } } })],
+    ['hour 24', prefs({ dailyRhythm: { enabled: true, reminderTime: { hour: 24, minute: 0 } } })],
+    ['minute 60', prefs({ dailyRhythm: { enabled: true, reminderTime: { hour: 18, minute: 60 } } })],
+    ['a fractional hour', prefs({ dailyRhythm: { enabled: true, reminderTime: { hour: 7.5, minute: 0 } } })],
+    ['a missing minute', prefs({ dailyRhythm: { enabled: true, reminderTime: { hour: 18 } } })],
   ])('%s: cancels the id and never schedules it', async (_label, p) => {
     // Mutation caught: an early return without the cancel (scheduleDailyRhythm's
     // old shape), which left yesterday's reminder in place.
@@ -101,6 +109,18 @@ describe('the desired state, from a fresh read', () => {
 
     expect(mockStore.has(ID)).toBe(false);
     expect(mockOps).not.toContain(`schedule:${ID}`);
+  });
+
+  test('S1: General on with a stored dailyRhythm.enabled of false is SCHEDULED (NPM-2)', async () => {
+    // Inverted at NPM-2 from "the daily rhythm disabled: cancels". The legacy
+    // flag has no control on screen, so it no longer gates the reminder: the
+    // rule is General on plus a valid time, nothing else.
+    // Mutation caught: restoring the dailyRhythm.enabled check.
+    mockGetPrefs.mockResolvedValue(prefs({ dailyRhythm: { enabled: false, reminderTime: { hour: 18, minute: 20 } } }));
+
+    await expect(reconcileDailyRhythm('u1')).resolves.toBe('scheduled');
+
+    expect(mockStore.get(ID)?.trigger).toMatchObject({ type: 'daily', hour: 18, minute: 20 });
   });
 
   test('a changed time replaces the pending one: one reminder, at the new time', async () => {
