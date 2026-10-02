@@ -10,7 +10,7 @@
  */
 
 import * as Notifications from 'expo-notifications';
-import { auth, db } from '../config/firebase';
+import { db } from '../config/firebase';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
 import { NotificationPreferences, NotificationType, ReminderTime } from '../types';
 import {
@@ -20,7 +20,11 @@ import {
 import { canSendSystemNotification, markNotificationSent } from './notificationThrottle';
 import { logger } from '../utils/logger';
 import { isValidReminderTime } from '../utils/reminderTime';
-import { pendingDailyRhythmOverlay } from './notificationIntentStore';
+import {
+  isNotificationOwner,
+  notificationSessionUid,
+  pendingDailyRhythmOverlay,
+} from './notificationIntentStore';
 
 // ==========================================
 // NOTIFICATION IDENTIFIERS
@@ -198,7 +202,9 @@ export type DailyRhythmReconcileOutcome =
   | 'scheduled'
   | 'cancelled'
   | 'read-failed'
-  | 'schedule-failed';
+  | 'schedule-failed'
+  /** Only with requireOwner: the account changed before a change was made. */
+  | 'session-changed';
 
 /** A preference read that has not answered by then is treated as a failed read. */
 const RECONCILE_READ_TIMEOUT_MS = 10_000;
@@ -229,7 +235,10 @@ function readPreferencesWithTimeout(userId: string): Promise<NotificationPrefere
   });
 }
 
-async function reconcileDailyRhythmNow(userId: string): Promise<DailyRhythmReconcileOutcome> {
+async function reconcileDailyRhythmNow(
+  userId: string,
+  requireOwner: boolean
+): Promise<DailyRhythmReconcileOutcome> {
   // The desired state comes first, from a FRESH read. Never a hook copy: those
   // are loaded once per uid and miss every write made through the service.
   let preferences: NotificationPreferences;
@@ -256,7 +265,8 @@ async function reconcileDailyRhythmNow(userId: string): Promise<DailyRhythmRecon
     desiredDailyRhythm(
       pending.general ?? preferences.allNotificationsEnabled,
       pending.reminderTime ?? preferences.dailyRhythm?.reminderTime
-    )
+    ),
+    requireOwner
   );
 }
 
@@ -264,11 +274,18 @@ async function reconcileDailyRhythmNow(userId: string): Promise<DailyRhythmRecon
  * Make the device match a decided daily rhythm: scheduled at `time`, or
  * cancelled when `time` is null. Shared by the reconcile and the direct apply,
  * so the two can never disagree about what a decision does on the device.
+ *
+ * With requireOwner, OWNERSHIP is confirmed immediately before EACH change it
+ * makes on the device: work started for one account does nothing once another
+ * (or nobody) is signed in, even part-way through.
  */
 async function makeDailyRhythmMatch(
   userId: string,
-  time: ReminderTime | null
-): Promise<'scheduled' | 'cancelled' | 'schedule-failed'> {
+  time: ReminderTime | null,
+  requireOwner: boolean
+): Promise<'scheduled' | 'cancelled' | 'schedule-failed' | 'session-changed'> {
+  const ownerGone = () => requireOwner && !isNotificationOwner(userId);
+  if (ownerGone()) return 'session-changed';
   // Insights notifications are hidden pending INSIGHTS-V1 (NPM-1 ruling 2):
   // cancel any a previous build scheduled, and never schedule one. The stored
   // preference is left as it is.
@@ -277,6 +294,7 @@ async function makeDailyRhythmMatch(
   // OS permission is not part of the decision (NPM-1 ruling 3), and neither is
   // serverPushEnabled (ruling 1): V1's daily rhythm is local only.
   const id = dailyRhythmNotificationId(userId);
+  if (ownerGone()) return 'session-changed';
   if (!time) {
     await cancelNotificationById(id);
     return 'cancelled';
@@ -302,9 +320,17 @@ async function makeDailyRhythmMatch(
  * Make the device's daily rhythm match the user's stored preferences: scheduled
  * at reminderTime when General notifications is on and the time is valid,
  * cancelled otherwise (the activation rule, desiredDailyRhythm). Never rejects.
+ *
+ * requireOwner (NPM-2) is for a CORRECTING reconcile run on behalf of a
+ * particular account: it makes no change unless that account is still signed
+ * in at the moment of each change. The passive reconciles (foreground, sign-in,
+ * onboarding) are unchanged and do not pass it.
  */
-export function reconcileDailyRhythm(userId: string): Promise<DailyRhythmReconcileOutcome> {
-  return enqueueDailyRhythmWork(() => reconcileDailyRhythmNow(userId));
+export function reconcileDailyRhythm(
+  userId: string,
+  options: { requireOwner?: boolean } = {}
+): Promise<DailyRhythmReconcileOutcome> {
+  return enqueueDailyRhythmWork(() => reconcileDailyRhythmNow(userId, options.requireOwner === true));
 }
 
 /** Run daily rhythm work on reconcileQueue, after everything already on it. */
@@ -318,12 +344,14 @@ function enqueueDailyRhythmWork<T>(work: () => Promise<T>): Promise<T> {
 // DIRECT APPLY (NPM-2)
 // ==========================================
 
-export type DailyRhythmApplyOutcome = 'scheduled' | 'cancelled' | 'schedule-failed' | 'session-changed';
-
-/** The signed-in user right now, or null. Read when queued work runs, not when it is queued. */
-function currentSessionUid(): string | null {
-  return auth?.currentUser?.uid ?? null;
-}
+export type DailyRhythmApplyOutcome =
+  | 'scheduled'
+  | 'cancelled'
+  | 'schedule-failed'
+  /** Another account is signed in, now or part-way through. */
+  | 'session-changed'
+  /** Nobody is signed in: the owner cannot be established, so nothing is done. */
+  | 'no-owner';
 
 /**
  * Apply the user's current General and daily-time choice to this device at once,
@@ -340,17 +368,21 @@ function currentSessionUid(): string | null {
  * (RECONCILE_READ_TIMEOUT_MS, 10 seconds). Offline, an apply can therefore wait
  * up to 10 seconds before it takes effect on the device.
  *
- * SESSION GUARD: if the signed-in user is no longer `userId` when this runs, it
- * does nothing. A choice made by one account is never applied for another.
- * Never rejects.
+ * SESSION GUARD, FAIL CLOSED (Kyle's ruling 4 on Build A): it acts only for the
+ * authenticated owner. With nobody signed in it does nothing ('no-owner'); with
+ * another account signed in it does nothing ('session-changed'). Ownership is
+ * re-confirmed before each change on the device, so a switch part-way through
+ * stops it there. Never rejects.
  */
 export function applyDailyRhythmChoice(
   userId: string,
   choice: { general: boolean; reminderTime: ReminderTime | null }
 ): Promise<DailyRhythmApplyOutcome> {
   return enqueueDailyRhythmWork(async () => {
-    if (currentSessionUid() !== userId) return 'session-changed';
-    return makeDailyRhythmMatch(userId, desiredDailyRhythm(choice.general, choice.reminderTime));
+    const owner = notificationSessionUid();
+    if (owner === null) return 'no-owner';
+    if (owner !== userId) return 'session-changed';
+    return makeDailyRhythmMatch(userId, desiredDailyRhythm(choice.general, choice.reminderTime), true);
   });
 }
 

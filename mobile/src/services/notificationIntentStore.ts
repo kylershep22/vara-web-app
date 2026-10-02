@@ -77,6 +77,23 @@ function sessionUid(): string | null {
   return auth?.currentUser?.uid ?? null;
 }
 
+/**
+ * Whether `uid` is the authenticated owner RIGHT NOW. Fails closed: with no
+ * signed-in user nobody is the owner (Kyle's ruling 4 on Build A). Every piece
+ * of queued or asynchronous notification work asks this at the moment it would
+ * mutate notification state or the journal, so work started for one account
+ * does nothing once another (or nobody) is current.
+ */
+export function isNotificationOwner(uid: string): boolean {
+  const current = sessionUid();
+  return current !== null && current === uid;
+}
+
+/** The signed-in user right now, or null. */
+export function notificationSessionUid(): string | null {
+  return sessionUid();
+}
+
 // ==========================================
 // VALIDATION
 // ==========================================
@@ -242,8 +259,13 @@ export function settleIntent(uid: string, control: IntentControl, seq: number, g
  * has, and never rejects.
  *
  * With a uid, the stored record is removed only if it is that user's (or is
- * malformed). Without one (signed-out cold start, account deletion) it is
- * removed whoever it belongs to.
+ * malformed). Without one (account deletion) it is removed whoever it belongs to.
+ *
+ * Called ONLY on an authoritative session transition (Kyle's ruling 1 on Build
+ * A): explicit sign-out, account deletion, or a different uid becoming current.
+ * A transient no-user state at startup is not one, so a signed-out cold start
+ * does not clear; a record left by another account is discarded on read
+ * instead, before it can be replayed or laid over anything.
  */
 export function clearNotificationIntent(uid?: string): Promise<void> {
   generation += 1;
@@ -277,6 +299,10 @@ export async function pendingDailyRhythmOverlay(
 ): Promise<{ general?: boolean; reminderTime?: ReminderTime }> {
   const entries = await ensureJournalLoaded(uid);
   const out: { general?: boolean; reminderTime?: ReminderTime } = {};
+  // Ownership, checked when the overlay is used: a reconcile running for an
+  // account that is no longer signed in never gets that account's pending
+  // changes laid over it.
+  if (!isNotificationOwner(uid)) return out;
   if (entries.general) out.general = entries.general.value as boolean;
   if (entries.dailyTime) out.reminderTime = entries.dailyTime.value as ReminderTime;
   return out;

@@ -149,11 +149,11 @@ describe('A3: the session guard', () => {
     expect(mockStore.has(ID)).toBe(true);
   });
 
-  test('nobody signed in: nothing happens', async () => {
+  test('nobody signed in: nothing happens, fail closed', async () => {
     mockAuth.currentUser = null;
     await expect(
       applyDailyRhythmChoice('u1', { general: true, reminderTime: { hour: 9, minute: 0 } })
-    ).resolves.toBe('session-changed');
+    ).resolves.toBe('no-owner');
     expect(mockOps).toEqual([]);
   });
 
@@ -169,7 +169,7 @@ describe('A3: the session guard', () => {
     await reconciling;
 
     // Mutation caught: capturing the uid at queue time would schedule for a gone session.
-    await expect(applying).resolves.toBe('session-changed');
+    await expect(applying).resolves.toBe('no-owner');
     expect(mockOps).not.toContain(`schedule:${ID}`);
   });
 });

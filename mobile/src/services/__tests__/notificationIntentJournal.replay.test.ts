@@ -134,7 +134,7 @@ describe('replay (P1 to P3)', () => {
 
     expect(onDisk()).toBeNull();
     // Mutation caught: dropping the correcting reconcile.
-    expect(mockReconcile).toHaveBeenCalledWith('u1');
+    expect(mockReconcile).toHaveBeenCalledWith('u1', { requireOwner: true });
     expect(alertSpy).not.toHaveBeenCalled();
     alertSpy.mockRestore();
   });

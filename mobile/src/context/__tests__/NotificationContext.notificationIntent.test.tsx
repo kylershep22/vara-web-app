@@ -3,9 +3,11 @@
  *
  * The sign-in job replays this user's unacknowledged notification changes
  * BEFORE the daily rhythm reconcile. The session-loss cleanup clears the
- * departing user's pending changes synchronously; the signed-out cold start
- * clears whatever is stored; the same user's object being replaced clears
- * nothing. Harness as in NotificationContext.test.tsx; the journal is recorded.
+ * departing user's pending changes synchronously; a signed-out cold start
+ * clears NOTHING (a transient startup state is not a session loss); the same
+ * user's object being replaced clears nothing. Harness as in
+ * NotificationContext.test.tsx; the journal is recorded. What happens to a
+ * stored record across a cold start is in NotificationContext.journalColdStart.
  */
 import React from 'react';
 import { render, waitFor, act } from '@testing-library/react-native';
@@ -140,13 +142,15 @@ describe('C2 [K5]: sign-out clears the departing user', () => {
   });
 });
 
-describe('C4: a signed-out cold start clears whatever is stored', () => {
-  test('auth resolved with nobody signed in: cleared with no user', async () => {
+describe('C4: a signed-out cold start does NOT clear (Kyle, ruling 1 on Build A)', () => {
+  test('auth resolved with nobody signed in: the routine cancel runs, the journal is left alone', async () => {
     mockUser = null;
     mount();
+    await waitFor(() => expect(callLog).toContain('cancelRoutineReminders'));
+    await act(async () => {});
 
-    // Mutation caught: removing the clear from the signed-out cold-start effect.
-    await waitFor(() => expect(callLog).toContain('clearIntent()'));
+    // Mutation caught: restoring the journal clear to the signed-out cold-start job.
+    expect(callLog.filter((c) => c.startsWith('clearIntent'))).toEqual([]);
     expect(callLog).not.toContain('replay(u1)');
   });
 

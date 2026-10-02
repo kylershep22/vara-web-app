@@ -27,6 +27,7 @@ import {
   IntentValues,
   currentGeneration,
   ensureJournalLoaded,
+  isNotificationOwner,
   nextSeq,
   persistIntent,
   settleIntent,
@@ -93,6 +94,11 @@ function send<K extends IntentControl>(
   seq: number,
   gen: number
 ): Promise<IntentSettlement> {
+  // OWNERSHIP (send): nothing is sent for an account that is not the one signed
+  // in right now. Covers a new change and a replayed one alike.
+  if (gen !== currentGeneration() || !isNotificationOwner(uid)) {
+    return Promise.resolve({ outcome: 'session-ended' });
+  }
   inFlight.add(seq);
   // updateNotificationPreferences spreads these into updateDoc, which takes
   // dotted paths; its parameter type only describes whole top-level fields.
@@ -100,13 +106,16 @@ function send<K extends IntentControl>(
   return updateNotificationPreferences(uid, fields).then(
     async (): Promise<IntentSettlement> => {
       inFlight.delete(seq);
-      if (gen !== currentGeneration()) return { outcome: 'session-ended' };
+      // OWNERSHIP (acknowledgement): a late answer for a departed account
+      // touches neither the journal nor anything else.
+      if (gen !== currentGeneration() || !isNotificationOwner(uid)) return { outcome: 'session-ended' };
       const latest = await settleIntent(uid, control, seq, gen);
       return { outcome: 'acknowledged', latest };
     },
     async (error): Promise<IntentSettlement> => {
       inFlight.delete(seq);
-      if (gen !== currentGeneration()) return { outcome: 'session-ended' };
+      // OWNERSHIP (rejection): likewise, and so no correction is made for it.
+      if (gen !== currentGeneration() || !isNotificationOwner(uid)) return { outcome: 'session-ended' };
       const latest = await settleIntent(uid, control, seq, gen);
       return { outcome: 'rejected', latest, error };
     }
@@ -141,6 +150,9 @@ export async function submitNotificationIntent<K extends IntentControl>(
   if (!persisted) {
     return gen !== currentGeneration() ? { status: 'session-ended' } : { status: 'persist-failed' };
   }
+  // OWNERSHIP (submit): the account may have changed while the disk write ran.
+  // Then nothing is sent and nothing is applied for it.
+  if (!isNotificationOwner(uid)) return { status: 'session-ended' };
 
   const settled = send(uid, control, value, seq, gen);
   if ((control === 'general' || control === 'dailyTime') && effective) {
@@ -178,9 +190,11 @@ export async function replayNotificationIntent(uid: string): Promise<void> {
       const entry = entries[control];
       if (!entry || inFlight.has(entry.seq)) continue;
       void send(uid, control, entry.value, entry.seq, gen).then((s) => {
-        if (s.outcome === 'rejected') {
+        // OWNERSHIP (correcting reconcile): only for the account still signed
+        // in, and the reconcile itself re-checks before each change it makes.
+        if (s.outcome === 'rejected' && isNotificationOwner(uid)) {
           logger.warn('[notificationIntent] replayed change rejected; schedule corrected', s.error);
-          void reconcileDailyRhythm(uid);
+          void reconcileDailyRhythm(uid, { requireOwner: true });
         }
       });
     }

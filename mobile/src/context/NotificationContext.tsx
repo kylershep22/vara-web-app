@@ -302,9 +302,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useEffect(() => {
     if (isAuthReady && !sessionUid) {
       runExclusive(cancelAllRoutineReminders);
-      // Nobody is signed in, so no pending notification change can belong to
-      // anyone here (NPM-2).
-      void clearNotificationIntent();
+      // The pending notification journal is deliberately NOT cleared here (Kyle's
+      // ruling 1 on Build A): a transient unauthenticated startup state is not an
+      // authoritative session loss. A record left by another account is
+      // discarded when the next account's journal is read, before any replay.
     }
   }, [isAuthReady, sessionUid, runExclusive]);
 
