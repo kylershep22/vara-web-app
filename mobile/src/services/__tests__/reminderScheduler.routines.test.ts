@@ -4,27 +4,46 @@
  * Pins Kyle's rulings at the service boundary:
  * - R-A: a routine reminder depends only on the user setting one, a valid time
  *   and OS permission. The General notifications preference is never read.
- * - R-I: sync cancels every routine-reminder- id on the device first, whoever's
- *   routine it was, and only then schedules the current user's.
+ * - R-I: after a successful server read, sync cancels every routine-reminder-
+ *   id outside the current user's desired set, whoever's routine it was.
+ *   (Was: cancels every id first. ROUTINE-REMINDER-OFFLINE-RESILIENCE moved
+ *   every routine cancel after the read.)
  * - E6: scheduleRoutineReminder reports what happened instead of returning void.
  * - R-L: an inactive routine is never scheduled.
  *
- * expo-notifications is mocked at the module boundary. These prove the logic,
- * not that a reminder fires on a device; the walk owns that.
+ * And ROUTINE-REMINDER-OFFLINE-RESILIENCE (Kyle's rulings 1 and 2, 2026-10-01):
+ * without OS permission nothing is touched (G2), here; the failed, timed-out,
+ * superseded and session-lost cases are in
+ * reminderScheduler.offlineResilience.test.ts.
+ *
+ * expo-notifications is mocked at the module boundary, and the mock store
+ * (mockPending) keeps what is scheduled. These prove the logic, not that a
+ * reminder fires on a device; the walk owns that.
  */
 
-type Scheduled = { identifier: string; content?: { data?: Record<string, unknown> } };
+type Scheduled = {
+  identifier: string;
+  content?: { data?: Record<string, unknown> } & Record<string, unknown>;
+  trigger?: Record<string, unknown>;
+};
 
 const mockGetPerms = jest.fn();
-const mockSchedule = jest.fn().mockResolvedValue('id');
+// Scheduling under an identifier replaces the pending request, as the OS does.
+const mockSchedule = jest.fn(async (req: Scheduled) => {
+  mockPending = [...mockPending.filter((n) => n.identifier !== req.identifier), { ...req }];
+  return req.identifier;
+});
 const mockCancelOne = jest.fn().mockResolvedValue(undefined);
 let mockPending: Scheduled[] = [];
+// The cache-capable read. The reconcile must never use it.
 const mockFetchUserRoutines = jest.fn();
+// The server read, the only one the reconcile accepts.
+const mockFetchFromServer = jest.fn();
 const mockGetPrefs = jest.fn();
 
 jest.mock('expo-notifications', () => ({
   getPermissionsAsync: () => mockGetPerms(),
-  scheduleNotificationAsync: (...a: unknown[]) => mockSchedule(...a),
+  scheduleNotificationAsync: (req: Scheduled) => mockSchedule(req),
   cancelScheduledNotificationAsync: (id: string) => {
     mockPending = mockPending.filter((n) => n.identifier !== id);
     return mockCancelOne(id);
@@ -42,6 +61,7 @@ jest.mock('expo-notifications', () => ({
 }));
 jest.mock('../firebase/routines.service', () => ({
   fetchUserRoutines: (...a: unknown[]) => mockFetchUserRoutines(...a),
+  fetchUserRoutinesFromServer: (...a: unknown[]) => mockFetchFromServer(...a),
   calculateTotalDuration: (acts: { duration: number }[]) =>
     acts.reduce((t, a) => t + a.duration, 0),
 }));
@@ -85,12 +105,15 @@ beforeEach(() => {
   mockGetPerms.mockResolvedValue({ status: 'granted' });
   mockGetPrefs.mockResolvedValue({ allNotificationsEnabled: false });
   mockFetchUserRoutines.mockResolvedValue([]);
+  mockFetchFromServer.mockResolvedValue([]);
 });
+
+const pendingIds = () => mockPending.map((n) => n.identifier).sort();
 
 describe('syncAllReminders', () => {
   test('schedules an active routine with the General flag off, and never reads preferences', async () => {
     // Mutation caught: restoring the allNotificationsEnabled early exit.
-    mockFetchUserRoutines.mockResolvedValue([routine()]);
+    mockFetchFromServer.mockResolvedValue([routine()]);
 
     await syncAllReminders('u1');
 
@@ -99,21 +122,20 @@ describe('syncAllReminders', () => {
   });
 
   test('without OS permission schedules nothing, and does not even read the routines', async () => {
-    // Mutation caught: removing sync's own OS permission check. Removing it
-    // alone would still schedule nothing, because scheduleRoutineReminder
-    // re-checks; what it changes is that sync reads every routine for nothing.
+    // Mutation caught: removing sync's own OS permission check, which now
+    // reads and reconciles (G2 says it must not).
     mockGetPerms.mockResolvedValue({ status: 'denied' });
-    mockFetchUserRoutines.mockResolvedValue([routine()]);
+    mockFetchFromServer.mockResolvedValue([routine()]);
 
-    await syncAllReminders('u1');
+    await expect(syncAllReminders('u1')).resolves.toBe('no-permission');
 
     expect(mockSchedule).not.toHaveBeenCalled();
-    expect(mockFetchUserRoutines).not.toHaveBeenCalled();
+    expect(mockFetchFromServer).not.toHaveBeenCalled();
   });
 
   test('skips inactive routines and unparseable times', async () => {
     // Mutation caught: dropping the active check, or the parse check.
-    mockFetchUserRoutines.mockResolvedValue([
+    mockFetchFromServer.mockResolvedValue([
       routine({ id: 'inactive', active: false }),
       routine({ id: 'bad', reminderTime: '730' }),
       routine({ id: 'good' }),
@@ -124,31 +146,61 @@ describe('syncAllReminders', () => {
     expect(scheduledIds()).toEqual(['routine-reminder-good']);
   });
 
-  test("cancels every routine-reminder- id first, another user's included, then schedules only the current user's", async () => {
-    // Mutation caught: removing the cancel-all at the start of sync.
+  test("online success: cancels every routine id outside the desired set, another user's included, and schedules the desired set without cancelling it first", async () => {
+    // Kyle's required case: online success.
+    // Mutations caught: dropping the outside-set cancel (the other account's
+    // id and the inactive routine's id survive); restoring a cancel of the
+    // desired id before its schedule (r1 is cancelled).
+    mockPending = [
+      { identifier: 'routine-reminder-other-users-routine' },
+      { identifier: 'routine-reminder-inactive' },
+      { identifier: 'routine-reminder-r1', trigger: { hour: 7, minute: 0 } },
+      { identifier: 'u1-daily-rhythm' },
+    ];
+    mockFetchFromServer.mockResolvedValue([routine(), routine({ id: 'inactive', active: false })]);
+
+    await expect(syncAllReminders('u1')).resolves.toBe('reconciled');
+
+    expect(mockCancelOne.mock.calls.map((c) => c[0]).sort()).toEqual([
+      'routine-reminder-inactive',
+      'routine-reminder-other-users-routine',
+    ]);
+    expect(mockCancelOne).not.toHaveBeenCalledWith('routine-reminder-r1');
+    expect(pendingIds()).toEqual(['routine-reminder-r1', 'u1-daily-rhythm']);
+    expect(mockPending.find((n) => n.identifier === 'routine-reminder-r1')?.trigger).toEqual({
+      type: 'daily',
+      hour: 19,
+      minute: 30,
+    });
+  });
+
+  test('G2: without OS permission nothing is cancelled, another account\'s included, and nothing is read', async () => {
+    // Was: "cancels another account's routine reminders even without OS
+    // permission". Kyle's ruling 2 (G2) reverses it: permission controls
+    // delivery and must not destroy the configured reminders. Another
+    // account's leftovers are taken by session loss, not here.
+    // Mutation caught: restoring the cancel-all before the permission check.
+    mockGetPerms.mockResolvedValue({ status: 'undetermined' });
     mockPending = [
       { identifier: 'routine-reminder-other-users-routine' },
       { identifier: 'routine-reminder-r1' },
-      { identifier: 'u1-daily-rhythm' },
     ];
-    mockFetchUserRoutines.mockResolvedValue([routine()]);
 
-    await syncAllReminders('u1');
+    await expect(syncAllReminders('u1')).resolves.toBe('no-permission');
 
-    expect(mockCancelOne).toHaveBeenCalledWith('routine-reminder-other-users-routine');
-    expect(mockCancelOne).toHaveBeenCalledWith('routine-reminder-r1');
-    expect(mockCancelOne).not.toHaveBeenCalledWith('u1-daily-rhythm');
-    expect(scheduledIds()).toEqual(['routine-reminder-r1']);
+    expect(mockCancelOne).not.toHaveBeenCalled();
+    expect(mockFetchFromServer).not.toHaveBeenCalled();
+    expect(pendingIds()).toEqual(['routine-reminder-other-users-routine', 'routine-reminder-r1']);
   });
 
-  test('cancels another account\'s routine reminders even without OS permission', async () => {
-    // Mutation caught: moving the cancel-all after the permission check.
-    mockGetPerms.mockResolvedValue({ status: 'undetermined' });
-    mockPending = [{ identifier: 'routine-reminder-other-users-routine' }];
+  test('still cancels habit reminders a previous build left, whatever the read does', async () => {
+    // Mutation caught: dropping the habit cleanup, or moving it after the read.
+    mockPending = [{ identifier: 'habit-reminder-h1' }, { identifier: 'routine-reminder-r1' }];
+    mockFetchFromServer.mockRejectedValue(new Error('offline'));
 
     await syncAllReminders('u1');
 
-    expect(mockCancelOne).toHaveBeenCalledWith('routine-reminder-other-users-routine');
+    expect(pendingIds()).toEqual(['routine-reminder-r1']);
   });
 });
 
@@ -162,6 +214,20 @@ describe('scheduleRoutineReminder outcomes', () => {
     };
     expect(req.identifier).toBe('routine-reminder-r1');
     expect(req.trigger).toEqual({ type: 'daily', hour: 19, minute: 30 });
+  });
+
+  test('does not cancel its own id first: the schedule replaces it, and a failure leaves it', async () => {
+    // ROUTINE-REMINDER-OFFLINE-RESILIENCE T3. The routine editor cancels
+    // explicitly before calling this (RoutineEditor.reminders tests).
+    // Mutation caught: restoring the pre-cancel.
+    const previous = { identifier: 'routine-reminder-r1', trigger: { hour: 7, minute: 0 } };
+    mockPending = [previous];
+    mockSchedule.mockRejectedValueOnce(new Error('scheduling failed'));
+
+    await expect(scheduleRoutineReminder(routine())).resolves.toBe('failed');
+
+    expect(mockCancelOne).not.toHaveBeenCalled();
+    expect(mockPending).toEqual([previous]);
   });
 
   test('not-set when there is no reminder time', async () => {

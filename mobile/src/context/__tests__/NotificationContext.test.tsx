@@ -74,9 +74,16 @@ jest.mock('../../services/notifications.service', () => ({
 const mockCancelAllRoutineReminders = jest.fn(async () => {
   callLog.push('cancelRoutineReminders');
 });
+const mockInvalidateRoutineReminderAttempts = jest.fn(() => {
+  callLog.push('invalidate');
+});
 jest.mock('../../services/reminderScheduler.service', () => ({
   syncAllReminders: (...a: any[]) => mockSyncAllReminders(...(a as [])),
   cancelAllRoutineReminders: () => mockCancelAllRoutineReminders(),
+  invalidateRoutineReminderAttempts: () => mockInvalidateRoutineReminderAttempts(),
+  // The real predicate is pinned in reminderScheduler.routines; the sweep's use
+  // of it against the real scheduler is in NotificationContext.routineOffline.
+  isRoutineReminderId: (id: string) => id.startsWith('routine-reminder-'),
 }));
 jest.mock('../../services/notificationScheduler.service', () => ({
   reconcileDailyRhythm: (...a: any[]) => mockReconcileDailyRhythm(...(a as [])),
@@ -149,6 +156,9 @@ async function resume() {
 
 describe('resuming the app', () => {
   test('re-syncs reminders, so the cancel does not leave the day empty', async () => {
+    // Since ROUTINE-REMINDER-OFFLINE-RESILIENCE the sweep spares routine
+    // reminders, so the re-sync is what reconciles them with the server (and
+    // clears habit leftovers), not what puts them back after the cancel.
     mount();
     await waitFor(() => expect(appStateHandler).not.toBeNull());
     callLog.length = 0;
@@ -167,7 +177,10 @@ describe('resuming the app', () => {
 
     await resume();
 
-    // Ordered the other way round, the cancel would wipe what sync just wrote.
+    // The sweep now spares routine reminders (ROUTINE-REMINDER-OFFLINE-
+    // RESILIENCE), so this order no longer protects them; it still keeps the
+    // sweep from clearing ids the sync may legitimately write in future, and
+    // pins the order the NPM-1 daily rhythm test below depends on.
     expect(callLog.indexOf('cancel')).toBeGreaterThanOrEqual(0);
     expect(callLog.indexOf('sync')).toBeGreaterThan(callLog.indexOf('cancel'));
   });
@@ -185,12 +198,15 @@ describe('resuming the app', () => {
     expect(callLog.indexOf('reconcile')).toBeLessThan(callLog.indexOf('sync'));
   });
 
-  test('the foreground cancel spares only the current user’s daily rhythm (NPM-1)', async () => {
-    // A failed or offline reconcile must leave the daily rhythm scheduled, so
-    // the sweep before it may not touch that id. Everything else is cleared as
-    // before: routine reminders (re-synced after), insights, other accounts'
-    // ids, and ids older builds left behind.
-    // Mutation caught: calling the cancel without the spare predicate.
+  test('the foreground cancel spares only the current user’s daily rhythm and routine reminders (NPM-1, ROUTINE-REMINDER-OFFLINE-RESILIENCE)', async () => {
+    // A failed or offline reconcile must leave the daily rhythm and the routine
+    // reminders scheduled, so the sweep before them may not touch those ids.
+    // Everything else is cleared as before: insights, other accounts' daily
+    // rhythm, routine step alerts, and ids older builds left behind.
+    // Was: spare('routine-reminder-r1') was false, routine reminders being
+    // cleared here and re-synced after.
+    // Mutations caught: calling the cancel without the spare predicate; a spare
+    // without the routine clause; a spare widened past the routine prefix.
     mount();
     await waitFor(() => expect(appStateHandler).not.toBeNull());
 
@@ -199,9 +215,12 @@ describe('resuming the app', () => {
     const spare = (mockCancelExceptFocus.mock.calls[0] as unknown as [(id: string) => boolean])[0];
     expect(typeof spare).toBe('function');
     expect(spare('u1-daily-rhythm')).toBe(true);
+    expect(spare('routine-reminder-r1')).toBe(true);
+    expect(spare('routine-reminder-another-accounts-routine')).toBe(true);
     expect(spare('u2-daily-rhythm')).toBe(false);
     expect(spare('u1-insights-learning')).toBe(false);
-    expect(spare('routine-reminder-r1')).toBe(false);
+    expect(spare('routine-activity-0')).toBe(false);
+    expect(spare('habit-reminder-h1')).toBe(false);
     expect(spare('u1-weekly-summary')).toBe(false);
   });
 
@@ -413,6 +432,44 @@ describe('no routine reminder survives loss of the owning user session (ROUTINE-
     await waitFor(() => expect(mockCancelAllRoutineReminders).toHaveBeenCalledTimes(1));
     // cancelAllUserNotifications is unchanged: still called, with the old uid.
     expect(cancelAllUserNotifications).toHaveBeenCalledWith('u1');
+  });
+
+  test('session loss invalidates any sync in flight synchronously, before its cancel is queued (ROUTINE-REMINDER-OFFLINE-RESILIENCE)', async () => {
+    // Mutation caught: dropping the synchronous invalidate (the cancel alone
+    // runs only when the queue reaches it, after any attempt ahead of it).
+    const view = mount();
+    await waitFor(() => expect(mockSyncAllReminders).toHaveBeenCalled());
+
+    // Park a sync, so the queued cancel cannot run yet.
+    let releaseSync: () => void = () => {};
+    mockSyncAllReminders.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseSync = () => resolve();
+        })
+    );
+    await act(async () => {
+      appStateHandler?.('background');
+    });
+    act(() => {
+      appStateHandler?.('active');
+    });
+    await waitFor(() => expect(mockSyncAllReminders).toHaveBeenCalledTimes(2));
+    mockCancelAllRoutineReminders.mockClear();
+    mockInvalidateRoutineReminderAttempts.mockClear();
+
+    mockAuthReady = false;
+    mockUser = null;
+    view.rerender(tree());
+
+    // Invalidated at once, while the cancel is still waiting behind the sync.
+    expect(mockInvalidateRoutineReminderAttempts).toHaveBeenCalledTimes(1);
+    expect(mockCancelAllRoutineReminders).not.toHaveBeenCalled();
+
+    await act(async () => {
+      releaseSync();
+    });
+    await waitFor(() => expect(mockCancelAllRoutineReminders).toHaveBeenCalledTimes(1));
   });
 
   test('a uid change to another uid cancels every routine reminder', async () => {
