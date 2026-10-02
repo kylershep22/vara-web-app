@@ -1,0 +1,146 @@
+/**
+ * NPM-2 BEFORE-STATE REGRESSION TEST, written at b8c4c67 (Build A evidence).
+ * Shows on unchanged code that a stored daily time with a null minute crashes the screen.
+ *
+ * Renders the REAL NotificationSettingsScreen with the REAL
+ * useNotificationPreferences hook. Only the Firestore service functions under
+ * the hook are replaced, so what the screen does with a write (await it, then
+ * update state) is main's actual behaviour, not a mock's. The fix lands in
+ * Build B, which restores this file from before/ and adapts its harness to the
+ * new screen hook; the assertions are the contract.
+ */
+import React from 'react';
+import { Alert, Switch } from 'react-native';
+import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
+
+const mockGetPrefs = jest.fn();
+const mockToggleAll = jest.fn();
+const mockUpdateCategory = jest.fn();
+const mockUpdatePrefs = jest.fn();
+const mockUpdateQuiet = jest.fn();
+const mockReconcile = jest.fn();
+const mockApply = jest.fn();
+let mockPickerProps: { onChange?: (e: unknown, d?: Date) => void; value?: Date } | null = null;
+
+jest.mock('@expo/vector-icons', () => ({
+  MaterialCommunityIcons: 'MockedMaterialCommunityIcons',
+  Ionicons: 'MockedIonicons',
+}));
+jest.mock('expo-av', () => ({ Audio: { Sound: { createAsync: jest.fn() } } }));
+jest.mock('@react-native-community/datetimepicker', () => (props: Record<string, unknown>) => {
+  mockPickerProps = props as typeof mockPickerProps;
+  return null;
+});
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ goBack: jest.fn(), navigate: jest.fn() }),
+}));
+jest.mock('react-native-safe-area-context', () => {
+  const { View } = jest.requireActual('react-native');
+  return { SafeAreaView: View };
+});
+jest.mock('../../components', () => {
+  const { Text } = jest.requireActual('react-native');
+  const { createElement } = jest.requireActual('react');
+  return { LoadingSpinner: () => createElement(Text, null, 'loading') };
+});
+jest.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: { uid: 'u1' } }) }));
+jest.mock('../../config/firebase', () => ({ db: null }));
+jest.mock('firebase/firestore', () => ({
+  doc: jest.fn(),
+  getDoc: jest.fn(),
+  setDoc: jest.fn(),
+  updateDoc: jest.fn(),
+  deleteField: jest.fn(),
+  serverTimestamp: jest.fn(),
+}));
+jest.mock('../../services/firebase', () => ({
+  getNotificationPreferences: (...a: unknown[]) => mockGetPrefs(...a),
+  toggleAllNotifications: (...a: unknown[]) => mockToggleAll(...a),
+  updateNotificationCategory: (...a: unknown[]) => mockUpdateCategory(...a),
+  updateNotificationPreferences: (...a: unknown[]) => mockUpdatePrefs(...a),
+  updateQuietHours: (...a: unknown[]) => mockUpdateQuiet(...a),
+  // The REAL formatter: the null-time crash lives in it.
+  formatReminderTime: jest.requireActual('../../services/firebase/notificationPreferences.service')
+    .formatReminderTime,
+}));
+// The screen should hand a committed change to the local scheduler. On main it
+// imports nothing from here, so these record whether it ever does.
+jest.mock('../../services/notificationScheduler.service', () => ({
+  reconcileDailyRhythm: (...a: unknown[]) => mockReconcile(...a),
+  applyDailyRhythmChoice: (...a: unknown[]) => mockApply(...a),
+}));
+jest.mock('../../hooks', () => ({
+  useNotificationPreferences: jest.requireActual('../../hooks/useNotificationPreferences')
+    .useNotificationPreferences,
+}));
+
+import NotificationSettingsScreen from '../NotificationSettingsScreen';
+
+function prefsDoc(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'u1',
+    userId: 'u1',
+    schemaVersion: 2,
+    allNotificationsEnabled: true,
+    quietHours: { enabled: true, startTime: { hour: 21, minute: 0 }, endTime: { hour: 8, minute: 0 } },
+    dailyRhythm: { enabled: true, reminderTime: { hour: 19, minute: 32 } },
+    insightsLearning: { enabled: false, frequency: 'twice_weekly' },
+    socialConnection: { directMessages: true, connectionRequests: true, communityDigest: false },
+    milestonesReflection: { enabled: false },
+    completionSound: { enabled: true, sound: 'singing-bowl' },
+    ...overrides,
+  };
+}
+
+async function renderLoaded(doc: Record<string, unknown>) {
+  mockGetPrefs.mockResolvedValue(doc);
+  const view = render(<NotificationSettingsScreen />);
+  await waitFor(() => expect(view.queryByText('loading')).toBeNull());
+  return view;
+}
+
+function switches(view: ReturnType<typeof render>) {
+  return view.UNSAFE_getAllByType(Switch);
+}
+
+function at(hour: number, minute: number): Date {
+  const d = new Date();
+  d.setHours(hour, minute, 0, 0);
+  return d;
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockPickerProps = null;
+  mockToggleAll.mockResolvedValue(undefined);
+  mockUpdateCategory.mockResolvedValue(undefined);
+  mockUpdatePrefs.mockResolvedValue(undefined);
+  mockUpdateQuiet.mockResolvedValue(undefined);
+});
+
+// Silences "unused" lint on helpers a given file does not need.
+void Alert; void act; void fireEvent; void switches; void at; void prefsDoc;
+
+describe('regress: a stored daily time with a null minute crashes the screen', () => {
+  // The second test account's document after the console edit at step 08:
+  // General off, Daily Reminder off, and a reminderTime map whose parts are null.
+  const consoleShape = prefsDoc({
+    allNotificationsEnabled: false,
+    dailyRhythm: { enabled: false, reminderTime: { hour: null, minute: null } },
+  });
+
+  test('turning the Daily Reminder switch on does not throw, and offers Add a time', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const view = await renderLoaded(consoleShape);
+      // Index 1 is the Daily Reminder switch on main. On main the re-render that
+      // follows reaches formatReminderTime with minute === null and throws.
+      await act(async () => {
+        fireEvent(switches(view)[1], 'valueChange', true);
+      });
+      expect(view.getByText('Add a time')).toBeTruthy();
+    } finally {
+      consoleSpy.mockRestore();
+    }
+  });
+});

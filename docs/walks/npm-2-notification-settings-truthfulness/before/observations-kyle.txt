@@ -1,0 +1,5 @@
+Kyle's before-state observations on main at b8c4c67, 2026-10-02
+
+"On step 07b - the time changed with the picker even when hitting cancel if the time was in the future or ahead of the current time picked, it did not seem to change when selecting an earlier time than what was already selected"
+
+"After making the changes in firestore on step 08 (although everything in the app appeared as expected, when I tried to turn the daily reminder toggel back on I got the following:"
