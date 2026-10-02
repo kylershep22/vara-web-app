@@ -19,6 +19,12 @@ import {
 } from './firebase/notificationPreferences.service';
 import { canSendSystemNotification, markNotificationSent } from './notificationThrottle';
 import { logger } from '../utils/logger';
+import { isValidReminderTime } from '../utils/reminderTime';
+import {
+  isNotificationOwner,
+  notificationSessionUid,
+  pendingDailyRhythmOverlay,
+} from './notificationIntentStore';
 
 // ==========================================
 // NOTIFICATION IDENTIFIERS
@@ -148,21 +154,28 @@ function dailyTrigger(time: ReminderTime): Notifications.DailyTriggerInput {
   };
 }
 
-/** The time the daily rhythm should fire at, or null when it should not exist. */
+/**
+ * THE activation rule for the daily reminder (NPM-2, Kyle's Ruling 10 and
+ * Decision 8): it fires when General notifications is on and the stored time is
+ * a valid time. Nothing else decides it. The legacy dailyRhythm.enabled flag is
+ * NOT consulted: it has no control on screen, so letting it gate the reminder
+ * made it a hidden second switch. Returns the time to fire at, or null.
+ */
+export function desiredDailyRhythm(general: unknown, reminderTime: unknown): ReminderTime | null {
+  if (general !== true || !isValidReminderTime(reminderTime)) return null;
+  return { hour: reminderTime.hour, minute: reminderTime.minute };
+}
+
+/** The activation rule applied to a stored preferences document. */
 function desiredDailyRhythmTime(preferences: NotificationPreferences): ReminderTime | null {
-  if (!preferences.allNotificationsEnabled || !preferences.dailyRhythm?.enabled) return null;
-  return preferences.dailyRhythm.reminderTime ?? null;
+  return desiredDailyRhythm(preferences.allNotificationsEnabled, preferences.dailyRhythm?.reminderTime);
 }
 
 export async function scheduleDailyRhythm(userId: string): Promise<string | null> {
   try {
     const preferences = await getNotificationPreferences(userId);
 
-    if (!preferences.allNotificationsEnabled || !preferences.dailyRhythm?.enabled) {
-      return null;
-    }
-
-    const reminderTime = preferences.dailyRhythm.reminderTime;
+    const reminderTime = desiredDailyRhythmTime(preferences);
     if (!reminderTime) return null;
 
     const notificationId = dailyRhythmNotificationId(userId);
@@ -189,7 +202,9 @@ export type DailyRhythmReconcileOutcome =
   | 'scheduled'
   | 'cancelled'
   | 'read-failed'
-  | 'schedule-failed';
+  | 'schedule-failed'
+  /** The owner changed (another account, or nobody) before a change was made. */
+  | 'session-changed';
 
 /** A preference read that has not answered by then is treated as a failed read. */
 const RECONCILE_READ_TIMEOUT_MS = 10_000;
@@ -227,11 +242,48 @@ async function reconcileDailyRhythmNow(userId: string): Promise<DailyRhythmRecon
   try {
     preferences = await readPreferencesWithTimeout(userId);
   } catch (error) {
-    // Failed or offline: change nothing. Whatever is scheduled stays.
+    // A read that FAILS or TIMES OUT changes nothing: whatever is scheduled
+    // stays. That is not true of every offline read. The Firestore cache is the
+    // SDK's in-memory default, and an offline read of a document already in it
+    // RESOLVES from cache, with this session's pending writes applied; it lands
+    // below and is acted on like any other. Only an offline read of a document
+    // not in the cache (a cold start, say) rejects and ends here.
     logger.warn('[notificationScheduler] daily rhythm reconcile skipped, preferences unreadable', error);
     return 'read-failed';
   }
 
+  // This device's pending changes win over what was read until Firestore
+  // acknowledges or rejects them (NPM-2, Decision 2): a read served from the
+  // session cache, or a server answer that predates the change, cannot put an
+  // older schedule back. Only changes already persisted to the journal count.
+  const pending = await pendingDailyRhythmOverlay(userId);
+  return makeDailyRhythmMatch(
+    userId,
+    desiredDailyRhythm(
+      pending.general ?? preferences.allNotificationsEnabled,
+      pending.reminderTime ?? preferences.dailyRhythm?.reminderTime
+    )
+  );
+}
+
+/**
+ * Make the device match a decided daily rhythm: scheduled at `time`, or
+ * cancelled when `time` is null. Shared by the reconcile and the direct apply,
+ * so the two can never disagree about what a decision does on the device.
+ *
+ * OWNERSHIP, ALWAYS (Kyle's ruling 4 on Build A and clarification 1 on Build B):
+ * `userId` is the owner the work was queued for, and immediately before EACH
+ * change on the device the signed-in user must still be that owner. Missing
+ * auth: nothing more is done. Another account: nothing more is done. So a
+ * switch at any point, including during a reconcile's preferences read (up to
+ * 10 seconds), stops every change after it.
+ */
+async function makeDailyRhythmMatch(
+  userId: string,
+  time: ReminderTime | null
+): Promise<'scheduled' | 'cancelled' | 'schedule-failed' | 'session-changed'> {
+  const ownerGone = () => !isNotificationOwner(userId);
+  if (ownerGone()) return 'session-changed';
   // Insights notifications are hidden pending INSIGHTS-V1 (NPM-1 ruling 2):
   // cancel any a previous build scheduled, and never schedule one. The stored
   // preference is left as it is.
@@ -240,7 +292,7 @@ async function reconcileDailyRhythmNow(userId: string): Promise<DailyRhythmRecon
   // OS permission is not part of the decision (NPM-1 ruling 3), and neither is
   // serverPushEnabled (ruling 1): V1's daily rhythm is local only.
   const id = dailyRhythmNotificationId(userId);
-  const time = desiredDailyRhythmTime(preferences);
+  if (ownerGone()) return 'session-changed';
   if (!time) {
     await cancelNotificationById(id);
     return 'cancelled';
@@ -264,16 +316,70 @@ async function reconcileDailyRhythmNow(userId: string): Promise<DailyRhythmRecon
 
 /**
  * Make the device's daily rhythm match the user's stored preferences: scheduled
- * at reminderTime when General notifications and the daily rhythm are on and a
- * time exists, cancelled otherwise. Never rejects.
+ * at reminderTime when General notifications is on and the time is valid,
+ * cancelled otherwise (the activation rule, desiredDailyRhythm). Never rejects.
+ *
+ * OWNER-CHECKED, FAIL CLOSED (NPM-2, Kyle's clarification 1 on Build B): the
+ * owner is `userId`, the uid this reconcile was queued with. Every cancel and
+ * schedule it makes first confirms that the signed-in user is still that
+ * owner; with nobody signed in, or another account, it changes nothing. One
+ * behaviour for every caller: foreground, sign-in, onboarding and correction.
  */
 export function reconcileDailyRhythm(userId: string): Promise<DailyRhythmReconcileOutcome> {
-  const run = reconcileQueue.then(
-    () => reconcileDailyRhythmNow(userId),
-    () => reconcileDailyRhythmNow(userId)
-  );
+  return enqueueDailyRhythmWork(() => reconcileDailyRhythmNow(userId));
+}
+
+/** Run daily rhythm work on reconcileQueue, after everything already on it. */
+function enqueueDailyRhythmWork<T>(work: () => Promise<T>): Promise<T> {
+  const run = reconcileQueue.then(work, work);
   reconcileQueue = run.catch(() => undefined);
   return run;
+}
+
+// ==========================================
+// DIRECT APPLY (NPM-2)
+// ==========================================
+
+export type DailyRhythmApplyOutcome =
+  | 'scheduled'
+  | 'cancelled'
+  | 'schedule-failed'
+  /** Another account is signed in, now or part-way through. */
+  | 'session-changed'
+  /** Nobody is signed in: the owner cannot be established, so nothing is done. */
+  | 'no-owner';
+
+/**
+ * Apply the user's current General and daily-time choice to this device at once,
+ * WITHOUT reading Firestore (Kyle's Decision 1 on Addendum 1). The caller passes
+ * the values its user has just chosen; the activation rule decides, and the
+ * daily reminder is scheduled or cancelled under its usual identifier. The
+ * hidden Insights notification is cancelled exactly as the reconcile does.
+ *
+ * It runs on reconcileQueue, so whatever is already queued finishes first and
+ * this decision is the last word on the device until something newer runs.
+ *
+ * QUEUE BOUND, documented rather than engineered around: a reconcile already in
+ * flight holds the queue until its preferences read answers or times out
+ * (RECONCILE_READ_TIMEOUT_MS, 10 seconds). Offline, an apply can therefore wait
+ * up to 10 seconds before it takes effect on the device.
+ *
+ * SESSION GUARD, FAIL CLOSED (Kyle's ruling 4 on Build A): it acts only for the
+ * authenticated owner. With nobody signed in it does nothing ('no-owner'); with
+ * another account signed in it does nothing ('session-changed'). Ownership is
+ * re-confirmed before each change on the device, so a switch part-way through
+ * stops it there. Never rejects.
+ */
+export function applyDailyRhythmChoice(
+  userId: string,
+  choice: { general: boolean; reminderTime: ReminderTime | null }
+): Promise<DailyRhythmApplyOutcome> {
+  return enqueueDailyRhythmWork(async () => {
+    const owner = notificationSessionUid();
+    if (owner === null) return 'no-owner';
+    if (owner !== userId) return 'session-changed';
+    return makeDailyRhythmMatch(userId, desiredDailyRhythm(choice.general, choice.reminderTime));
+  });
 }
 
 // Alias for backward compatibility

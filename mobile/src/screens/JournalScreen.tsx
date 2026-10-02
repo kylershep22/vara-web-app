@@ -3,7 +3,7 @@
  * Personal journaling with AI prompts and mood tracking
  */
 
-import React, { useState, useMemo, useEffect, useLayoutEffect, useCallback, memo, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useLayoutEffect, useCallback, memo } from 'react';
 import { View, StyleSheet, SectionList, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, InputAccessoryView, Modal } from 'react-native';
 import TextInput from '../components/shared/TextInput';
 import Text from '../components/shared/Text';
@@ -26,7 +26,6 @@ import { getMoodConfig } from '../constants/journalTags';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useJournal, useJournalStats, useWeeklySummary } from '../hooks';
-import { useNotificationOptIn } from '../hooks/useNotificationOptIn';
 import { createJournalEntry, updateJournalEntry, deleteJournalEntry, refreshWellnessScore } from '../services/firebase';
 import { getJournalPromptSuggestions } from '../services/api';
 import { JournalEntry } from '../types';
@@ -360,9 +359,7 @@ const JournalScreen: React.FC = () => {
   const { entries, loading } = useJournal();
   const navigation = useNavigation<any>();
   const { showNotificationToast } = useToast();
-  const { shouldShowPrompt: shouldShowNotifPrompt, markPromptShown: markNotifPromptShown } = useNotificationOptIn();
   const { hasConsent: aiConsent, requireConsent: requireAIConsent } = useAIConsent();
-  const notifOptInChecked = useRef(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
@@ -478,13 +475,6 @@ const JournalScreen: React.FC = () => {
     } else {
       await createJournalEntry(user.uid, entryData);
       showNotificationToast('Entry saved', 'Your journal entry has been saved.');
-
-      // Notification opt-in: trigger on first journal entry save
-      if (!notifOptInChecked.current && shouldShowNotifPrompt) {
-        notifOptInChecked.current = true;
-        markNotifPromptShown();
-        navigation.navigate('NotificationOptIn');
-      }
     }
     setEditingEntry(null);
 

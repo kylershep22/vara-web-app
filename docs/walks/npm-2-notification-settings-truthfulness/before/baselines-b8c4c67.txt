@@ -1,0 +1,6 @@
+NPM-2 baselines, measured on branch journey/npm-2-notification-settings-truthfulness at b8c4c67 (no changes), 2026-10-02, from mobile/.
+
+jest (npx jest --forceExit --silent): Tests: 4040 passed, 4040 total; Test Suites: 251 passed, 251 total; exit 0
+tsc (npx tsc --noEmit): 137 errors (exit 2); sorted list without positions in tsc-sorted-b8c4c67.txt
+lint (npx eslint src/ App.tsx --ext .ts,.tsx): 2142 problems (891 errors, 1251 warnings)
+sentinel (EXPECTED_SENTINELS in src/__tests__/copyDraftSentinel.test.ts:819): 156

@@ -1,0 +1,701 @@
+  console.warn
+    The "EXNativeModulesProxy" native module is not exported through NativeModules; verify that expo-modules-core's native code is linked properly
+
+      4 |  */
+      5 |
+    > 6 | import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';
+        | ^
+      7 | import { Colors } from './colors';
+      8 | import { Typography } from './typography';
+      9 |
+
+      at Object.warn (node_modules/expo-modules-core/src/NativeModulesProxy.native.ts:81:11)
+      at Object.require (node_modules/expo-modules-core/src/requireNativeModule.ts:3:1)
+      at Object.require (node_modules/expo-modules-core/src/sweet/NativeJSLogger.ts:1:1)
+      at Object.require (node_modules/expo-modules-core/src/sweet/setUpJsLogger.fx.ts:1:1)
+      at Object.require (node_modules/expo-modules-core/src/index.ts:1:1)
+      at Object.require (node_modules/expo-font/src/Font.ts:1:1)
+      at Object.require (node_modules/expo-font/src/index.ts:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/createIconSet.tsx:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/MaterialCommunityIcons.ts:3:1)
+      at Object.require (node_modules/@expo/vector-icons/MaterialCommunityIcons.js:1:1)
+      at require (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:45:14)
+      at Object.loadIconModule (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:67:20)
+      at Object.require (node_modules/react-native-paper/src/core/settings.tsx:3:1)
+      at Object.require (node_modules/react-native-paper/src/core/PaperProvider.tsx:10:1)
+      at Object.require (node_modules/react-native-paper/src/index.tsx:13:1)
+      at Object.require (src/constants/theme.ts:6:1)
+      at Object.require (src/constants/index.ts:8:1)
+      at Object.require (src/components/shared/Text.tsx:59:1)
+      at Object.require (src/screens/NotificationSettingsScreen.tsx:16:1)
+      at Object.require (src/screens/__tests__/npm2Regress.switch-labels.test.tsx:77:1)
+
+  console.warn
+    The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation.
+
+      4 |  */
+      5 |
+    > 6 | import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';
+        | ^
+      7 | import { Colors } from './colors';
+      8 | import { Typography } from './typography';
+      9 |
+
+      at Object.warn (node_modules/expo-modules-core/src/Platform.ts:15:11)
+      at Object.require (node_modules/expo-modules-core/src/sweet/setUpJsLogger.fx.ts:2:1)
+      at Object.require (node_modules/expo-modules-core/src/index.ts:1:1)
+      at Object.require (node_modules/expo-font/src/Font.ts:1:1)
+      at Object.require (node_modules/expo-font/src/index.ts:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/createIconSet.tsx:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/MaterialCommunityIcons.ts:3:1)
+      at Object.require (node_modules/@expo/vector-icons/MaterialCommunityIcons.js:1:1)
+      at require (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:45:14)
+      at Object.loadIconModule (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:67:20)
+      at Object.require (node_modules/react-native-paper/src/core/settings.tsx:3:1)
+      at Object.require (node_modules/react-native-paper/src/core/PaperProvider.tsx:10:1)
+      at Object.require (node_modules/react-native-paper/src/index.tsx:13:1)
+      at Object.require (src/constants/theme.ts:6:1)
+      at Object.require (src/constants/index.ts:8:1)
+      at Object.require (src/components/shared/Text.tsx:59:1)
+      at Object.require (src/screens/NotificationSettingsScreen.tsx:16:1)
+      at Object.require (src/screens/__tests__/npm2Regress.switch-labels.test.tsx:77:1)
+
+FAIL src/screens/__tests__/npm2Regress.switch-labels.test.tsx
+  regress: the notification switches and back button have no accessibility labels
+    × each remaining switch is named for screen readers (85 ms)
+    × the back button is named Back (61 ms)
+
+  ● regress: the notification switches and back button have no accessibility labels › each remaining switch is named for screen readers
+
+    Unable to find an element with accessibility label: General notifications
+
+    <View>
+      <View>
+        <View
+          accessible={true}
+        >
+          <MockedIonicons />
+        </View>
+        <Text>
+          Notifications
+        </Text>
+      </View>
+      <RCTScrollView>
+        <View>
+          <View>
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    General notifications
+                  </Text>
+                  <Text>
+                    Controls Vara’s general reminders and updates. Routine reminders are managed within each routine.
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={true}
+              />
+            </View>
+          </View>
+          <Text>
+            Daily Rhythm
+          </Text>
+          <View>
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    Daily Reminder
+                  </Text>
+                  <Text>
+                    One reminder per day at your chosen time
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={true}
+              />
+            </View>
+            <View />
+            <View
+              accessible={true}
+            >
+              <Text>
+                Reminder Time
+              </Text>
+              <View>
+                <Text>
+                  7:32 PM
+                </Text>
+                <MockedIonicons />
+              </View>
+            </View>
+          </View>
+          <Text>
+            Insights & Learning
+          </Text>
+          <View>
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    Brain-Health Insights
+                  </Text>
+                  <Text>
+                    2-3 insights per week from our content library
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={false}
+              />
+            </View>
+          </View>
+          <Text>
+            Messages & Social
+          </Text>
+          <View>
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    Direct Messages
+                  </Text>
+                  <Text>
+                    Notifications when someone messages you
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={true}
+              />
+            </View>
+            <View />
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    Connection Requests
+                  </Text>
+                  <Text>
+                    When someone wants to connect
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={true}
+              />
+            </View>
+            <View />
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    Community Activity
+                  </Text>
+                  <Text>
+                    Updates from your groups
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={false}
+              />
+            </View>
+          </View>
+          <Text>
+            Milestones & Reflection
+          </Text>
+          <View>
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    Milestones
+                  </Text>
+                  <Text>
+                    Celebrate progress and time-based reflections
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={false}
+              />
+            </View>
+          </View>
+          <Text>
+            Completion Sound
+          </Text>
+          <View>
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    Timer completion sound
+                  </Text>
+                  <Text>
+                    Plays when timers and sessions finish
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={true}
+              />
+            </View>
+            <View />
+            <View
+              accessible={true}
+            >
+              <Text>
+                Singing Bowl
+              </Text>
+              <MockedIonicons />
+            </View>
+            <View
+              accessible={true}
+            >
+              <Text>
+                Soft Chime
+              </Text>
+              <MockedIonicons />
+            </View>
+            <View
+              accessible={true}
+            >
+              <Text>
+                Nature Bell
+              </Text>
+              <MockedIonicons />
+            </View>
+            <View
+              accessible={true}
+            >
+              <Text>
+                Stream
+              </Text>
+              <MockedIonicons />
+            </View>
+          </View>
+          <Text>
+            Quiet Hours
+          </Text>
+          <View>
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    Enable Quiet Hours
+                  </Text>
+                  <Text>
+                    Pause notifications during specific times
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={true}
+              />
+            </View>
+            <View />
+            <View
+              accessible={true}
+            >
+              <Text>
+                Start
+              </Text>
+              <View>
+                <Text>
+                  9:00 PM
+                </Text>
+                <MockedIonicons />
+              </View>
+            </View>
+            <View />
+            <View
+              accessible={true}
+            >
+              <Text>
+                End
+              </Text>
+              <View>
+                <Text>
+                  8:00 AM
+                </Text>
+                <MockedIonicons />
+              </View>
+            </View>
+          </View>
+          <View />
+        </View>
+      </RCTScrollView>
+    </View>
+
+      126 |     const view = await renderLoaded(prefsDoc());
+      127 |     // Approved spoken labels for the switches that remain after NPM-2.
+    > 128 |     expect(view.getByLabelText('General notifications')).toBeTruthy();
+          |                 ^
+      129 |     expect(view.getByLabelText('Direct messages')).toBeTruthy();
+      130 |     expect(view.getByLabelText('Connection requests')).toBeTruthy();
+      131 |   });
+
+      at Object.getByLabelText (src/screens/__tests__/npm2Regress.switch-labels.test.tsx:128:17)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● regress: the notification switches and back button have no accessibility labels › the back button is named Back
+
+    Unable to find an element with accessibility label: Back
+
+    <View>
+      <View>
+        <View
+          accessible={true}
+        >
+          <MockedIonicons />
+        </View>
+        <Text>
+          Notifications
+        </Text>
+      </View>
+      <RCTScrollView>
+        <View>
+          <View>
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    General notifications
+                  </Text>
+                  <Text>
+                    Controls Vara’s general reminders and updates. Routine reminders are managed within each routine.
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={true}
+              />
+            </View>
+          </View>
+          <Text>
+            Daily Rhythm
+          </Text>
+          <View>
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    Daily Reminder
+                  </Text>
+                  <Text>
+                    One reminder per day at your chosen time
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={true}
+              />
+            </View>
+            <View />
+            <View
+              accessible={true}
+            >
+              <Text>
+                Reminder Time
+              </Text>
+              <View>
+                <Text>
+                  7:32 PM
+                </Text>
+                <MockedIonicons />
+              </View>
+            </View>
+          </View>
+          <Text>
+            Insights & Learning
+          </Text>
+          <View>
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    Brain-Health Insights
+                  </Text>
+                  <Text>
+                    2-3 insights per week from our content library
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={false}
+              />
+            </View>
+          </View>
+          <Text>
+            Messages & Social
+          </Text>
+          <View>
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    Direct Messages
+                  </Text>
+                  <Text>
+                    Notifications when someone messages you
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={true}
+              />
+            </View>
+            <View />
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    Connection Requests
+                  </Text>
+                  <Text>
+                    When someone wants to connect
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={true}
+              />
+            </View>
+            <View />
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    Community Activity
+                  </Text>
+                  <Text>
+                    Updates from your groups
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={false}
+              />
+            </View>
+          </View>
+          <Text>
+            Milestones & Reflection
+          </Text>
+          <View>
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    Milestones
+                  </Text>
+                  <Text>
+                    Celebrate progress and time-based reflections
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={false}
+              />
+            </View>
+          </View>
+          <Text>
+            Completion Sound
+          </Text>
+          <View>
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    Timer completion sound
+                  </Text>
+                  <Text>
+                    Plays when timers and sessions finish
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={true}
+              />
+            </View>
+            <View />
+            <View
+              accessible={true}
+            >
+              <Text>
+                Singing Bowl
+              </Text>
+              <MockedIonicons />
+            </View>
+            <View
+              accessible={true}
+            >
+              <Text>
+                Soft Chime
+              </Text>
+              <MockedIonicons />
+            </View>
+            <View
+              accessible={true}
+            >
+              <Text>
+                Nature Bell
+              </Text>
+              <MockedIonicons />
+            </View>
+            <View
+              accessible={true}
+            >
+              <Text>
+                Stream
+              </Text>
+              <MockedIonicons />
+            </View>
+          </View>
+          <Text>
+            Quiet Hours
+          </Text>
+          <View>
+            <View>
+              <View>
+                <View>
+                  <MockedMaterialCommunityIcons />
+                </View>
+                <View>
+                  <Text>
+                    Enable Quiet Hours
+                  </Text>
+                  <Text>
+                    Pause notifications during specific times
+                  </Text>
+                </View>
+              </View>
+              <RCTSwitch
+                accessibilityRole="switch"
+                value={true}
+              />
+            </View>
+            <View />
+            <View
+              accessible={true}
+            >
+              <Text>
+                Start
+              </Text>
+              <View>
+                <Text>
+                  9:00 PM
+                </Text>
+                <MockedIonicons />
+              </View>
+            </View>
+            <View />
+            <View
+              accessible={true}
+            >
+              <Text>
+                End
+              </Text>
+              <View>
+                <Text>
+                  8:00 AM
+                </Text>
+                <MockedIonicons />
+              </View>
+            </View>
+          </View>
+          <View />
+        </View>
+      </RCTScrollView>
+    </View>
+
+      133 |   test('the back button is named Back', async () => {
+      134 |     const view = await renderLoaded(prefsDoc());
+    > 135 |     expect(view.getByLabelText('Back')).toBeTruthy();
+          |                 ^
+      136 |   });
+      137 | });
+      138 |
+
+      at Object.getByLabelText (src/screens/__tests__/npm2Regress.switch-labels.test.tsx:135:17)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+Snapshots:   0 total
+Time:        1.074 s, estimated 3 s
+Ran all test suites matching /src\\screens\\__tests__\\npm2Regress.switch-labels.test.tsx/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

@@ -1,0 +1,141 @@
+iOS Bundled 19ms src\services\firebase\userMigrationRead.ts (1 module)
+ DEBUG  [RevenueCat] ℹ️ GetCustomerInfoOperation: Started
+ DEBUG  [RevenueCat] ℹ️ There are no requests currently running, starting request GET /v1/subscribers/MwBKuCV1g0YxJgkqgNkdxUGoUCf1
+ DEBUG  [RevenueCat] ℹ️ API request started: GET '/v1/subscribers/MwBKuCV1g0YxJgkqgNkdxUGoUCf1'
+ DEBUG  [RevenueCat] ℹ️ API request completed: GET '/v1/subscribers/MwBKuCV1g0YxJgkqgNkdxUGoUCf1' (304)
+ DEBUG  [RevenueCat] 😻 CustomerInfo updated from network.
+ DEBUG  [RevenueCat] ℹ️ GetCustomerInfoOperation: Finished
+ DEBUG  [RevenueCat] ℹ️ Serial request done: GET /v1/subscribers/MwBKuCV1g0YxJgkqgNkdxUGoUCf1, 0 requests left in the queue
+ DEBUG  [RevenueCat] 😻 Store products request received response
+ DEBUG  [RevenueCat] ℹ️ Store products request finished
+ DEBUG  [RevenueCat] 😻 Offerings updated from network.
+ DEBUG  [RevenueCat] 😻 Offerings updated from network.
+ DEBUG  [RevenueCat] ℹ️ Finished syncing all cached transaction metadata
+ WARN  Subscription listener timeout - failing closed
+ LOG  📱 AppNavigator state: {"canAccessApp": true, "checkingOnboarding": true, "emailVerified": true, "hasCompletedOnboarding": null, "hasUser": true, "isAuthReady": true, "refreshCounter": 0, "subscriptionLoading": false, "subscriptionType": "premium"}
+ WARN  ⚠️ Onboarding check timeout - assuming completed to unblock app
+ LOG  📱 AppNavigator state: {"canAccessApp": true, "checkingOnboarding": false, "emailVerified": true, "hasCompletedOnboarding": true, "hasUser": true, "isAuthReady": true, "refreshCounter": 0, "subscriptionLoading": false, "subscriptionType": "premium"}
+ WARN  [notificationScheduler] daily rhythm reconcile skipped, preferences unreadable [Error: notification preferences read timed out]
+ ERROR  [2026-10-02T17:18:58.431Z]  @firebase/firestore: Firestore (12.6.0): Could not reach Cloud Firestore backend. Backend didn't respond within 10 seconds.
+This typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.
+ WARN  AIConsent: failed to load consent state [FirebaseError: Failed to get document because the client is offline.]
+ LOG  Error updating lastActiveAt: [FirebaseError: Failed to get document because the client is offline.]
+ ERROR  Error tracking engagement metric sessionCount: [FirebaseError: Failed to get document because the client is offline.]
+ ERROR  [FirebaseError: Failed to get document because the client is offline.] undefined
+ ERROR  Error loading settings: [FirebaseError: Failed to get document because the client is offline.]
+ LOG  FCM token registration unavailable: [FirebaseError: Failed to get document because the client is offline.]
+ ERROR  [useWeeklyLanding] resolve failed: [FirebaseError: Failed to get document because the client is offline.]
+ ERROR  [useWeeklyLanding] resolve failed: [FirebaseError: Failed to get document because the client is offline.]
+ ERROR  Error saving push token: [FirebaseError: Failed to get document because the client is offline.]
+ ERROR  Error checking notification permissions: [FirebaseError: Failed to get document because the client is offline.]
+ ERROR  Error getting notification preferences: [FirebaseError: Failed to get document because the client is offline.]
+ ERROR  Error getting notification preferences: [FirebaseError: Failed to get document because the client is offline.]
+ ERROR  Error loading notification preferences: [FirebaseError: Failed to get document because the client is offline.]
+ ERROR  Error getting brain state check-in: [FirebaseError: Failed to get document because the client is offline.]
+ WARN  [reminderScheduler] Routine read failed, routine reminders left as they are [FirebaseError: Failed to get documents from server. (However, these documents may exist in the local cache. Run again without setting source to "server" to retrieve the cached documents.)]
+ LOG  📱 User document found on re-check, onboarding: true
+ LOG  📱 AppNavigator state: {"canAccessApp": true, "checkingOnboarding": false, "emailVerified": true, "hasCompletedOnboarding": true, "hasUser": true, "isAuthReady": true, "refreshCounter": 0, "subscriptionLoading": false, "subscriptionType": "premium"}
+ ERROR  [TypeError: Cannot read property 'toString' of null]
+ ERROR  Error: [TypeError: Cannot read property 'toString' of null]
+ ERROR  ErrorBoundary caught an error: [TypeError: Cannot read property 'toString' of null] 
+
+Call Stack
+  NotificationSettingsScreen (src\screens\NotificationSettingsScreen.tsx)
+  StaticContainer (node_modules\@react-navigation\core\lib\module\StaticContainer.js)
+  EnsureSingleNavigator (node_modules\@react-navigation\core\lib\module\EnsureSingleNavigator.js)
+  SceneView (node_modules\@react-navigation\core\lib\module\SceneView.js)
+  RNSScreenContentWrapper (<anonymous>)
+  ScreenContentWrapper (<anonymous>)
+  DebugContainer (node_modules\react-native-screens\src\components\DebugContainer.tsx)
+  RNSScreen (<anonymous>)
+  AnimatedComponent (node_modules\react-native\Libraries\Animated\createAnimatedComponent.js)
+  Suspender (node_modules\react-freeze\src\index.tsx)
+  Suspense (<anonymous>)
+  Freeze (node_modules\react-freeze\src\index.tsx)
+  DelayedFreeze (node_modules\react-native-screens\src\components\helpers\DelayedFreeze.tsx)
+  InnerScreen (node_modules\react-native-screens\src\components\Screen.tsx)
+  React.forwardRef$argument_0 (node_modules\react-native-screens\src\components\Screen.tsx)
+  ScreenStackItem (node_modules\react-native-screens\src\components\ScreenStackItem.tsx)
+  SceneView (node_modules\@react-navigation\native-stack\lib\module\views\NativeStackView.native.js)
+  RNSScreenStack (<anonymous>)
+  React.createContext$argument_0 (node_modules\react-native-screens\src\contexts.tsx)
+  ScreenStack (node_modules\react-native-screens\src\components\ScreenStack.tsx)
+  RCTView (<anonymous>)
+  View (node_modules\react-native\Libraries\Components\View\View.js)
+  FrameSizeProvider (node_modules\@react-navigation\elements\lib\module\useFrameSize.js)
+  SafeAreaProviderCompat (node_modules\@react-navigation\elements\lib\module\SafeAreaProviderCompat.js)
+  NativeStackView (node_modules\@react-navigation\native-stack\lib\module\views\NativeStackView.native.js)
+  PreventRemoveProvider (node_modules\@react-navigation\core\lib\module\PreventRemoveProvider.js)
+  NavigationStateListenerProvider (node_modules\@react-navigation\core\lib\module\useNavigationState.js)
+  NavigationContent (node_modules\@react-navigation\core\lib\module\useComponent.js)
+  React.useRef$argument_0 (node_modules\@react-navigation\core\lib\module\useComponent.js)
+  NativeStackNavigator (node_modules\@react-navigation\native-stack\lib\module\navigators\createNativeStackNavigator.js)
+  ProfileNavigator (<anonymous>)
+  StaticContainer (node_modules\@react-navigation\core\lib\module\StaticContainer.js)
+  EnsureSingleNavigator (node_modules\@react-navigation\core\lib\module\EnsureSingleNavigator.js)
+  SceneView (node_modules\@react-navigation\core\lib\module\SceneView.js)
+  constructor (src\components\shared\ErrorBoundary.tsx)
+  RNSScreenContentWrapper (<anonymous>)
+  ScreenContentWrapper (<anonymous>)
+  RCTView (<anonymous>)
+  View (node_modules\react-native\Libraries\Components\View\View.js)
+  RCTView (<anonymous>)
+  View (node_modules\react-native\Libraries\Components\View\View.js)
+  AppContainer (node_modules\react-native\Libraries\ReactNative\AppContainer-dev.js)
+  DebugContainer (node_modules\react-native-screens\src\components\DebugContainer.tsx)
+  RNSModalScreen (<anonymous>)
+  AnimatedComponent (node_modules\react-native\Libraries\Animated\createAnimatedComponent.js)
+  Suspender (node_modules\react-freeze\src\index.tsx)
+  Suspense (<anonymous>)
+  Freeze (node_modules\react-freeze\src\index.tsx)
+  DelayedFreeze (node_modules\react-native-screens\src\components\helpers\DelayedFreeze.tsx)
+  InnerScreen (node_modules\react-native-screens\src\components\Screen.tsx)
+  React.forwardRef$argument_0 (node_modules\react-native-screens\src\components\Screen.tsx)
+  ScreenStackItem (node_modules\react-native-screens\src\components\ScreenStackItem.tsx)
+  SceneView (node_modules\@react-navigation\native-stack\lib\module\views\NativeStackView.native.js)
+  RNSScreenStack (<anonymous>)
+  React.createContext$argument_0 (node_modules\react-native-screens\src\contexts.tsx)
+  ScreenStack (node_modules\react-native-screens\src\components\ScreenStack.tsx)
+  RCTView (<anonymous>)
+  View (node_modules\react-native\Libraries\Components\View\View.js)
+  FrameSizeProvider (node_modules\@react-navigation\elements\lib\module\useFrameSize.js)
+  SafeAreaProviderCompat (node_modules\@react-navigation\elements\lib\module\SafeAreaProviderCompat.js)
+  NativeStackView (node_modules\@react-navigation\native-stack\lib\module\views\NativeStackView.native.js)
+  PreventRemoveProvider (node_modules\@react-navigation\core\lib\module\PreventRemoveProvider.js)
+  NavigationStateListenerProvider (node_modules\@react-navigation\core\lib\module\useNavigationState.js)
+  NavigationContent (node_modules\@react-navigation\core\lib\module\useComponent.js)
+  React.useRef$argument_0 (node_modules\@react-navigation\core\lib\module\useComponent.js)
+  NativeStackNavigator (node_modules\@react-navigation\native-stack\lib\module\navigators\createNativeStackNavigator.js)
+  MainNavigator (<anonymous>)
+  ThemeProvider (node_modules\@react-navigation\core\lib\module\theming\ThemeProvider.js)
+  EnsureSingleNavigator (node_modules\@react-navigation\core\lib\module\EnsureSingleNavigator.js)
+  BaseNavigationContainer (node_modules\@react-navigation\core\lib\module\BaseNavigationContainer.js)
+  NavigationContainerInner (node_modules\@react-navigation\native\lib\module\NavigationContainer.js)
+  AppNavigator (src\navigation\AppNavigator.tsx)
+  AIConsentProvider (src\context\AIConsentContext.tsx)
+  AudioPlayerProvider (src\context\AudioPlayerContext.tsx)
+  NotificationProvider (src\context\NotificationContext.tsx)
+  ToastProvider (src\context\ToastContext.tsx)
+  AuthProvider (src\context\AuthContext.tsx)
+  ThemeProvider (node_modules\@callstack\react-theme-provider\lib\createThemeProvider.js)
+  RCTView (<anonymous>)
+  View (node_modules\react-native\Libraries\Components\View\View.js)
+  PortalHost (node_modules\react-native-paper\src\components\Portal\PortalHost.tsx)
+  RCTView (<anonymous>)
+  View (node_modules\react-native\Libraries\Components\View\View.js)
+  SafeAreaProviderCompat (node_modules\react-native-paper\src\core\SafeAreaProviderCompat.tsx)
+  PaperProvider (node_modules\react-native-paper\src\core\PaperProvider.tsx)
+  RNCSafeAreaProvider (<anonymous>)
+  SafeAreaProvider (node_modules\react-native-safe-area-context\src\SafeAreaContext.tsx)
+  RCTView (<anonymous>)
+  View (node_modules\react-native\Libraries\Components\View\View.js)
+  GestureHandlerRootView (node_modules\react-native-gesture-handler\src\components\GestureHandlerRootView.tsx)
+  constructor (src\components\shared\ErrorBoundary.tsx)
+  App (App.tsx)
+  WithDevTools (node_modules\expo\src\launch\withDevTools.ios.tsx)
+  RCTView (<anonymous>)
+  View (node_modules\react-native\Libraries\Components\View\View.js)
+  RCTView (<anonymous>)
+  View (node_modules\react-native\Libraries\Components\View\View.js)
+  AppContainer (node_modules\react-native\Libraries\ReactNative\AppContainer-dev.js)
+  main(RootComponent) (https:\unreplying-creakingly-lasandra.ngrok-free.dev\index.ts.bundle)

@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useAIConsent } from '../context/AIConsentContext';
 import { useNotifications } from '../hooks/useNotifications';
+import { NotificationPermissionRow } from '../components/shared/NotificationPermissionRow';
 import { useSubscription } from '../hooks/useSubscription';
 import { useFeatureUnlock } from '../hooks/useFeatureUnlock';
 import { FEATURE_METADATA, FeatureId } from '../constants/featureUnlock';
@@ -32,7 +33,6 @@ import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../constants/legal';
 import { EventCodeSheet } from '../components/events/EventCodeSheet';
 
 interface Settings {
-  notificationsEnabled: boolean;
   reminderTime: string;
   tone: 'gentle' | 'encouraging' | 'direct';
   intensity: 'low' | 'standard' | 'high';
@@ -51,12 +51,14 @@ const SettingsScreen = () => {
   const { deleting, confirmLogout, confirmDeleteAccount } = useAccountActions();
   const { hasConsent: aiConsent, setConsent: setAIConsent } = useAIConsent();
   const navigation = useNavigation();
-  const { permissionStatus, requestPermissions } = useNotifications();
+  // Kept mounted for what it does on mount: with permission already granted,
+  // it registers and saves the Expo push token (NPM-2 Ruling 5; NPM-3a owns
+  // token registration). The Push Notifications switch it used to drive is gone.
+  useNotifications();
   const { status: subscriptionStatus, formattedType, description: subscriptionDescription } = useSubscription();
   const { access, selectedPillarInfo, unlockAll, loading: featureUnlockLoading } = useFeatureUnlock();
   const [unlockingFeatures, setUnlockingFeatures] = useState(false);
   const [settings, setSettings] = useState<Settings>({
-    notificationsEnabled: true,
     reminderTime: '08:00',
     tone: 'gentle',
     intensity: 'standard',
@@ -65,7 +67,6 @@ const SettingsScreen = () => {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [requestingPermissions, setRequestingPermissions] = useState(false);
   const [eventCodeSheetVisible, setEventCodeSheetVisible] = useState(false);
   const [eventName, setEventName] = useState<string | null>(null);
 
@@ -108,7 +109,6 @@ const SettingsScreen = () => {
         // here, where the Settings shape says what it must be.
         const d = data as Partial<Record<keyof Settings, unknown>>;
         setSettings({
-          notificationsEnabled: d.notificationsEnabled !== false,
           reminderTime: (d.reminderTime as string) || '08:00',
           tone: (d.tone as Settings['tone']) || 'gentle',
           intensity: (d.intensity as Settings['intensity']) || 'standard',
@@ -163,56 +163,6 @@ const SettingsScreen = () => {
       Alert.alert('Error', 'Failed to save settings');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleToggleNotifications = async (value: boolean) => {
-    if (!value) {
-      // User is disabling notifications - just save the setting
-      await handleSaveSettings({ notificationsEnabled: false });
-      return;
-    }
-
-    // User is enabling notifications - request permissions first
-    setRequestingPermissions(true);
-    try {
-      const granted = await requestPermissions();
-
-      if (granted) {
-        // Permissions granted - save the setting
-        await handleSaveSettings({ notificationsEnabled: true });
-        Alert.alert(
-          'Notifications Enabled',
-          'You will now receive push notifications for messages and updates.'
-        );
-      } else {
-        // Permissions denied
-        Alert.alert(
-          'Notifications Disabled',
-          'Push notifications are disabled. To enable them, please allow notifications in your device settings.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Open Settings',
-              onPress: () => {
-                if (Platform.OS === 'ios') {
-                  Linking.openURL('app-settings:');
-                } else {
-                  Linking.openSettings();
-                }
-              },
-            },
-          ]
-        );
-        // Keep notifications disabled in settings
-        setSettings(prev => ({ ...prev, notificationsEnabled: false }));
-      }
-    } catch (error) {
-      console.error('Error toggling notifications:', error);
-      Alert.alert('Error', 'Failed to enable notifications');
-      setSettings(prev => ({ ...prev, notificationsEnabled: false }));
-    } finally {
-      setRequestingPermissions(false);
     }
   };
 
@@ -422,29 +372,8 @@ const SettingsScreen = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Notifications</Text>
         <View style={styles.card}>
-          <View style={styles.settingRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.settingLabel}>Push Notifications</Text>
-              <Text style={styles.settingDescription}>
-                {permissionStatus === 'granted'
-                  ? 'Receive messages and updates'
-                  : permissionStatus === 'denied'
-                  ? 'Notifications blocked - open device settings to enable'
-                  : 'Enable to receive messages and updates'}
-              </Text>
-            </View>
-            {requestingPermissions ? (
-              <ActivityIndicator size="small" color={Colors.evergreenTeal} />
-            ) : (
-              <Switch
-                value={settings.notificationsEnabled && permissionStatus === 'granted'}
-                onValueChange={handleToggleNotifications}
-                trackColor={{ false: '#D5E3D1', true: Colors.evergreenTeal }}
-                thumbColor="#fff"
-                disabled={requestingPermissions}
-              />
-            )}
-          </View>
+          {/* Device notification permission, shared with Notifications (NPM-2 D6, Ruling 4) */}
+          <NotificationPermissionRow />
 
           <View style={styles.divider} />
 

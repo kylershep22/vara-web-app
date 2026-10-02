@@ -21,6 +21,8 @@ import { Alert } from 'react-native';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useAuth } from '../context/AuthContext';
 import { cancelAllRoutineReminders } from '../services/reminderScheduler.service';
+// From the store, not the journal: the clear needs no scheduler.
+import { clearNotificationIntent } from '../services/notificationIntentStore';
 
 export function useAccountActions() {
   const { logout } = useAuth();
@@ -75,6 +77,9 @@ export function useAccountActions() {
                       // before local teardown, so this does not depend on the
                       // sign-out below succeeding (ruling R-I).
                       await cancelAllRoutineReminders();
+                      // Its pending notification changes go too, before
+                      // sign-out (NPM-2, Decision 9). Never rejects.
+                      await clearNotificationIntent();
                       // Sign out locally so auth listener navigates to login,
                       // not onboarding (the user doc is already deleted).
                       await logout();

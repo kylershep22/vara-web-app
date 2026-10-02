@@ -1,0 +1,55 @@
+FAIL src/services/__tests__/notificationScheduler.enabledFalseGate.test.ts
+  dailyRhythm.enabled false does not hide the daily reminder
+    × the reconcile schedules it at the stored time (3 ms)
+    × scheduleDailyRhythm schedules it too: one rule, not two (1 ms)
+
+  ● dailyRhythm.enabled false does not hide the daily reminder › the reconcile schedules it at the stored time
+
+    expect(received).resolves.toBe(expected) // Object.is equality
+
+    Expected: "scheduled"
+    Received: "cancelled"
+
+      64 |     // Mutation caught: restoring the dailyRhythm.enabled check in the activation rule.
+      65 |     mockGetPrefs.mockResolvedValue(generalOnLegacyFalse);
+    > 66 |     await expect(reconcileDailyRhythm('u1')).resolves.toBe('scheduled');
+         |                                                       ^
+      67 |     expect(mockStore.get(ID)?.trigger).toMatchObject({ type: 'daily', hour: 18, minute: 20 });
+      68 |   });
+      69 |
+
+      at Object.toBe (node_modules/expect/build/index.js:174:22)
+      at Object.toBe (src/services/__tests__/notificationScheduler.enabledFalseGate.test.ts:66:55)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● dailyRhythm.enabled false does not hide the daily reminder › scheduleDailyRhythm schedules it too: one rule, not two
+
+    expect(received).resolves.toBe(expected) // Object.is equality
+
+    Expected: "u1-daily-rhythm"
+    Received: null
+
+      71 |     // Mutation caught: scheduleDailyRhythm keeping its own enabled check.
+      72 |     mockGetPrefs.mockResolvedValue(generalOnLegacyFalse);
+    > 73 |     await expect(scheduleDailyRhythm('u1')).resolves.toBe(ID);
+         |                                                      ^
+      74 |     expect(mockStore.get(ID)?.trigger).toMatchObject({ type: 'daily', hour: 18, minute: 20 });
+      75 |   });
+      76 | });
+
+      at Object.toBe (node_modules/expect/build/index.js:174:22)
+      at Object.toBe (src/services/__tests__/notificationScheduler.enabledFalseGate.test.ts:73:54)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+Snapshots:   0 total
+Time:        0.631 s
+Ran all test suites matching /src\\services\\__tests__\\notificationScheduler.enabledFalseGate.test.ts/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

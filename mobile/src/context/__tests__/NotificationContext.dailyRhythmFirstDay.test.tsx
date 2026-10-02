@@ -76,7 +76,13 @@ function mockPrefsService() {
 }
 jest.mock('../../services/firebase', () => mockPrefsService());
 jest.mock('../../services/firebase/notificationPreferences.service', () => mockPrefsService());
-jest.mock('../../config/firebase', () => ({ db: null }));
+jest.mock('../../config/firebase', () => ({
+  db: null,
+  // The signed-in owner, mirroring mockUser (NPM-2: every reconcile is owner-checked).
+  get auth() {
+    return { currentUser: mockUser ? { uid: mockUser.uid } : null };
+  },
+}));
 jest.mock('../../services/notificationThrottle', () => ({
   canSendSystemNotification: jest.fn().mockResolvedValue(true),
   markNotificationSent: jest.fn().mockResolvedValue(undefined),
