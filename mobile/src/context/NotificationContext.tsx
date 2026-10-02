@@ -45,6 +45,10 @@ import {
   sendGroupPostNotification,
   sendMentionNotification,
 } from '../services/notificationScheduler.service';
+import {
+  replayNotificationIntent,
+  clearNotificationIntent,
+} from '../services/notificationIntentJournal';
 
 interface NotificationContextType {
   initializeNotifications: () => Promise<void>;
@@ -122,8 +126,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const uid = user.uid;
         await runExclusive(async () => {
           // The current user's daily rhythm and every routine reminder are
-          // spared: the reconciles below own them, and a failed or offline read
-          // there must leave them scheduled.
+          // spared: the reconciles below own them, and a read there that fails
+          // or times out must leave them scheduled. (An offline read served from
+          // the session cache does not fail; the daily rhythm reconcile acts on
+          // it, with this device's pending changes laid over it.)
           const dailyRhythmId = dailyRhythmNotificationId(uid);
           await cancelAllScheduledExceptFocusComplete(
             (id) => id === dailyRhythmId || isRoutineReminderId(id)
@@ -147,11 +153,17 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Reconcile the daily rhythm on sign-in and cold start. The reconcile reads the
   // preferences fresh and decides; nothing here consults a stored copy.
+  //
+  // Replay first (NPM-2): any notification preference change this user made
+  // that Firestore never acknowledged, persisted in the pending-intent journal,
+  // is sent again. Replay waits only for the local disk read, never for the
+  // network, and the reconcile lays the same pending changes over its read.
   useEffect(() => {
     if (user?.uid && user?.emailVerified) {
       const uid = user.uid;
       // Serialized against the foreground handler above; see runExclusive.
       runExclusive(async () => {
+        await replayNotificationIntent(uid);
         await reconcileDailyRhythm(uid);
       });
     }
@@ -263,6 +275,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // user's object is replaced, and not on unmount (NPM-1 T5: replacing the
       // object used to cancel the daily rhythm too).
       if (user?.uid && currentUidRef.current !== user.uid) {
+        // The departing user's pending notification changes go with the
+        // session (NPM-2): cleared from memory and made inert synchronously,
+        // removed from disk after. Never applied to the next account.
+        void clearNotificationIntent(user.uid);
         cancelAllUserNotifications(user.uid);
         // No routine reminder survives loss of the owning user session
         // (ruling R-I). Routine reminder ids carry no user id, so the call
@@ -286,6 +302,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useEffect(() => {
     if (isAuthReady && !sessionUid) {
       runExclusive(cancelAllRoutineReminders);
+      // Nobody is signed in, so no pending notification change can belong to
+      // anyone here (NPM-2).
+      void clearNotificationIntent();
     }
   }, [isAuthReady, sessionUid, runExclusive]);
 

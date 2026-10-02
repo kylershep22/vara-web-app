@@ -20,6 +20,7 @@ import {
 import { canSendSystemNotification, markNotificationSent } from './notificationThrottle';
 import { logger } from '../utils/logger';
 import { isValidReminderTime } from '../utils/reminderTime';
+import { pendingDailyRhythmOverlay } from './notificationIntentStore';
 
 // ==========================================
 // NOTIFICATION IDENTIFIERS
@@ -245,7 +246,18 @@ async function reconcileDailyRhythmNow(userId: string): Promise<DailyRhythmRecon
     return 'read-failed';
   }
 
-  return makeDailyRhythmMatch(userId, desiredDailyRhythmTime(preferences));
+  // This device's pending changes win over what was read until Firestore
+  // acknowledges or rejects them (NPM-2, Decision 2): a read served from the
+  // session cache, or a server answer that predates the change, cannot put an
+  // older schedule back. Only changes already persisted to the journal count.
+  const pending = await pendingDailyRhythmOverlay(userId);
+  return makeDailyRhythmMatch(
+    userId,
+    desiredDailyRhythm(
+      pending.general ?? preferences.allNotificationsEnabled,
+      pending.reminderTime ?? preferences.dailyRhythm?.reminderTime
+    )
+  );
 }
 
 /**
