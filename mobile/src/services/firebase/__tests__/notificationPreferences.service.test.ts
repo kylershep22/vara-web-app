@@ -176,3 +176,28 @@ describe('documents with no debris', () => {
     expect(mockUpdateDoc.mock.calls[0][1].dailyReminders).toBe('__deleteField__');
   });
 });
+
+describe('an offline read is a failed read, never an absent document (ROUTINE-REMINDER-OFFLINE-RESILIENCE T0a)', () => {
+  test('a getDoc rejected because the client is offline rejects, and no default document is created', async () => {
+    // The installed SDK (@firebase/firestore 4.9.3, dist/index.rn.js, the
+    // react-native build) rejects getDoc with UNAVAILABLE "Failed to get
+    // document because the client is offline." whenever the snapshot is from
+    // cache and the document is not in it; it resolves exists() === false only
+    // from a server-confirmed snapshot. So the "New user" default write is
+    // reachable only from an online read. The daily rhythm reconcile treats
+    // this rejection as 'read-failed' (notificationScheduler.reconcile.test).
+    // Mutation caught: turning the catch into a default-creating fallback.
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockGetDoc.mockRejectedValueOnce(
+      Object.assign(new Error('Failed to get document because the client is offline.'), {
+        code: 'unavailable',
+      })
+    );
+
+    await expect(getNotificationPreferences('u1')).rejects.toThrow('client is offline');
+
+    expect(mockSetDoc).not.toHaveBeenCalled();
+    expect(mockUpdateDoc).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+});

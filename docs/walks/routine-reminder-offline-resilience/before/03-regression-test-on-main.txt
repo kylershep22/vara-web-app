@@ -1,0 +1,82 @@
+ROUTINE-REMINDER-OFFLINE-RESILIENCE T0b: the regression test run against unmodified production code.
+Production code at: f090e0786b9823719448cc65cfe8adcd885d350f (main, f090e07). Branch: journey/routine-reminder-offline-resilience. Only the new test file differs from main.
+Command, from mobile/: npx jest --forceExit src/context/__tests__/NotificationContext.routineOffline.test.tsx
+Run: 2026-10-02T00:21:37Z
+Expected: FAIL. The routine reminder is gone after an offline leave-and-return.
+----
+  console.log
+    [reminderScheduler] Cancelled 0 stale reminders
+
+      at Object.apply [as log] (src/utils/logger.ts:6:27)
+
+  console.log
+    [reminderScheduler] Scheduled routine reminder: routine-reminder-r1 at 19:30
+
+      at Object.apply [as log] (src/utils/logger.ts:6:27)
+
+  console.log
+    [reminderScheduler] Synced 1 routine reminders
+
+      at Object.apply [as log] (src/utils/logger.ts:6:27)
+
+  console.log
+    [reminderScheduler] Cancelled 0 stale reminders
+
+      at Object.apply [as log] (src/utils/logger.ts:6:27)
+
+  console.error
+    [reminderScheduler] Error syncing routine reminders: Error: Failed to get documents from server. (However, these documents may exist in the local cache.)
+        at C:\Users\kyler\wellness-app\mobile\src\context\__tests__\NotificationContext.routineOffline.test.tsx:52:7
+        at C:\Users\kyler\wellness-app\mobile\node_modules\jest-mock\build\index.js:397:39
+        at C:\Users\kyler\wellness-app\mobile\node_modules\jest-mock\build\index.js:404:13
+        at mockConstructor (C:\Users\kyler\wellness-app\mobile\node_modules\jest-mock\build\index.js:103:19)
+        at mockRoutineRead (C:\Users\kyler\wellness-app\mobile\src\context\__tests__\NotificationContext.routineOffline.test.tsx:94:39)
+        at C:\Users\kyler\wellness-app\mobile\src\services\reminderScheduler.service.ts:255:45
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (C:\Users\kyler\wellness-app\mobile\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+        at _next (C:\Users\kyler\wellness-app\mobile\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+
+      10 |   },
+      11 |   error: (message: string, error?: unknown) => {
+    > 12 |     console.error(message, error);
+         |             ^
+      13 |     // When crash reporting is restored: crashReporting.recordError(error)
+      14 |   },
+      15 |   debug: (...args: unknown[]) => {
+
+      at Object.error (src/utils/logger.ts:12:13)
+      at error (src/services/reminderScheduler.service.ts:263:12)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+FAIL src/context/__tests__/NotificationContext.routineOffline.test.tsx
+  a leave-and-return while offline (the airplane case)
+    × the routine reminder scheduled online is still pending after the offline return (32 ms)
+
+  ● a leave-and-return while offline (the airplane case) › the routine reminder scheduled online is still pending after the offline return
+
+    expect(received).toMatchObject(expected)
+
+    Matcher error: received value must be a non-null object
+
+    Received has value: undefined
+
+      190 |     await leaveAndReturn();
+      191 |
+    > 192 |     expect(mockStore.get('routine-reminder-r1')?.trigger).toMatchObject({ hour: 19, minute: 30 });
+          |                                                           ^
+      193 |   });
+      194 | });
+      195 |
+
+      at Object.toMatchObject (src/context/__tests__/NotificationContext.routineOffline.test.tsx:192:59)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        0.445 s, estimated 1 s
+Ran all test suites matching /src\\context\\__tests__\\NotificationContext.routineOffline.test.tsx/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

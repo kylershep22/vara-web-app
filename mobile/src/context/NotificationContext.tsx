@@ -26,7 +26,12 @@ import {
   planFocusCompleteLaunch,
 } from '../services/firebase/focusSession.service';
 import { logger } from '../utils/logger';
-import { syncAllReminders, cancelAllRoutineReminders } from '../services/reminderScheduler.service';
+import {
+  syncAllReminders,
+  cancelAllRoutineReminders,
+  invalidateRoutineReminderAttempts,
+  isRoutineReminderId,
+} from '../services/reminderScheduler.service';
 import { navigationRef } from '../navigation/AppNavigator';
 import { ROUTES } from '../navigation/routes';
 import { NAV_TARGETS } from '../navigation/navTargets';
@@ -106,28 +111,32 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Foreground consolidation: cancel pending, reschedule future. Spares the
   // pending focus-complete notification (the OS owns it; the timer relies on it
-  // firing at endsAt) so a mid-block glance at the phone no longer wipes it, and
-  // the current user's daily rhythm, which the reconcile owns (NPM-1). Every
-  // other identifier is cleared exactly as before, including ids older builds
-  // left behind that nothing else cancels.
+  // firing at endsAt) so a mid-block glance at the phone no longer wipes it, the
+  // current user's daily rhythm, which the reconcile owns (NPM-1), and routine
+  // reminders, which syncAllReminders owns (ROUTINE-REMINDER-OFFLINE-RESILIENCE).
+  // Every other identifier is cleared exactly as before, including ids older
+  // builds left behind that nothing else cancels.
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextState: AppStateStatus) => {
       if (appStateRef.current !== 'active' && nextState === 'active' && user?.uid) {
         const uid = user.uid;
         await runExclusive(async () => {
-          // The current user's daily rhythm is spared: the reconcile below owns
-          // it, and a failed or offline read there must leave it scheduled.
+          // The current user's daily rhythm and every routine reminder are
+          // spared: the reconciles below own them, and a failed or offline read
+          // there must leave them scheduled.
           const dailyRhythmId = dailyRhythmNotificationId(uid);
-          await cancelAllScheduledExceptFocusComplete((id) => id === dailyRhythmId);
+          await cancelAllScheduledExceptFocusComplete(
+            (id) => id === dailyRhythmId || isRoutineReminderId(id)
+          );
           // Decided from a fresh read (NPM-1). The provider used to read its own
           // preferences copy here, loaded once per uid, so a new user's first
           // leave-and-return cancelled the reminder onboarding had just set.
           await reconcileDailyRhythm(uid);
-          // Routine reminders are re-synced as well. Without this,
-          // the cancel above wipes every pending routine reminder — and, once
-          // they exist, every habit reminder — until the next login, so a
-          // glance at the phone silently emptied the schedule for the day.
-          // Ordered after the cancel, or it would clear what it just wrote.
+          // Routine reminders are reconciled from a bounded server read: on
+          // success, anything outside this user's desired set is cancelled
+          // (another account's leftovers included); on failure, timeout or no
+          // OS permission they are left exactly as they were. The read is
+          // bounded, so a hung read cannot hold this queue indefinitely.
           await syncAllReminders(uid);
         });
       }
@@ -155,7 +164,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (user?.uid && user?.emailVerified) {
       const uid = user.uid;
       // Serialized against the foreground handler above; see runExclusive.
-      runExclusive(() => syncAllReminders(uid));
+      runExclusive(async () => {
+        await syncAllReminders(uid);
+      });
     }
   }, [user?.uid, user?.emailVerified, runExclusive]);
 
@@ -256,6 +267,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         // No routine reminder survives loss of the owning user session
         // (ruling R-I). Routine reminder ids carry no user id, so the call
         // above never matches them.
+        // Any sync attempt still in flight loses ownership now, synchronously,
+        // so its late completion cannot schedule the departing user's
+        // reminders while the cancel below waits its turn.
+        invalidateRoutineReminderAttempts();
         // Serialized, so the next account's sign-in sync cannot interleave.
         runExclusive(cancelAllRoutineReminders);
       }

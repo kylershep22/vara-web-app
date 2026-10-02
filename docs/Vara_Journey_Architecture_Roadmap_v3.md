@@ -380,6 +380,7 @@ deploy. Deploy state lives on Kyle's checklist.
 | ACCOUNT-DELETION-FALSE-FAILURE | **[RECORDED, LEDGER. Row added 2026-10-01 at ROUTINE-REMINDERS' post-walk docs. PRE-EXISTING; OUTSIDE ROUTINE-REMINDERS; NO PRIORITY RULED YET.]** A deleted account can be reported as not deleted *(row added 2026-10-01)* | In `mobile/src/hooks/useAccountActions.ts` the deletion handler awaits the deleteAccount Cloud Function (line 73), cancels routine reminders (line 77), then awaits `logout()` (line 80) inside one `try`. If `deleteAccount` succeeds and `logout()` then throws, the `catch` (lines 81 to 87) shows a **Deletion Failed** alert ("Something went wrong. Please try again or contact support@varawellness.co for help.") although the account was deleted. The user may retry, contact support, or believe their data still exists. ROUTINE-REMINDERS' cancel at line 77 runs before `logout()`, so routine reminders are cancelled in this case either way. | None. | None until ruled. |
 | DAILY-RHYTHM-ONBOARDING-WRITE-FAILURE | **[RECORDED, LEDGER. Row added 2026-10-01 at NPM-1's build docs. RECOVERY OWNED BY NPM-2.]** A user can finish onboarding with General notifications off and no daily rhythm time *(row added 2026-10-01)* | **AFTER ONE RETRY THE ONBOARDING WRITE CAN STILL FAIL.** The Reminder step (`mobile/src/screens/onboarding/v3/OnboardingV3ReminderScreen.tsx`) writes General ON with the chosen time and retries once (NPM-1 ruling 5); if both attempts fail, the arc continues and the user is left with the document's defaults, General off and `dailyRhythm.reminderTime` null, so no daily rhythm exists and NotificationSettingsScreen has no time row to recover with until NPM-2's Add a time state. **THE NAVIGATOR'S FAIL-OPEN PATHS SKIP ONBOARDING ENTIRELY** and leave the same state: an onboarding-listener error (`mobile/src/navigation/AppNavigator.tsx` lines 1697 to 1701) and a user-document create error (lines 1689 to 1693) both set `hasCompletedOnboarding` to true; legacy accounts whose field is undefined are treated as onboarded (line 1614). These are outside D3's proviso, which covers completing onboarding paths. | None. | None until NPM-2. |
 | DAILY-RHYTHM-TAP-DESTINATION | **[RECORDED, LEDGER. Row added 2026-10-01 at NPM-1's post-walk docs. NEEDS KYLE'S PRODUCT RULING on what the tap should open and what it should offer. No priority ruled yet.]** Tapping the daily rhythm notification opens nothing tied to it *(row added 2026-10-01)* | **THE REASON FOR THE ROW, KYLE'S OBSERVATION OF 2026-10-01:** "Tapping the daily rhythm notification returns him to the Today page, but nothing there is directly related to the floor commitment defined in onboarding, and there is no action tied to the reminder." **THE EVIDENCE, at `7343074`:** (1) **The payload.** The daily rhythm notification carries `{ type: 'daily_reminder', category: 'daily_rhythm' }` (`mobile/src/services/notificationScheduler.service.ts` line 139, in `dailyRhythmContent`). (2) **The provider's tap listener has no branch for it.** NotificationProvider's listener (`mobile/src/context/NotificationContext.tsx` lines 163 to 199) routes only `habit-reminder` (line 185), `routine-reminder` (line 187) and `focus-complete` (line 189); its cold-launch handler (lines 212 to 215) acts only on `focus-complete`. A daily rhythm tap therefore navigates nowhere. (3) **Where the user lands.** A tap that cold-launches the app lands on Today, the bottom tab navigator's first child, since it sets no `initialRouteName` (`mobile/src/navigation/AppNavigator.tsx` lines 686 to 692). A tap on the banner while the app is alive in the background resumes it wherever the user was. While the app is in the foreground the notification is shown as an in-app toast, not a banner (`mobile/src/services/notifications.service.ts` lines 45 to 59). The one listener with a `daily_rhythm` case, `mobile/src/hooks/useNotifications.ts` lines 78 to 80, routes to Home, but it is registered only while SettingsScreen is mounted (its one caller). (4) **Onboarding presents the reminder with the floor commitment.** The V3 Reminder step renders the user's floor commitment under the time picker, labelled "We will nudge you toward:" (`mobile/src/screens/onboarding/v3/OnboardingV3ReminderScreen.tsx` lines 195 to 198; label at `mobile/src/screens/onboarding/v3/copy.ts` line 188), and the arc stores it (`OnboardingV3DoneScreen.tsx` line 86). (5) **Today offers no action tied to the reminder, and shows the floor commitment only on slammed days.** `useTodayCard` reads the floor only when the day's capacity is slammed (`mobile/src/hooks/useTodayCard.ts` lines 593 to 595), and the Today hero card renders it, under "Your floor", only then (`mobile/src/components/dashboard/TodayHeroCard.tsx` lines 314 to 321). On any other day Today shows nothing of the floor commitment the reminder was presented with, and on no day is there an action tied to the reminder. **What the tap should open and what it should offer is Kyle's product ruling;** nothing here proposes one. | Kyle's product ruling. | Yes, once ruled: a device walk of the tap, cold and warm. |
+| OFFLINE-COLD-START-DEVICE-CHECK | **[REQUIRED BEFORE LAUNCH. Run on the first standalone build (preview or TestFlight).]** **[RECORDED, LEDGER. Row added 2026-10-01 at ROUTINE-REMINDER-OFFLINE-RESILIENCE's post-walk docs, Kyle's ruling of 2026-10-01: a required pre-launch device check on the first standalone build, not a gate on that slice's merge.]** A start from fully closed with no connection keeps the scheduled reminders *(row added 2026-10-01)* | **WHY:** on main the before-state run did not reproduce the defect because a warm app can answer the routine read from memory; the case that loses reminders is a start from fully closed with no connection, which no device has observed on either build. The dev client cannot load its bundle offline, so until the first standalone build this case is covered by automated tests only (ROUTINE-REMINDER-OFFLINE-RESILIENCE's `NotificationContext.routineOffline` and `reminderScheduler.offlineResilience` suites). **STEPS:** with the device online, set a routine reminder a few minutes ahead and save. Force-quit Vara. Turn on airplane mode with Wi-Fi off. Open Vara and wait 15 seconds. Lock the device. **PASS:** the routine reminder fires at the set time. **THE SAME CHECK FOR THE DAILY RHYTHM REMINDER:** with the device online, set the daily reminder a few minutes ahead in Settings, Notifications. Force-quit Vara. Turn on airplane mode with Wi-Fi off. Open Vara and wait 15 seconds. Lock the device. **PASS:** the daily rhythm reminder fires at the set time. **ALSO LISTED** under Step 4, Test Scenarios, in `mobile/PRE_SUBMISSION_CHECKLIST.md`. | The first standalone build (preview or TestFlight). | Yes, Kyle's device check on that build. |
 | LANDING-HOOKS-ASYNC-OWNERSHIP | **[RECORDED, LEDGER. Row added 2026-09-27 from ASYNC-LOAD-OWNERSHIP's Step 0.]** The same shared-flag defect exists in two more hooks *(row added 2026-09-27)* | `useJourneyLanding.ts:84` and `useWeeklyLanding.ts:67` carry the identical shared-`activeRef` pattern that ASYNC-LOAD-OWNERSHIP replaced in `useTodayCard`. An out-of-order resolve in either can hand `useTodayCard` an older `sourceKey` after a newer one, which no fix inside `useTodayCard` can catch and none should attempt. Same defect class, same house-pattern remedy, not scoped or sequenced. **Gates nothing.** | None. | Not scoped. |
 | ADVANCE-OFFER-STARVATION | **[READY. NOT AN R-SERIES ROW. Row added 2026-09-27.]** An eligible user can be permanently unable to discover that they can advance *(row added 2026-09-27)* | The Remove capture card outranks the advance offer in Today's single slot (`journey/journeyAction.ts:76-85`), and dismissing the capture card lasts only the session. So a Remove user who never does the capture sees the capture card every time they open the app and never sees the advance offer. They cannot reach the next phase page from the journey map either, because that page shows "Start this" only once an offer has been recorded (`JourneyPhaseScreen.tsx:217`) — and it never was. That user is stuck with no visible path forward and no indication one exists. **A DEFECT, NOT PRODUCT PHILOSOPHY.** **NOTE:** JOURNEY-ELIGIBILITY-VISIBLE may subsume this — if the Journey screen shows eligibility independently of the Today slot, a starved user is no longer stuck. Check before scoping both. | None. | Yes. |
 | JOURNEY-ELIGIBILITY-VISIBLE | **[READY. NOT AN R-SERIES ROW. Row added 2026-09-27, Kyle's product ruling.]** Eligibility and discoverability are coupled, so advancing depends on catching the Today offer *(row added 2026-09-27)* | **THE PROBLEM IN THE USER'S WORDS:** no way to tell whether they are progressing or stuck, and no indication the phase will ever move. Kyle's ruling keeps advancement **GUIDED** — Vara decides when the next phase is available, the user decides when to enter it — and rejects exposing the four phases as freely navigable, which would make the journey map a content library. What changes is that **the Journey screen carries the state** rather than the Today slot alone: before eligibility the next phase is visible but informational; after eligibility it reads as available, something like "Ready when you are"; after declining, nothing punitive happens and the phase stays reachable from Journey while Today stops pushing it. The 8-completion / 14-day rule is unchanged for V1. **A COUNTDOWN WAS CONSIDERED AND REJECTED:** a "days left" counter is a progress number on a surface whose standards ban visible counters, it collides with slice 8's reasoning that repeated praise reads as a scoreboard, and it makes the 14-day door visible, which invites waiting it out against Kyle's own caution about forced graduation. The state change is the answer rather than the number. **IF SOMETHING IS STILL WANTED BEFORE ELIGIBILITY,** the honest form is qualitative and it is Jen's, because it concerns what Vara claims progress is. | Jen, if any pre-eligibility language is added. None otherwise. | Yes. |
@@ -416,8 +417,9 @@ deploy. Deploy state lives on Kyle's checklist.
 | ROUTINE-REMINDERS | **[DONE, merged at 50c3622. THE REMINDER TIME INPUT LANDED WITH ROUTINE-REMINDER-TIME-PICKER AT 5277031.]** Was: **[DONE, merged at 50c3622. THE REMINDER TIME INPUT IS NOT LAUNCH-READY UNTIL ROUTINE-REMINDER-TIME-PICKER LANDS.]** Was: **[Next]** **[BUILT AND WALKED at e22eaa8, AWAITING MERGE. THE REMINDER TIME INPUT IS NOT LAUNCH-READY UNTIL ROUTINE-REMINDER-TIME-PICKER LANDS.]** Was: **[Next]** **[BUILT, WALK PENDING on journey/routine-reminders]** Was: **[READY. NOT AN R-SERIES ROW. OWN SLICE. LAUNCH-BLOCKING WHILE REMINDER CONTROLS REMAIN EXPOSED. Row added 2026-09-30, Kyle's ruling.]** A routine reminder either works or says honestly that it cannot *(row added 2026-09-30)* | **KYLE'S OPTION A OF THE ROUTINES-RESTORE STEP 0: A WORKING PERMISSION PATH IN `RoutineEditor.handleSave` WHEN A REMINDER TIME IS SET.** In order: validate the time with `parseTimeString` before saving; `ensureNotificationPermission`; `ensureRemindersAllowed`; schedule; and if permission is not granted, save the routine but say so honestly instead of the success alert. **IT MUST CLOSE ALL FOUR SILENT-FAILURE PATHS THE STEP 0 FOUND:** (1) permission is never asked; (2) permission is denied or revoked; (3) the time does not parse; (4) permission is granted but the master notifications flag is off, so the next foreground sync cancels the reminder and never re-creates it. **ALSO IN SCOPE:** the dead PlanScreen opt-in push (ROUTINE-REMINDER-PERMISSION), to be fixed, removed or left as Kyle rules; and replacing the celebration-emoji success alerts. **ALL NEW OR CHANGED COPY IS KYLE'S.** **STEP 0 GATE (Kyle's ruling):** this row's Step 0 must determine whether `ensureRemindersAllowed` changes only routine-reminder permission or state, or enables broader notification categories. **If it changes unrelated notification preferences, STOP for a product ruling.** **STEP 0 LOCATIONS, at `6653b7c` and unchanged at `5a5485a`:** `mobile/src/components/routines/RoutineEditor.tsx` lines 142 to 179 (the save and scheduling; the success alerts are at lines 159 and 181) and lines 338 to 351 (the free-text reminder field); `mobile/src/services/reminderScheduler.service.ts` lines 72 to 118 (`scheduleRoutineReminder`) and lines 138 to 186 (`syncAllReminders`); `mobile/src/services/firebase/notificationPreferences.service.ts` lines 33 and 104 (the master flag's `false` default) and line 374 (`ensureRemindersAllowed`); and `mobile/src/screens/PlanScreen.tsx` lines 54 to 62 (the opt-in check). | ROUTINES-RESTORE merged. | Yes, Kyle's device walk. |
 | ROUTINE-REMINDER-TIME-PICKER | **[DONE, merged at 5277031.]** Was: **[Next]** **[BUILT AND WALKED at fb9d303, AWAITING MERGE.]** Was: **[Next]** **[BUILT, WALK PENDING on journey/routine-reminder-time-picker]** Was: **[READY. NOT AN R-SERIES ROW. OWN SLICE. LAUNCH-BLOCKING. Row added 2026-10-01, Kyle's ruling. Starts after ROUTINE-REMINDERS merges.]** The reminder time is picked, not typed *(row added 2026-10-01; promoted from the ROUTINE-REMINDER-TIME-PICKER ledger row)* | **KYLE'S RULINGS OF 2026-10-01, VERBATIM:** **Interaction:** Replace the free-text input with a tappable reminder row. Tapping opens the existing bottom-sheet time picker. Done commits the selected time; Cancel must discard all changes. If the existing picker mutates state while scrolling, fix that in this slice so Cancel is truthful. When a reminder exists, provide an explicit remove action. **Copy:** Section label: Reminder (optional). Empty row: Add a reminder. Set row: formatted time, e.g. 7:30 PM. Remove action: Remove reminder. Remove the helper line. **Initial picker value:** If a reminder already exists, open at the stored time. If no reminder exists, do not use routine-type defaults. Open at the nearest practical future time, rounded to the next 15 minutes. Avoid hidden assumptions about when a user's Morning, Evening, Sunday, or Custom routine should occur. **Minute interval:** Use 1-minute steps. **Legacy invalid values:** A stored value that fails parseTimeString renders as Add a reminder, not as a time. Preserve the legacy validation path for old data. Opening and cancelling the picker must not mutate that stored value; only an explicit save/change/remove action may resolve it. **Scope:** Keep all scheduling, permission, cancellation, sign-out, and alert behavior from ROUTINE-REMINDERS unchanged. This slice changes only how the reminder time is selected and persisted. | ROUTINE-REMINDERS merged. | Yes, Kyle's device walk. |
 | NOTIFICATION-PREFERENCES-MODEL | **[SPLIT 2026-10-01 under Kyle's rulings D1 to D9 into NPM-1, NPM-2, NPM-3a, NPM-3b, NPM-4 and NPM-TZ.]** Was: **[READY. PRE-LAUNCH. NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-10-01 at ROUTINE-REMINDERS' build docs, Kyle's ruling R6. IMMEDIATELY AFTER ROUTINE-REMINDERS. NOTHING IN IT IS BUILT BY ROUTINE-REMINDERS.]** The general notification preference means what it says *(row added 2026-10-01)* | **OWNS THE GENERAL NOTIFICATION PREFERENCE MODEL:** what the General notifications control (`allNotificationsEnabled`, renamed on screen by ROUTINE-REMINDERS' ruling R-B, semantics unchanged) turns on and off, how it relates to the per-category preferences, and whether a never-enabled state is distinguished from an explicitly disabled one (ROUTINE-REMINDERS' ruling R-A forbade inferring that from the shared `false`). **OWNS JOURNAL NOTIFICATION SEMANTICS:** the Journal opt-in navigate (`mobile/src/screens/JournalScreen.tsx` lines 482 to 487, whose `useCallback` dependencies at line 499 omit `shouldShowNotifPrompt`) and the opt-in hook's `shown` state, which `mobile/src/hooks/useNotificationOptIn.ts` line 47 does not treat as blocking. **ITS STEP 0 VERIFIES THE DAILY RHYTHM PATH END TO END,** including whether onboarding obtains OS permission and sets the app preference that path needs (`mobile/src/services/notificationScheduler.service.ts` line 132 requires `allNotificationsEnabled` and `dailyRhythm.enabled`; `mobile/src/context/NotificationContext.tsx` gates `initializeUserNotifications` on `allNotificationsEnabled`). **A failure of the core daily rhythm path is LAUNCH-BLOCKING.** **INHERITED LEDGER ROWS:** SOCIAL-PUSH-FLAG-BYPASS, NOTIFICATIONS-CODEBASE-IGNORES-PREFS and LOCAL-MILESTONE-IGNORES-SETTING. | ROUTINE-REMINDERS merged. | Yes, Kyle's device walk. |
-| NPM-1 DAILY-RHYTHM-RELIABILITY | **[Next]** **[BUILT AND WALKED at 71face5, AWAITING MERGE.]** Was: **[Next]** **[BUILT, WALK PENDING on journey/npm-1-daily-rhythm-reliability]** **[LAUNCH-BLOCKING. NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-10-01, split from NOTIFICATION-PREFERENCES-MODEL under Kyle's rulings D1 to D9.]** The daily rhythm is reliable from a user's first day *(row added 2026-10-01)* | **KYLE'S RULING D1:** V1's daily rhythm is phone/local delivery only, and NPM-1 owns making it reliable from the user's first day onward. **NPM-1 RULINGS 1 TO 5** are recorded verbatim in the ADDED 2026-10-01 (NPM-1's build docs) block at the end of §5. **SCOPE:** `reconcileDailyRhythm` decides from a fresh preferences read, serialized, never consulting a hook copy or `serverPushEnabled`; NotificationProvider's foreground and sign-in paths call it; the foreground sweep spares the daily rhythm id; the same-uid cancel is guarded; Insights notifications are cancelled and never scheduled; the onboarding Reminder step retries its write once and reconciles on both branches; the opt-in screen's one-line alignment; the approved practice copy. **NOT IN SCOPE:** NotificationSettingsScreen's controls and pickers, Quiet Hours, push-token registration, anything under `functions/` or `functions-notifications/`. | ROUTINE-REMINDER-TIME-PICKER merged. | Yes, Kyle's device walk: `docs/walks/npm-1-daily-rhythm-reliability/WALK.md`. |
-| NPM-2 NOTIFICATION-SETTINGS-TRUTHFULNESS | **[READY. LAUNCH-BLOCKING. Starts after NPM-1 merges.]** **[NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-10-01, split from NOTIFICATION-PREFERENCES-MODEL.]** The Notifications settings say what the app does *(row added 2026-10-01)* | **OWNS KYLE'S RULINGS D4, D6, D7, D8, AND D9'S REACHABLE REMOVAL**, verbatim in the ADDED 2026-10-01 (NPM-1's build docs) block at the end of §5: the OS-permission status/action row; removing Community Activity and the dead Push Notifications control, replacing the latter with OS notification-permission status; hiding Completion Sound, Insights and Milestone notification controls; the draft/Done/Cancel pickers with an Add a time state; hiding Quiet Hours; removing the reachable Journal opt-in. **ABSORBS** NOTIFICATION-SETTINGS-SWITCH-LABELS and the ADDED 2026-10-01 addendum on the Settings time pickers committing on every scroll tick. **OWNS RECOVERY FOR THE ONBOARDING WRITE-FAILURE CASE** (ledger row DAILY-RHYTHM-ONBOARDING-WRITE-FAILURE). Whether a Settings commit reconciles the daily rhythm immediately, rather than at the next return, is decided here. | NPM-1 merged. | Yes, Kyle's device walk. |
+| NPM-1 DAILY-RHYTHM-RELIABILITY | **[DONE, merged at f090e07.]** Was: **[Next]** **[BUILT AND WALKED at 71face5, AWAITING MERGE.]** Was: **[Next]** **[BUILT, WALK PENDING on journey/npm-1-daily-rhythm-reliability]** **[LAUNCH-BLOCKING. NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-10-01, split from NOTIFICATION-PREFERENCES-MODEL under Kyle's rulings D1 to D9.]** The daily rhythm is reliable from a user's first day *(row added 2026-10-01)* | **KYLE'S RULING D1:** V1's daily rhythm is phone/local delivery only, and NPM-1 owns making it reliable from the user's first day onward. **NPM-1 RULINGS 1 TO 5** are recorded verbatim in the ADDED 2026-10-01 (NPM-1's build docs) block at the end of §5. **SCOPE:** `reconcileDailyRhythm` decides from a fresh preferences read, serialized, never consulting a hook copy or `serverPushEnabled`; NotificationProvider's foreground and sign-in paths call it; the foreground sweep spares the daily rhythm id; the same-uid cancel is guarded; Insights notifications are cancelled and never scheduled; the onboarding Reminder step retries its write once and reconciles on both branches; the opt-in screen's one-line alignment; the approved practice copy. **NOT IN SCOPE:** NotificationSettingsScreen's controls and pickers, Quiet Hours, push-token registration, anything under `functions/` or `functions-notifications/`. | ROUTINE-REMINDER-TIME-PICKER merged. | Yes, Kyle's device walk: `docs/walks/npm-1-daily-rhythm-reliability/WALK.md`. |
+| ROUTINE-REMINDER-OFFLINE-RESILIENCE | **[Next]** **[BUILT AND WALKED at 19ded4b, AWAITING MERGE. OFFLINE COLD START IS A REQUIRED PRE-LAUNCH DEVICE CHECK ON THE FIRST STANDALONE BUILD.]** Was: **[Next]** **[BUILT, WALK PENDING on journey/routine-reminder-offline-resilience]** **[LAUNCH-BLOCKING. NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-10-01 under Kyle's rulings.]** A failed or timed-out routine refresh never makes the scheduled routine reminders less correct *(row added 2026-10-01)* | **KYLE'S RULING 1 (2026-10-01), VERBATIM:** "Approve ROUTINE-REMINDER-OFFLINE-RESILIENCE as its own launch-blocking slice immediately after NPM-1 merges, before NPM-2. Keep it narrow. Do not add a new local routine cache. Establish this invariant: A failed or timed-out routine refresh must never make the currently scheduled routine-reminder state less correct than it was before the refresh began. Implementation direction is approved: read routine state first; bound the read with a timeout; only after a successful, current read reconcile cancellation/scheduling; on failure or timeout, leave existing routine reminders untouched; allow the rest of foreground notification reconciliation, including daily rhythm work, to continue after the routine read fails or times out. Add explicit async ownership protection: Once a routine refresh has failed, timed out, been superseded, or lost ownership of the current session, any eventual late completion from that attempt is inert and cannot cancel or schedule notifications. Preserve the existing session-loss invariant. Offline preservation applies only while the same user session remains active. Sign-out, account deletion, and account switching must still cancel reminders belonging to the departing user. It is acceptable that a reminder deleted or changed on another device may remain at its last-known state while this device is offline; reconcile it on the next successful refresh. Do not absorb the broader blanket-cancellation cleanup from NPM-4. This slice fixes only routine-reminder reconciliation safety; NPM-4 retains ownership of broader cleanup. Automated coverage must include online success, offline failure, timeout, ignored late completion, successful recovery, sign-out/account deletion, and account-switch isolation. The device walk should prove that a previously scheduled routine reminder still fires after Vara is foregrounded while the device is in airplane mode." **KYLE'S RULING 2 (2026-10-01), VERBATIM:** "G2. When OS notification permission is off, do not cancel routine reminders and do not perform routine reminder reconciliation on that foreground pass. Leave the currently scheduled reminders untouched. Rationale: OS permission controls delivery; it should not destroy the user's configured reminder state. If the user later restores notification permission, existing routine reminders should be able to resume without requiring a successful network refresh first. Sign-out, account deletion, and account switching remain explicit exceptions and must still cancel reminders belonging to the departing user. Keep the server-only routine read requirement. A cache-backed empty result is not authoritative enough to justify cancellation. Destructive reconciliation requires a successful server read. The accepted tradeoff is that while permission is off, or while the device is offline, routine reminder state may remain stale until the next successful authoritative refresh. Add the online account-switch walk step as proposed. Also perform the NPM-1 single-settings-document source-behavior check. If an offline read can ever look like authoritative absence and trigger default creation, stop and surface it before proceeding." *(Both rulings are also in the ADDED 2026-10-01 (ROUTINE-REMINDER-OFFLINE-RESILIENCE's build docs) block at the end of §5, with their paragraph breaks; here they are joined into one table cell.)* **SCOPE:** `syncAllReminders` checks OS permission first and, without it, cancels, reads and schedules nothing (G2); then reads routines only through the new `fetchUserRoutinesFromServer` (`getDocsFromServer`), bounded at 10 seconds, and on failure or timeout touches nothing routine-related; after a successful read it cancels every `routine-reminder-` id outside the current user's desired set (another account's included) and schedules each desired id under its own identifier with no pre-cancel. `scheduleRoutineReminder` no longer cancels its own id first; the routine editor keeps its explicit cancels. A module-level generation makes a superseded or session-lost attempt inert; it is bumped by every new attempt, by `cancelAllRoutineReminders`, and by `invalidateRoutineReminderAttempts()`, which the provider's session-loss cleanup calls synchronously. The foreground sweep's spare predicate also spares `routine-reminder-` ids. The habit-reminder cleanup stays. **NOT IN SCOPE:** NPM-4's blanket-sweep cleanup; the daily rhythm reconcile; the routine editor's outcome flow and alerts; NotificationSettingsScreen; anything under `functions/` or `functions-notifications/`; a local routine cache. **MANIFEST:** no new Firestore collection or field. | NPM-1 merged. | Yes, Kyle's device walk: `docs/walks/routine-reminder-offline-resilience/WALK.md`. |
+| NPM-2 NOTIFICATION-SETTINGS-TRUTHFULNESS | **[READY. LAUNCH-BLOCKING. Starts after ROUTINE-REMINDER-OFFLINE-RESILIENCE merges.]** Was: **[READY. LAUNCH-BLOCKING. Starts after NPM-1 merges.]** **[NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-10-01, split from NOTIFICATION-PREFERENCES-MODEL.]** The Notifications settings say what the app does *(row added 2026-10-01)* | **OWNS KYLE'S RULINGS D4, D6, D7, D8, AND D9'S REACHABLE REMOVAL**, verbatim in the ADDED 2026-10-01 (NPM-1's build docs) block at the end of §5: the OS-permission status/action row; removing Community Activity and the dead Push Notifications control, replacing the latter with OS notification-permission status; hiding Completion Sound, Insights and Milestone notification controls; the draft/Done/Cancel pickers with an Add a time state; hiding Quiet Hours; removing the reachable Journal opt-in. **ABSORBS** NOTIFICATION-SETTINGS-SWITCH-LABELS and the ADDED 2026-10-01 addendum on the Settings time pickers committing on every scroll tick. **OWNS RECOVERY FOR THE ONBOARDING WRITE-FAILURE CASE** (ledger row DAILY-RHYTHM-ONBOARDING-WRITE-FAILURE). Whether a Settings commit reconciles the daily rhythm immediately, rather than at the next return, is decided here. | NPM-1 merged. | Yes, Kyle's device walk. |
 | NPM-3a COMMUNITY-NOTIFICATION-CORRECTNESS | **[READY. LAUNCH-BLOCKING.]** **[NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-10-01, split from NOTIFICATION-PREFERENCES-MODEL.]** One correct push per Community event *(row added 2026-10-01)* | **KYLE'S RULING, VERBATIM (D5 and ruling 6, as revised):** "Community is part of V1, including its current Messages, People and Connect functionality. Do not create a retirement slice for those entry points. The DM and connection issues belong to a separate launch-blocking NPM-3a COMMUNITY-NOTIFICATION-CORRECTNESS row. It must resolve the duplicate DM sender architecture, the connection-request field mismatch, preference enforcement, and prove one correct push per relevant event. Do not widen NPM-1 with that server work." **ALSO OWNS** push-token registration for Community pushes, and what the server does with stored Quiet Hours once NPM-2 hides that control. **INHERITS** SOCIAL-PUSH-FLAG-BYPASS and NOTIFICATIONS-CODEBASE-IGNORES-PREFS (whose `notifyOnInviteCreated` sends no push, and triggers on `connectionInvites`, which mobile never writes; see NPM-1's §13 entry). **NEEDS A FUNCTIONS DEPLOY, with `npm test` in `functions/` first.** | None. | Yes, Kyle's walk with two accounts after the deploy. |
 | NPM-3b SERVER-SCHEDULED-SENDER-RETIREMENT | **[QUEUED. NOT A LAUNCH BLOCKER WHILE THE FOUR SCHEDULED JOBS REMAIN PAUSED.]** **[NOT AN R-SERIES ROW. Row added 2026-10-01, split from NOTIFICATION-PREFERENCES-MODEL.]** The four scheduled server senders retire *(row added 2026-10-01)* | **CARRIES A PRE-LAUNCH CHECK, AND A RE-CHECK AFTER ANY FUNCTIONS DEPLOY, THAT THE `sendDailyRhythm`, `sendHabitReminders`, `sendInsights` AND `sendMilestones` JOBS REMAIN PAUSED** (Kyle paused all four at 5:50 PM Eastern on 2026-10-01; a later functions deploy may recreate or re-enable the schedules). **INHERITS** the function removals in LEGACY-SERVER-PUSHES. **RECORDS THAT THE SERVER DAILY RHYTHM COPY STILL SAYS ROUTINE** (`functions/src/notifications/dailyRhythm.js` lines 15 to 27), against the local practice copy NPM-1 shipped and the taxonomy rule that routine is reserved for the user-created Routines feature. | None. | Kyle's console check. |
 | NPM-4 NOTIFICATION-DEAD-CODE-CLEANUP | **[QUEUED. NON-BLOCKING.]** **[Row added 2026-10-01, split from NOTIFICATION-PREFERENCES-MODEL.]** Dead notification code leaves *(row added 2026-10-01)* | **INHERITS** LOCAL-MILESTONE-IGNORES-SETTING and the remaining Journal opt-in implementation after NPM-2 removes its reachable entry. **ALSO NOW DEAD AFTER NPM-1:** `isServerPushEnabled` (no caller), `scheduleInsightsNotification` (no caller), `initializeUserNotifications` and `updateNotificationsFromPreferences` (no caller), the `scheduleDailyReminder` alias, and NotificationContext's unconsumed context API (`onDailyCompletionAchieved` and the `notify*` senders). **ADDED 2026-10-01 (Kyle's ruling on NPM-1's T3): NPM-4 OWNS REPLACING THE BLANKET FOREGROUND SWEEP WITH OWNED, TARGETED CANCELS.** NPM-1 kept the sweep, sparing the current user's daily rhythm id, because it is the only canceller of identifiers older builds left behind that nothing else owns; the replacement must give each of those a canceller first. | None. | None. |
@@ -2629,6 +2631,33 @@ case). `wellnessScore.service` de-wiring remains queued and is untouched by this
 > remain" no longer applies: Community is part of V1, and its pushes are made correct by the
 > launch-blocking NPM-3a rather than removed. The sequencing line is recorded as given.
 
+
+> **ADDED 2026-10-01 (ROUTINE-REMINDER-OFFLINE-RESILIENCE's build docs). KYLE'S RULINGS 1 AND 2,
+> VERBATIM.** Recorded as Kyle gave them on 2026-10-01, for the ROUTINE-REMINDER-OFFLINE-RESILIENCE
+> build. Binding as written. The blocks above are left unedited.
+>
+> **Ruling 1:**
+>
+> Approve ROUTINE-REMINDER-OFFLINE-RESILIENCE as its own launch-blocking slice immediately after NPM-1 merges, before NPM-2. Keep it narrow. Do not add a new local routine cache.
+> Establish this invariant: A failed or timed-out routine refresh must never make the currently scheduled routine-reminder state less correct than it was before the refresh began.
+> Implementation direction is approved: read routine state first; bound the read with a timeout; only after a successful, current read reconcile cancellation/scheduling; on failure or timeout, leave existing routine reminders untouched; allow the rest of foreground notification reconciliation, including daily rhythm work, to continue after the routine read fails or times out.
+> Add explicit async ownership protection: Once a routine refresh has failed, timed out, been superseded, or lost ownership of the current session, any eventual late completion from that attempt is inert and cannot cancel or schedule notifications.
+> Preserve the existing session-loss invariant. Offline preservation applies only while the same user session remains active. Sign-out, account deletion, and account switching must still cancel reminders belonging to the departing user.
+> It is acceptable that a reminder deleted or changed on another device may remain at its last-known state while this device is offline; reconcile it on the next successful refresh.
+> Do not absorb the broader blanket-cancellation cleanup from NPM-4. This slice fixes only routine-reminder reconciliation safety; NPM-4 retains ownership of broader cleanup.
+> Automated coverage must include online success, offline failure, timeout, ignored late completion, successful recovery, sign-out/account deletion, and account-switch isolation.
+> The device walk should prove that a previously scheduled routine reminder still fires after Vara is foregrounded while the device is in airplane mode.
+>
+> **Ruling 2:**
+>
+> G2. When OS notification permission is off, do not cancel routine reminders and do not perform routine reminder reconciliation on that foreground pass. Leave the currently scheduled reminders untouched.
+> Rationale: OS permission controls delivery; it should not destroy the user's configured reminder state. If the user later restores notification permission, existing routine reminders should be able to resume without requiring a successful network refresh first.
+> Sign-out, account deletion, and account switching remain explicit exceptions and must still cancel reminders belonging to the departing user.
+> Keep the server-only routine read requirement. A cache-backed empty result is not authoritative enough to justify cancellation. Destructive reconciliation requires a successful server read.
+> The accepted tradeoff is that while permission is off, or while the device is offline, routine reminder state may remain stale until the next successful authoritative refresh.
+> Add the online account-switch walk step as proposed.
+> Also perform the NPM-1 single-settings-document source-behavior check. If an offline read can ever look like authoritative absence and trigger default creation, stop and surface it before proceeding.
+
 ---
 
 ## 6. Content dependencies (Jen), in build order
@@ -3348,6 +3377,46 @@ rule is cited as §12.1.
 >   MERGE."* **[Next]** stays on this row. The rationale: the walk evidence.
 > - **NPM-4's ROW** gains an appended clause, Kyle's ruling on NPM-1's T3: NPM-4 owns replacing the
 >   blanket foreground sweep with owned, targeted cancels. The rest of the row is unedited.
+
+
+> **ADDED 2026-10-01 (ROUTINE-REMINDER-OFFLINE-RESILIENCE's build docs), recording the merge
+> evidence and Kyle's rulings. TWO MARKER UPDATES AND ONE NEW ROW.** The rule and the blocks above
+> are left unedited. Each update keeps the entire prior marker verbatim after "Was:".
+>
+> **The merge evidence.** This slice's build, run by CC from `mobile/` on 2026-10-01, observed
+> `git rev-parse HEAD` and `git rev-parse origin/main` both returning
+> `f090e0786b9823719448cc65cfe8adcd885d350f` on `main`, clean apart from the untracked before/
+> folder, and `f090e07`'s parents as `5277031` and `fc05c14`, the tip of
+> `origin/journey/npm-1-daily-rhythm-reliability`.
+>
+> - **NPM-1's MARKER.** It becomes *"DONE, merged at f090e07."* **[Next]** leaves this row. The
+>   rationale: the merge evidence.
+> - **NEW ROW** directly after NPM-1: ROUTINE-REMINDER-OFFLINE-RESILIENCE. **[Next]** moves to it,
+>   with *"BUILT, WALK PENDING on journey/routine-reminder-offline-resilience"*. The rationale:
+>   Kyle's ruling 1 (its own launch-blocking slice immediately after NPM-1 merges, before NPM-2),
+>   the build, and the walk not yet run. Both rulings are recorded verbatim in the row and in the
+>   ADDED 2026-10-01 (ROUTINE-REMINDER-OFFLINE-RESILIENCE's build docs) block at the end of §5.
+> - **NPM-2's MARKER.** It becomes *"READY. LAUNCH-BLOCKING. Starts after
+>   ROUTINE-REMINDER-OFFLINE-RESILIENCE merges."* The rationale: Kyle's ruling 1. Its Gates cell
+>   still reads "NPM-1 merged." and is left as written; the marker carries the sequencing.
+
+
+> **ADDED 2026-10-01 (ROUTINE-REMINDER-OFFLINE-RESILIENCE's post-walk docs), recording Kyle's walk,
+> his attestation and his cold-start ruling. ONE MARKER UPDATE AND ONE NEW LEDGER ROW.** The rule
+> and the blocks above are left unedited. The update keeps the entire prior marker verbatim after
+> "Was:".
+>
+> **The walk evidence.** Kyle walked `docs/walks/routine-reminder-offline-resilience/WALK.md` on
+> 2026-10-01 at `19ded4b`, iPhone 14 Plus, iOS 26.3, default Dynamic Type, with notifications allowed
+> for Vara: W1 to W7 all PASS, W0 recorded, and attested it.
+>
+> - **ROUTINE-REMINDER-OFFLINE-RESILIENCE's MARKER.** BUILT, WALK PENDING becomes *"BUILT AND WALKED
+>   at 19ded4b, AWAITING MERGE. OFFLINE COLD START IS A REQUIRED PRE-LAUNCH DEVICE CHECK ON THE FIRST
+>   STANDALONE BUILD."* **[Next]** stays on this row. The rationale: the walk evidence, and Kyle's
+>   ruling that the offline cold start is a required pre-launch device check on the first standalone
+>   build, not a gate on this merge.
+> - **NEW LEDGER ROW: OFFLINE-COLD-START-DEVICE-CHECK**, after DAILY-RHYTHM-TAP-DESTINATION. The
+>   rationale: the same ruling.
 
 ---
 
@@ -4608,6 +4677,241 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the map route still offers it. **Record the result in this entry when observed. Until then
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
+
+### 2026-10-01 - ROUTINE-REMINDER-OFFLINE-RESILIENCE: a scheduled routine reminder survives a return to Vara while offline (branch `journey/routine-reminder-offline-resilience`, `87a8e5b` the before-state evidence, `6dd5e12` the code and tests, this entry the docs; **BUILT, WALK PENDING**, script at `docs/walks/routine-reminder-offline-resilience/WALK.md`)
+
+**STEP 0 (read-only, on `main` at `f090e07`) FOUND THREE ROUTINE CANCELS BEFORE THE READ.**
+- **On every return to the foreground,** NotificationProvider ran the sweep, then the daily rhythm
+  reconcile, then `syncAllReminders`, all inside one `runExclusive` run.
+  - The sweep (`cancelAllScheduledExceptFocusComplete`) cancelled every pending id except
+    focus-complete and the current user's daily rhythm, so every `routine-reminder-` id went.
+  - `syncAllReminders` then cancelled them again at its top, and a third time in its stage-1
+    cleanup, before its read (`fetchUserRoutines`).
+  - **A failed read put nothing back,** so a return to Vara while offline emptied the device's
+    routine reminders until the next successful sync.
+- **`scheduleRoutineReminder` cancelled its own id before scheduling it.** That left a gap, and if
+  the schedule then threw, the id stayed cancelled.
+- **A hung read held the provider's queue with no bound.** Behind it waited the next foreground
+  run (including its daily rhythm reconcile), the sign-in sync, the session-loss cancel and the
+  signed-out cold-start cancel. Account deletion's direct cancel was not queued.
+- **AN OFFLINE QUERY CAN RESOLVE FROM THE MEMORY CACHE AS EMPTY.** This is derived from the
+  installed SDK's source, not observed on a device.
+  - `config/firebase.ts:154` calls `initializeFirestore` with only `cacheSizeBytes`, so the cache
+    is the default memory cache.
+  - In `@firebase/firestore` 4.9.3, `dist/index.rn.js` (the react-native build),
+    `__PRIVATE_executeQueryViaSnapshotListener` (:18490) rejects a cache snapshot only when the
+    source is `"server"` (:18495). Plain `getDocs` therefore resolves with whatever the cache holds.
+  - The SDK's own comment at :15207 says that once offline, "get()s will return cached data". The
+    client goes offline after a 10-second `online_state_timeout` (:15240).
+  - So a "successful" offline read could return an empty or partial routine list, and a reconcile
+    trusting it would cancel every reminder. That is why Kyle's ruling 2 keeps the server-only read.
+  - `getDocsFromServer` (:21997) passes `source: "server"`, and so rejects instead.
+- **The no-permission question** (cancel or leave untouched) went to Kyle, who ruled G2: leave
+  them untouched.
+
+**THE BEFORE-STATE GATE STOPPED ONCE, THEN PASSED.** At the build's first run the two screenshots
+were not in `docs/walks/routine-reminder-offline-resilience/before/` and the directory did not
+exist, so the build stopped. On the second run both files were present, untracked, on `main` at
+`f090e07`.
+
+**THE BEFORE-STATE, AS THE IMAGES SHOW IT.** Kyle captured two screenshots on `main` at
+`f090e07`, committed unchanged in `before/` as C1.
+- **`01-routine-reminder-set.png`:** Vara's Time screen at 8:14 by the status bar, with the
+  cellular and Wi-Fi icons visible and a Camera back-link at the top left. Morning is selected.
+  The routine The Essentials carries a bell chip reading 8:17 PM. It has four activities
+  (Hydration 1 min, Stretching 3 min, Intention Setting 3 min, Breakfast 3 min), 10 min total.
+- **`02-lock-screen-offline-after-time.png`:** the lock screen at 8:17. **The airplane-mode icon
+  is visible** in the status bar, with no Wi-Fi or cellular icon, and the line 48% Charged · 26m to
+  80%. **It shows one Vara notification**, marked now: title Your morning routine is ready, body
+  The Essentials · 10 min.
+- **The images show the routine reminder delivered at 8:17 with airplane mode on.** They do not
+  show whether Vara was foregrounded while offline before 8:17, or in what order airplane mode
+  and any return to Vara happened. No statement from Kyle about this run accompanied them, and
+  none is attributed to him here.
+
+**HOW A DELIVERY IS POSSIBLE ON `main`, FROM THE CODE.** None of these is determinable from the
+images.
+- **(a) No return to Vara while offline before 8:17.** Nothing ran the sweep or the sync, so the
+  reminder stayed pending.
+- **(b) The return happened before airplane mode went on.** The read succeeded and rescheduled.
+- **(c) An offline `getDocs` resolved from the memory cache with the routine present.** The sync
+  then rescheduled it after the cancels. Whether a listener kept the routines query in the cache
+  at that moment is unknown; image 01 shows the Time screen open shortly before.
+
+**So the device capture does not demonstrate the defect.** On `main` the walk's W1 could pass for
+reason (a), (b) or (c). The code-level before evidence is the failing regression test.
+
+**THE CODE-LEVEL BEFORE EVIDENCE.** `before/03-regression-test-on-main.txt` is this slice's
+regression test (`NotificationContext.routineOffline.test.tsx`), run against unmodified
+production code at `f090e07`, failing. It uses the real provider, real routine scheduler and real
+daily rhythm reconcile over an in-memory OS store.
+
+The scenario:
+1. A routine reminder is pending.
+2. The app returns to the foreground.
+3. The routine read rejects.
+4. The test asserts the reminder is still pending.
+
+On `main` it is not (`Received has value: undefined`). It ships green in C2.
+
+**T0a, THE NPM-1 SINGLE-SETTINGS-DOCUMENT CHECK (Kyle's ruling 2): AN OFFLINE READ CANNOT LOOK LIKE
+AUTHORITATIVE ABSENCE.** Read-only, from the installed SDK and the repo.
+- **The SDK.** `getDoc` (`index.rn.js` :21912) goes through
+  `__PRIVATE_readDocumentViaSnapshotListener` (:18443). For a snapshot whose document is absent
+  and which comes from the cache, it **rejects** with UNAVAILABLE "Failed to get document because
+  the client is offline." (:18458).
+  - An absent document resolves (`exists() === false`) only from a snapshot that is not from
+    cache, which means server-confirmed.
+  - With the memory cache, an offline read of a document not in the cache rejects.
+  - So does a document known absent from an earlier read, because its snapshot is still from cache.
+- **The service.** `getNotificationPreferences` (`notificationPreferences.service.ts:258`) creates
+  defaults (:290) only after a resolved snapshot whose `exists()` is false. Its catch rethrows
+  (:294).
+- **So default creation is reachable only from an online, server-confirmed absence,** which is the
+  new-user case it exists for.
+- **The tests.**
+  - A new test in `notificationPreferences.service.test.ts` pins that a `getDoc` rejected as
+    offline makes `getNotificationPreferences` reject with no `setDoc` and no `updateDoc`
+    (mutation M15).
+  - The daily rhythm reconcile already treats that rejection as `'read-failed'`
+    (`notificationScheduler.reconcile.test.ts`, "a rejected read leaves the pending reminder
+    exactly as it was").
+- **The build did not stop on it.**
+
+**WHAT WAS BUILT (`6dd5e12`), BY TASK:**
+- **T1, the server-only read.** `fetchUserRoutinesFromServer` in
+  `mobile/src/services/firebase/routines.service.ts:80` reads through `getDocsFromServer` (:85).
+  - It rejects when Firestore is not initialized (`requireDb()`, :82), where `fetchUserRoutines`
+    would answer `[]`.
+  - `fetchUserRoutines` is unchanged for `useDashboard`.
+- **T2, `syncAllReminders`** (`mobile/src/services/reminderScheduler.service.ts:306`), in order:
+  1. **OS permission off** returns `'no-permission'` with nothing cancelled, read or scheduled (:307).
+  2. **The attempt takes its generation** when it starts running (:313).
+  3. **The habit-reminder cleanup** (:323).
+  4. **The read, bounded at 10 seconds** (`readRoutinesWithTimeout`, :275, called at :335).
+     - On rejection it returns `'read-failed'`; on timeout, `'read-timed-out'` (:336).
+  5. **The reconcile, after an ownership check** (:337).
+     - The desired set is this uid's active routines with a time that `parseTimeString` accepts.
+     - Every `routine-reminder-` id outside it is cancelled (:353).
+     - Each desired id is scheduled under its own identifier with no pre-cancel (:367). A failed
+       schedule is caught per id.
+  - **Ownership is checked before every cancel and every schedule** (:354, :365). A lost attempt
+    returns `'superseded'`.
+  - **No routine cancel runs before the read.** It never rejects.
+- **T3.** `scheduleRoutineReminder` no longer cancels its own id first (:156). The editor's
+  explicit cancels, outcome flow and alerts are unchanged.
+- **T4.** The foreground sweep's spare predicate is
+  `id === dailyRhythmId || isRoutineReminderId(id)` (`NotificationContext.tsx:129`). Nothing else
+  about the sweep changed.
+- **T5, ownership.** `reconcileGeneration` (:248) is bumped by:
+  - every new attempt (:313);
+  - `cancelAllRoutineReminders` as its first statement (:217);
+  - `invalidateRoutineReminderAttempts()` (:255), which the provider's session-loss cleanup calls
+    synchronously (`NotificationContext.tsx:273`) before it queues its cancel (:275).
+- **T6, session loss is unchanged and independent of any read.** These still cancel every
+  `routine-reminder-` id:
+  - sign-out and a uid change (`NotificationContext.tsx:275`);
+  - account deletion (`useAccountActions.ts:77`);
+  - a signed-out cold start (`NotificationContext.tsx:288`).
+
+  A hung read now releases the queue after at most 10 seconds.
+
+**TESTS.**
+- **Three new suites:** `NotificationContext.routineOffline` (7 tests, provider-level),
+  `reminderScheduler.offlineResilience` (10) and `routines.fromServer` (3).
+- **New tests in existing files:** `reminderScheduler.routines` (G2, habit cleanup, no
+  pre-cancel), `NotificationContext.test` (synchronous invalidate) and
+  `notificationPreferences.service` (T0a).
+- **Kyle's seven cases map to:**
+  - online success, offline failure, timeout and successful recovery;
+  - ignored late completion, in two halves: the timed-out half and the superseded half;
+  - sign-out and account deletion, at service and provider level;
+  - account-switch isolation, at service and provider level.
+- **Mutations.** Twenty-one were run (M1 to M20 plus M1b). Each was caught by its named test, and
+  each file was restored byte-identical by SHA-256, never by git.
+- **The timed-out half of "ignored late completion" is inert by construction.** The late answer
+  resolves a promise the timer has already settled. So it is caught by removing the timeout
+  (M3), not by removing the generation check. M4 is caught by the superseded half and the
+  session-loss tests.
+
+**EXISTING TESTS WHOSE MEANING CHANGED:**
+- **`NotificationContext.test`, the spare test:** `spare('routine-reminder-r1')` flips from false to
+  true.
+- **"re-syncs reminders" and "syncs AFTER the cancel":** the order no longer protects routine
+  reminders. Comments added; assertions unchanged.
+- **`NotificationContext.foregroundSurvivors`:** routine reminders survive because they are spared,
+  not re-synced. Its mock gains the server read, and the "dropping syncAllReminders" mutation
+  claim is withdrawn in its comment.
+- **`reminderScheduler.routines`:**
+  - "cancels every routine-reminder- id first" became the online-success outside-set test;
+  - "cancels another account's routine reminders even without OS permission" is reversed by G2;
+  - "without OS permission… does not even read" now also asserts the `'no-permission'` outcome.
+- **The editor tests are unchanged and still prove the editor's explicit cancels.** M13, which
+  removes the editor's cancel before a re-schedule, is caught by "a changed time: cancels,
+  schedules…". The delete path stays pinned by "cancels routine-reminder-{id} after the delete
+  succeeds".
+
+**REACHABILITY, SEPARATE FROM THE MUTATION RESULTS.** The provider tests drive the real
+AppState handler captured from a spy, with the real scheduler over an in-memory OS store. The
+routines service test mocks `firebase/firestore`.
+- **Reachable and walkable:**
+  - the foreground sweep and sync on every return (W1, W2, W3, W7);
+  - the session-loss cancel (W4, W5);
+  - G2 (W6);
+  - the editor's remove path (W3).
+- **Reachable, not inducible on demand:**
+  - a hung read past the timeout;
+  - a late completion;
+  - an attempt superseded mid-reconcile;
+  - a per-id schedule failure.
+- **Not walkable:**
+  - account deletion (destructive, and needs a connection);
+  - an offline cold start (the dev client cannot load offline).
+- **Whether `getDocsFromServer` rejects on this device offline is read from the SDK's source and
+  not yet observed;** W1 observes its effect.
+
+Nothing here is verified on a device until the walk.
+
+**BASELINES at `6dd5e12`** (re-measured after this docs commit; see the report):
+- **jest:** 4040 tests in 251 suites, no failures. That is +24 tests and +3 suites on `main`'s
+  4016 and 248.
+- **tsc:** 137. The sorted error list, with file positions stripped, is identical to `main` at
+  `f090e07`.
+- **lint:** 891 errors, 1251 warnings, unchanged. One `max-lines` warning that the tests first
+  added was removed by moving the offline-resilience cases into their own suite.
+- **sentinel:** 156. No copy changed.
+
+**MANIFEST:** this slice writes no new Firestore collection and no new field. It adds one read,
+`getDocsFromServer` on `routines`, and no local routine cache.
+
+**THE WALK IS PENDING.** Kyle walks `docs/walks/routine-reminder-offline-resilience/WALK.md` on the
+docs commit. Nothing here is verified on a device.
+
+**AMENDED 2026-10-01, AFTER THE WALK. WALKED AND ATTESTED.**
+- **The walk.** Walked and attested by Kyle on 2026-10-01, iPhone 14 Plus, default Dynamic Type,
+  at `19ded4b` on iOS 26.3, with notifications allowed for Vara. W1 to W7 all PASS, and W0 is
+  recorded. The results are in `docs/walks/routine-reminder-offline-resilience/WALK.md`.
+  - **W1, offline survival, PASSED:** a routine reminder scheduled online fired at its time after
+    Vara was left and returned to in airplane mode with Wi-Fi off. That is the device proof Kyle's
+    ruling 1 asked for.
+  - **W2 to W7 also passed:** recovery, removed stays removed, sign-out while offline, the online
+    account switch, permission off then on (G2), and the daily rhythm offline.
+- **Not walked, as the script records.** A hung read past the timeout, a late completion and a
+  superseded attempt (not inducible on demand); account deletion (destructive, and needs a
+  connection); Reduce Transparency and larger text sizes (deferred by Kyle until after the initial
+  generally available release). These are covered by automated tests only.
+- **KYLE'S RULING ON THE OFFLINE COLD START, 2026-10-01: A REQUIRED PRE-LAUNCH DEVICE CHECK ON THE
+  FIRST STANDALONE BUILD, NOT A GATE ON THIS MERGE.**
+  - On `main` the before-state run did not reproduce the defect, because a warm app can answer the
+    routine read from memory.
+  - The case that loses reminders is a start from fully closed with no connection. No device has
+    observed it on either build, and the dev client cannot load its bundle offline.
+  - It is recorded as the new ledger row OFFLINE-COLD-START-DEVICE-CHECK: REQUIRED BEFORE LAUNCH,
+    on the first standalone build (preview or TestFlight), for the routine reminder and the daily
+    rhythm reminder alike. It is also listed in `mobile/PRE_SUBMISSION_CHECKLIST.md`, Step 4, Test
+    Scenarios.
+- **The marker** now reads BUILT AND WALKED at `19ded4b`, AWAITING MERGE, with the cold-start
+  check named, and **[Next]** stays on this row.
 
 ### 2026-10-01 - NPM-1 DAILY-RHYTHM-RELIABILITY: a new user's first daily reminder survives a leave-and-return (branch `journey/npm-1-daily-rhythm-reliability`, `c63f951` the before-state evidence, `536b6ab` the code and tests, this entry the docs; **BUILT, WALK PENDING**, script at `docs/walks/npm-1-daily-rhythm-reliability/WALK.md`)
 

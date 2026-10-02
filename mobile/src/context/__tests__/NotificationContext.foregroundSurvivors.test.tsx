@@ -3,7 +3,9 @@
  * notification, now that the foreground sweep spares the daily rhythm.
  *
  * Real provider, real scheduler and real routine reminder scheduler, against an
- * in-memory OS store. Routine reminders must come back after the sweep, the
+ * in-memory OS store. Routine reminders must be pending after the sweep (since
+ * ROUTINE-REMINDER-OFFLINE-RESILIENCE they are spared by it rather than put
+ * back by the sync; the offline case is NotificationContext.routineOffline), the
  * focus completion alert must never be touched, and routine step alerts keep
  * their lifecycle unchanged from main: scheduled by the routine player when the
  * app leaves the foreground, fired while away, and cleared on return (by the
@@ -52,8 +54,8 @@ jest.mock('../../services/notificationThrottle', () => ({
   canSendSystemNotification: jest.fn().mockResolvedValue(true),
   markNotificationSent: jest.fn().mockResolvedValue(undefined),
 }));
-jest.mock('../../services/firebase/routines.service', () => ({
-  fetchUserRoutines: jest.fn(async () => [
+jest.mock('../../services/firebase/routines.service', () => {
+  const routines = async () => [
     {
       id: 'r1',
       name: 'Wind down',
@@ -62,9 +64,14 @@ jest.mock('../../services/firebase/routines.service', () => ({
       reminderTime: '7:30 PM',
       activities: [{ name: 'Stretch', duration: 5 }],
     },
-  ]),
-  calculateTotalDuration: () => 5,
-}));
+  ];
+  return {
+    fetchUserRoutines: jest.fn(routines),
+    // The only read the routine reminder reconcile accepts.
+    fetchUserRoutinesFromServer: jest.fn(routines),
+    calculateTotalDuration: () => 5,
+  };
+});
 jest.mock('../AuthContext', () => ({
   useAuth: () => ({ user: { uid: 'u1', emailVerified: true }, isAuthReady: true }),
 }));
@@ -135,8 +142,9 @@ afterEach(() => {
 
 describe('a leave-and-return, for every other pending notification (NPM-1)', () => {
   test('routine reminders, the focus completion alert and the daily rhythm are all pending afterwards', async () => {
-    // Mutations caught: dropping syncAllReminders from the foreground run;
-    // removing the focus-complete exemption.
+    // Mutation caught: removing the focus-complete exemption. Was also
+    // "dropping syncAllReminders from the foreground run"; since the sweep
+    // spares routine reminders, that mutation no longer empties them here.
     render(
       <NotificationProvider>
         <></>

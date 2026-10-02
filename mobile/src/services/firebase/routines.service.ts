@@ -8,6 +8,7 @@ import {
   query,
   where,
   getDocs,
+  getDocsFromServer,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -18,6 +19,7 @@ import {
   setDoc,
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { requireDb } from './ensureDb';
 
 export type RoutineType = 'morning' | 'evening' | 'custom';
 
@@ -65,6 +67,26 @@ export async function fetchUserRoutines(userId: string): Promise<Routine[]> {
     console.error('Error fetching routines:', error);
     throw error;
   }
+}
+
+/**
+ * Fetch all routines for a user from the server, never from the local cache.
+ * Rejects when the server cannot be reached, and when Firestore is not
+ * initialized. Routine reminder reconciliation cancels on the strength of this
+ * result, and an offline getDocs can resolve from the memory cache with an
+ * empty or partial list, which must never read as "this user has no routines"
+ * (ROUTINE-REMINDER-OFFLINE-RESILIENCE, Kyle's ruling 2).
+ */
+export async function fetchUserRoutinesFromServer(userId: string): Promise<Routine[]> {
+  const routinesQuery = query(
+    collection(requireDb(), 'routines'),
+    where('userId', '==', userId)
+  );
+  const snapshot = await getDocsFromServer(routinesQuery);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Routine[];
 }
 
 /**
