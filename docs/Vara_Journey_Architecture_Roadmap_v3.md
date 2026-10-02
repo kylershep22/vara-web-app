@@ -385,6 +385,7 @@ deploy. Deploy state lives on Kyle's checklist.
 | JOURNAL-OPTIN-TOKEN-SAVE-REMOVED | **[RECORDED, LEDGER. Row added 2026-10-02 at NPM-2's build docs. OWNED BY NPM-3a.]** One of the paths that saved the Expo push token is gone *(row added 2026-10-02)* | NPM-2 removed the reachable Journal notification opt-in (D9). That screen (`NotificationOptInScreen`) was one of three paths that saved `userPrivate.expoPushToken`. What remains: SettingsScreen's save on mount through `useNotifications` (kept mounted, Kyle's Ruling 5) and the new device-permission row's save after a grant. The FCM token path (`registerAndSaveFCMToken` in `NotificationContext`) is unaffected. Kyle's Ruling 5: "Do not choose the future Community token architecture by implication. NPM-3a retains token-registration ownership." | None. | None until NPM-3a. |
 | OFFLINE-QUEUE-NOT-USER-SCOPED | **[RECORDED, LEDGER. Row added 2026-10-02 at NPM-2's build docs. UNSEQUENCED. FOLDS INTO LOCAL-USER-DATA-SESSION-ISOLATION'S STEP 0.]** The generic offline write queue belongs to no user *(row added 2026-10-02)* | `mobile/src/services/offlineQueue.service.ts` stores queued Firestore operations under one global AsyncStorage key, `@vara_offline_queue`, never clears it on session loss, treats every non-network failure as a retry and discards an operation after five retries. NPM-2 deliberately did not reuse it for the pending notification journal for those reasons. | None. | None. |
 | SLOW-AUTH-RESTORE-ROUTINE-CANCEL-CHECK | **[REQUIRED BEFORE LAUNCH. Run on the first standalone build (preview or TestFlight). AUTOMATICALLY LAUNCH-BLOCKING IF REPRODUCED.]** **[RECORDED, LEDGER. Row added 2026-10-02 at NPM-2's build docs, Kyle's ruling 2 on NPM-2 Build A.]** Routine reminders may be cancelled during an ordinary slow auth restore *(row added 2026-10-02)* | **KYLE'S RULING 2 ON BUILD A (2026-10-02), VERBATIM, headed "2. Routine-reminder slow-auth-restore finding":** "Do not build it into NPM-2. Create/retain a pre-launch standalone-device check for the condition. If the first standalone build reproduces routine-reminder cancellation during ordinary slow auth restoration, automatically promote its corrective work to launch-blocking before submission. Explicit sign-out/account deletion cancellation remains correct; only transient startup auth absence is suspect." *(Its line breaks are kept in the ADDED 2026-10-02 (NPM-2) block in §12.1; here the lines are joined into one cell.)* **THE CONDITION:** `NotificationContext`'s signed-out cold-start job runs `cancelAllRoutineReminders` when `isAuthReady` is true with no user. `AuthContext` also sets `isAuthReady` after a 5-second safety timeout ("Auth state timeout - unblocking app after 5s"), so a session that restores more slowly than that could see its routine reminders cancelled before it appears. NPM-2 removed the pending-intent journal clear from that job for the same reason (Kyle's ruling 1 on Build A) and left the routine cancel as it was. **STEPS:** with the device online, sign in, set a routine reminder a few minutes ahead and save. Force-quit Vara. Turn on airplane mode with Wi-Fi off. Open Vara and wait 15 seconds, then lock the device. **PASS:** the routine reminder fires at the set time. **ALSO LISTED** under Step 4, Test Scenarios, in `mobile/PRE_SUBMISSION_CHECKLIST.md`. | The first standalone build (preview or TestFlight). | Yes, Kyle's device check on that build. |
+| AUTH-OFFLINE-REFRESH-SIGNOUT | **[PRE-LAUNCH. LAUNCH-BLOCKING UNTIL ITS READ-ONLY STEP 0 PROVES OTHERWISE.]** **[RECORDED, LEDGER. Row added 2026-10-02 at NPM-2's commit 7 docs, Kyle's ruling 3 on NPM-2 Build B.]** A transient network or token-refresh failure may sign a valid user out *(row added 2026-10-02)* | **KYLE'S RULING 3 ON BUILD B (2026-10-02), VERBATIM, headed "3. Offline token-refresh sign-out":** "Add a new pre-launch row, launch-blocking until its read-only Step 0 proves otherwise. Suggested name: `AUTH-OFFLINE-REFRESH-SIGNOUT`. The Step 0 must determine whether a transient network/token-refresh failure can transition an otherwise-valid signed-in user into the same session-loss path as a real sign-out/revocation. If confirmed, corrective work is launch-blocking. If disproved, document the actual behavior and downgrade/close the row. Include the 30+ minute airplane-mode standalone-device check as corroborating evidence." *(Its line breaks are kept in the ADDED 2026-10-02 (NPM-2 commit 7) block in §12.1; here the lines are joined into one cell.)* **THE FINDING, UNVERIFIED ON DEVICE** (NPM-2 Build B report): `mobile/src/context/AuthContext.tsx` lines 136 to 149 start a 30-minute interval while the app is active that calls `auth.currentUser.getIdToken(true)`; if that call throws, the catch logs "Token refresh failed, signing out" and calls `signOut(auth)`. Read from the code, an offline refresh would throw and sign the user out. A sign-out takes the full session-loss path in `NotificationContext` (routine reminders cancelled, the daily rhythm cancelled, the pending notification journal cleared). Whether `getIdToken(true)` actually throws offline for a valid session, and so whether this path fires, is what the Step 0 decides. **KNOWN NPM-2 LIMIT TIED TO THIS ROW (Kyle's ruling 4 on Build B):** the pending notification journal clears on that sign-out like any other; it is not special-cased. **CORROBORATING DEVICE CHECK:** with a signed-in account and a routine reminder set, keep a standalone build active in airplane mode for more than 30 minutes, then observe whether Vara signs the user out. **ALSO LISTED** under Step 4, Test Scenarios, in `mobile/PRE_SUBMISSION_CHECKLIST.md`. | None. | The Step 0 is read-only; the device check runs on the first standalone build (preview or TestFlight). |
 | MALFORMED-REMINDER-TIME-DATA-CHECK | **[PRE-LAUNCH DATA CHECK.]** **[RECORDED, LEDGER. Row added 2026-10-02 at NPM-2's build docs, Kyle's ruling on the crash and data shape.]** Stored reminder times with null or missing parts *(row added 2026-10-02)* | **KYLE'S RULING (2026-10-02), VERBATIM, headed "Crash/data shape":** "Treat incomplete/malformed reminder time data as no valid time, as Commit 2 now does. Add a small pre-launch data check for existing beta/test documents containing malformed reminder time objects; no migration system is required unless the check finds real affected records." *(Its line breaks are kept in the ADDED 2026-10-02 (NPM-2) block in §12.1.)* **THE SHAPE:** a `notificationPreferences/{uid}` document whose `dailyRhythm.reminderTime` is a map that fails `isValidReminderTime` (an `hour` or `minute` that is null, missing, not a whole number, or out of range). At `b8c4c67` a null `minute` crashed NotificationSettingsScreen (`notificationPreferences.service.ts` line 424; Kyle's `09-crash-log.txt`). From NPM-2 the scheduler and the screen treat it as no time. **THE CHECK:** a read-only query of the beta and test documents for that shape; report the count. No migration unless real affected records are found. **ALSO LISTED** under Step 4, Test Scenarios, in `mobile/PRE_SUBMISSION_CHECKLIST.md`. | None. | None; a data query, not a walk. |
 | NPM3A-NOTIFICATION-FINDINGS | **[RECORDED, LEDGER. Row added 2026-10-02 at NPM-2's build docs. FINDINGS, NOT RULINGS. FOR NPM-3a.]** What NPM-2 found in the push paths it did not own *(row added 2026-10-02)* | **FINDING 1:** the two direct-message senders push through different tokens: `functions/src/notifications/social.js` sends through `fcmToken` (read through `functions/src/lib/userFields.js`), and `functions-notifications/index.js` through `expoPushToken`. **FINDING 2:** `functions-notifications/index.js` (`notifyOnDirectMessageCreated`) sends a direct-message push with no preference check at all. **FINDING 3:** tap routing for daily-rhythm and Community pushes (`category` `daily_rhythm` and `social_connection`) lives in `mobile/src/hooks/useNotifications.ts`, which is mounted only on SettingsScreen; `NotificationContext`'s response listener routes only habit, routine and focus taps. **FINDING 4:** a failed push-token save was being logged as a permission failure: `useNotifications.checkPermissions` catches the rethrow from `savePushTokenToUser` (which reads `userPrivate/{uid}` before writing) and logs "Error checking notification permissions". NPM-2's new device-permission row never reports a token-save failure as a permission failure; `useNotifications` still logs it that way on SettingsScreen's mount. | None. | None until NPM-3a. |
 | LANDING-HOOKS-ASYNC-OWNERSHIP | **[RECORDED, LEDGER. Row added 2026-09-27 from ASYNC-LOAD-OWNERSHIP's Step 0.]** The same shared-flag defect exists in two more hooks *(row added 2026-09-27)* | `useJourneyLanding.ts:84` and `useWeeklyLanding.ts:67` carry the identical shared-`activeRef` pattern that ASYNC-LOAD-OWNERSHIP replaced in `useTodayCard`. An out-of-order resolve in either can hand `useTodayCard` an older `sourceKey` after a newer one, which no fix inside `useTodayCard` can catch and none should attempt. Same defect class, same house-pattern remedy, not scoped or sequenced. **Gates nothing.** | None. | Not scoped. |
@@ -3518,6 +3519,51 @@ rule is cited as §12.1.
 > successful read (`notificationIntentStore`), so a read served from cache cannot restore an older
 > value while an entry is pending. NPM-1's text is left as written.
 
+> **ADDED 2026-10-02 (NPM-2 commit 7, the correction before the walk), recording Kyle's rulings on
+> NPM-2 Build B. ONE NEW LEDGER ROW; NO MARKER CHANGES.** The rule and the blocks above are left
+> unedited. NPM-2's marker stays BUILT, WALK PENDING; the walk runs against the head of the branch
+> after commit 7, not `3b97b0b`.
+>
+> - **EVERY RECONCILE IS NOW OWNER-CHECKED AND FAILS CLOSED (Kyle's clarification 1 on Build B).**
+>   The owner is the uid the reconcile was queued with. Before every notification cancel and
+>   schedule it makes (the Insights cancel, and the daily reminder cancel or schedule), the signed-in
+>   uid must still be that owner: missing auth, nothing is changed; a different uid, nothing is
+>   changed; the same uid, it proceeds. The check runs at the moment of each change, so a uid change
+>   during the preferences read (up to 10 seconds) stops every change after it. The requireOwner
+>   option of commit `3500717` is removed: there is one behaviour for every caller. Kyle's
+>   clarification, verbatim:
+>
+>   > 1. Passive reconcile owner check
+>   > Add it before the walk.
+>   > Capture the owning UID when the reconcile is queued. Before every notification cancel/schedule mutation, require that the current authenticated UID still equals that owner.
+>   > * missing auth → fail closed;
+>   > * different UID → fail closed;
+>   > * same UID → proceed.
+>   > Fix the affected Firebase test mocks to provide auth. Do not weaken or remove existing behavioral assertions merely to keep the suites green.
+>
+> - **THE JOURNAL CLEARING ON A FORCED SIGN-OUT IS A KNOWN NPM-2 LIMIT, TIED TO
+>   AUTH-OFFLINE-REFRESH-SIGNOUT.** Kyle's ruling 4 on Build B, verbatim:
+>
+>   > 4. Journal clearing on that forced sign-out
+>   > Accept as a known NPM-2 limit tied directly to `AUTH-OFFLINE-REFRESH-SIGNOUT`.
+>   > Do not special-case the journal around an apparent sign-out. The journal should continue clearing on authoritative session loss; if offline refresh is incorrectly producing session loss, fix that root cause in the auth slice.
+>
+> - **NEW LEDGER ROW: AUTH-OFFLINE-REFRESH-SIGNOUT**, after SLOW-AUTH-RESTORE-ROUTINE-CANCEL-CHECK,
+>   launch-blocking until its read-only Step 0 proves otherwise. Kyle's ruling 3 on Build B,
+>   verbatim, with its line breaks:
+>
+>   > 3. Offline token-refresh sign-out
+>   > Add a new pre-launch row, launch-blocking until its read-only Step 0 proves otherwise.
+>   > Suggested name: `AUTH-OFFLINE-REFRESH-SIGNOUT`.
+>   > The Step 0 must determine whether a transient network/token-refresh failure can transition an otherwise-valid signed-in user into the same session-loss path as a real sign-out/revocation.
+>   > If confirmed, corrective work is launch-blocking. If disproved, document the actual behavior and downgrade/close the row.
+>   > Include the 30+ minute airplane-mode standalone-device check as corroborating evidence.
+>
+> - **THE DAILY REMINDER ROW SPEAKS ITS VISIBLE SUBTITLE AS ITS HINT (Kyle's ruling 2 on Build B).**
+>   "One reminder per day at your chosen time", or, when a valid time exists and General is off,
+>   "Turn on General notifications to get this reminder." The string comes from the copy module;
+>   no accessibility-only copy was added.
+
 ---
 
 ## 13. Build log (amendments as slices close)
@@ -4865,6 +4911,30 @@ VoiceOver, larger Dynamic Type and Reduce Transparency are NOT RUN, deferred by 
 automated label coverage is the evidence. Unverified on device, tests only: the first-load
 unavailable state, the offline cold start (owned by OFFLINE-COLD-START-DEVICE-CHECK), a replayed
 write rejected while Settings is closed, and the journal persistence failure alert.
+
+**ADDED 2026-10-02 (commit 7, the correction before the walk).** The docs commit above is `3b97b0b`.
+Commit 7 follows it, and the walk runs against commit 7. It makes every reconcile owner-checked and
+fail-closed (Kyle's clarification 1 on Build B), adds auth to five suites' Firebase mocks (mock lines
+only; no assertion changed in those suites), speaks the Daily reminder row's subtitle as its hint
+(ruling 2), and adds the AUTH-OFFLINE-REFRESH-SIGNOUT row (ruling 3; ruling 4 ties the journal limit
+to it). **FOUR COMMIT-4 ASSERTIONS WERE CHANGED UNDER KYLE'S RULING ON A TO D (2026-10-02):**
+- **A** (`notificationIntentJournal.replay.test.ts`, P3). Before:
+  `expect(mockReconcile).toHaveBeenCalledWith('u1', { requireOwner: true });`. After:
+  `expect(mockReconcile).toHaveBeenCalledWith('u1');`. The option is gone; the reconcile checks the
+  owner itself.
+- **B** (`notificationIntentJournal.ownership.test.ts`, "with the same account still signed in, the
+  correction runs, owner-checked"). The same change as A.
+- **C** (`notificationScheduler.ownership.test.ts`). Before: "the passive reconcile, without
+  requireOwner, behaves exactly as before", asserting that a reconcile with nobody signed in
+  resolves `'scheduled'`. After, inverted in place and renamed: "a passive reconcile with no one
+  signed in makes no notification change", asserting `'session-changed'`, no notification
+  operation, and the existing reminder untouched. It is the missing-auth test. In the same block
+  the call `reconcileDailyRhythm('u1', { requireOwner: true })` lost its removed argument; its
+  assertion (`'session-changed'`, no operation) is unchanged.
+- **D** (`notificationScheduler.ownership.test.ts`, "u1's pending General on is not laid over a u1
+  reconcile while u2 is signed in"). Before: resolves `'cancelled'`. After: resolves
+  `'session-changed'` with no notification operation, because the reconcile's own owner check now
+  stops it first. A new test covers the overlay's own owner check directly.
 
 ### 2026-10-01 - ROUTINE-REMINDER-OFFLINE-RESILIENCE: a scheduled routine reminder survives a return to Vara while offline (branch `journey/routine-reminder-offline-resilience`, `87a8e5b` the before-state evidence, `6dd5e12` the code and tests, this entry the docs; **BUILT, WALK PENDING**, script at `docs/walks/routine-reminder-offline-resilience/WALK.md`)
 

@@ -177,6 +177,6 @@ describe('the correcting reconcile after a rejected replay', () => {
     await replayNotificationIntent('u1');
     await flush();
 
-    expect(mockReconcile).toHaveBeenCalledWith('u1', { requireOwner: true });
+    expect(mockReconcile).toHaveBeenCalledWith('u1');
   });
 });

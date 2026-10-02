@@ -8,7 +8,7 @@ only. The before-state evidence is in `before/` beside this file.
 iPhone 14 Plus, iOS 26.3, default Dynamic Type, between 8 AM and 9 PM, Focus off, dev client
 running this branch. Every relaunch is online. A notification shows as an in-app toast while Vara is
 open, so every firing step ends with the phone locked. A2 is the second test account. Air means
-airplane mode with Wi-Fi off.
+airplane mode with Wi-Fi off. The walk runs against the head of this branch after commit 7, not 3b97b0b.
 
 ## Console reference (from the code)
 
@@ -28,6 +28,7 @@ airplane mode with Wi-Fi off.
 
 **1. Settings.** Settings shows Device notifications with Allowed and no action. There is no Push
 Notifications switch. Notification Preferences is present.
+Watch the Device notifications row as each screen opens. If it appears with a noticeable jump, stop the walk and report it.
 
 Result:
 
@@ -51,10 +52,7 @@ Saving... clears and the console shows the new time (`dailyRhythm.reminderTime` 
 
 Result:
 
-**5. Air, General.** Turn on Air. Turn General off. Lock the phone until a reminder time 2 to 3
-minutes ahead has passed: nothing fires. Turn General on and set the time 2 to 3 minutes ahead. Lock
-the phone: it fires. Turn Air off: the console shows General true (`allNotificationsEnabled`: true)
-and the new time (`dailyRhythm.reminderTime`).
+5. Air, General. Turn on Air. Set the time 2 to 3 minutes ahead, Done. Turn General off. Lock the phone until that time has passed: nothing fires. Then set the time 2 to 3 minutes ahead again and turn General on. Lock the phone: it fires. Turn Air off: the console shows General true and the new time.
 
 Result:
 

@@ -37,7 +37,11 @@ jest.mock('../notificationThrottle', () => ({
   canSendSystemNotification: jest.fn().mockResolvedValue(true),
   markNotificationSent: jest.fn().mockResolvedValue(undefined),
 }));
-jest.mock('../../config/firebase', () => ({ db: null }));
+jest.mock('../../config/firebase', () => ({
+  db: null,
+  // The signed-in owner (NPM-2: every reconcile is owner-checked).
+  auth: { currentUser: { uid: 'u1' } },
+}));
 jest.mock('firebase/firestore', () => ({ doc: jest.fn(), getDoc: jest.fn(), Timestamp: {} }));
 
 import { reconcileDailyRhythm, scheduleDailyRhythm } from '../notificationScheduler.service';

@@ -194,7 +194,7 @@ export async function replayNotificationIntent(uid: string): Promise<void> {
         // in, and the reconcile itself re-checks before each change it makes.
         if (s.outcome === 'rejected' && isNotificationOwner(uid)) {
           logger.warn('[notificationIntent] replayed change rejected; schedule corrected', s.error);
-          void reconcileDailyRhythm(uid, { requireOwner: true });
+          void reconcileDailyRhythm(uid);
         }
       });
     }

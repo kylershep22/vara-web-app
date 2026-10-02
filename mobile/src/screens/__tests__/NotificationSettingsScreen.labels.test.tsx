@@ -314,3 +314,19 @@ describe('H16: every approved string, character for character', () => {
     expect(view.getByText('Loading notification settings...')).toBeTruthy();
   });
 });
+
+describe('the Daily reminder row speaks its visible subtitle as its hint (ruling 2 on Build B)', () => {
+  test.each([
+    ['General on, a time', true, { hour: 20, minute: 0 }, 'One reminder per day at your chosen time'],
+    ['General off, a time', false, { hour: 20, minute: 0 }, 'Turn on General notifications to get this reminder.'],
+    ['General off, no time', false, null, 'One reminder per day at your chosen time'],
+  ])('%s', async (_label, general, reminderTime, subtitle) => {
+    const view = await renderLoaded(
+      prefsDoc({ allNotificationsEnabled: general, dailyRhythm: { enabled: true, reminderTime } })
+    );
+    const row = view.getByTestId('daily-reminder-row');
+    // Mutation caught: the hint removed, or fixed to one string.
+    expect(view.getByText(subtitle)).toBeTruthy();
+    expect(row.props.accessibilityHint).toBe(subtitle);
+  });
+});

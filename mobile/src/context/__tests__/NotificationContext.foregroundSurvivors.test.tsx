@@ -49,7 +49,11 @@ jest.mock('expo-notifications', () => ({
   IosAuthorizationStatus: { PROVISIONAL: 3, EPHEMERAL: 4 },
 }));
 jest.mock('../../services/firebase/notificationPreferences.service', () => mockPrefsService());
-jest.mock('../../config/firebase', () => ({ db: null }));
+jest.mock('../../config/firebase', () => ({
+  db: null,
+  // The signed-in owner, the same u1 as useAuth (NPM-2: every reconcile is owner-checked).
+  auth: { currentUser: { uid: 'u1' } },
+}));
 jest.mock('../../services/notificationThrottle', () => ({
   canSendSystemNotification: jest.fn().mockResolvedValue(true),
   markNotificationSent: jest.fn().mockResolvedValue(undefined),

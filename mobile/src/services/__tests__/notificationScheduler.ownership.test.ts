@@ -57,7 +57,11 @@ jest.mock('firebase/firestore', () => ({ doc: jest.fn(), getDoc: jest.fn(), Time
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { applyDailyRhythmChoice, reconcileDailyRhythm } from '../notificationScheduler.service';
-import { NOTIFICATION_INTENT_KEY, _resetNotificationIntentStoreForTests } from '../notificationIntentStore';
+import {
+  NOTIFICATION_INTENT_KEY,
+  pendingDailyRhythmOverlay,
+  _resetNotificationIntentStoreForTests,
+} from '../notificationIntentStore';
 
 const ID = 'u1-daily-rhythm';
 const INSIGHTS_ID = 'u1-insights-learning';
@@ -112,7 +116,7 @@ describe('ownership is re-confirmed before each change the apply makes', () => {
   });
 });
 
-describe('the correcting reconcile (requireOwner)', () => {
+describe('every reconcile is owner-checked (NPM-2 commit 7, clarification 1 on Build B)', () => {
   test('run for u1 while u2 is signed in: no change on the device', async () => {
     signIn('u2');
     mockStore.set(ID, { identifier: ID, content: {}, trigger: { hour: 8, minute: 0 } });
@@ -121,18 +125,59 @@ describe('the correcting reconcile (requireOwner)', () => {
       dailyRhythm: { enabled: true, reminderTime: null },
     });
 
-    // Mutation caught: the correcting reconcile ignoring requireOwner.
-    await expect(reconcileDailyRhythm('u1', { requireOwner: true })).resolves.toBe('session-changed');
+    // Mutation caught: the reconcile's owner check removed (different uid at the start).
+    await expect(reconcileDailyRhythm('u1')).resolves.toBe('session-changed');
     expect(mockOps).toEqual([]);
   });
 
-  test('the passive reconcile, without requireOwner, behaves exactly as before', async () => {
+  test('a passive reconcile with no one signed in makes no notification change', async () => {
     signIn(null);
+    mockStore.set(ID, { identifier: ID, content: {}, trigger: { hour: 8, minute: 0 } });
     mockGetPrefs.mockResolvedValue({
       allNotificationsEnabled: true,
       dailyRhythm: { enabled: true, reminderTime: NINE },
     });
+    // Mutation caught: an owner check that fails open with missing auth.
+    await expect(reconcileDailyRhythm('u1')).resolves.toBe('session-changed');
+    expect(mockOps).toEqual([]);
+    expect(mockStore.get(ID)?.trigger).toEqual({ hour: 8, minute: 0 });
+  });
+
+  test('same uid: the reconcile cancels and schedules as before', async () => {
+    mockStore.set(INSIGHTS_ID, { identifier: INSIGHTS_ID, content: {}, trigger: {} });
+    mockGetPrefs.mockResolvedValue({
+      allNotificationsEnabled: true,
+      dailyRhythm: { enabled: true, reminderTime: NINE },
+    });
+    // Mutation caught: an owner check that blocks the owner too.
     await expect(reconcileDailyRhythm('u1')).resolves.toBe('scheduled');
+    expect(mockOps).toEqual([`cancel:${INSIGHTS_ID}`, `schedule:${ID}`]);
+  });
+
+  test('the uid changes after the reconcile is queued, during its read: no change at all', async () => {
+    let answer!: (v: unknown) => void;
+    mockGetPrefs.mockReturnValue(new Promise((r) => (answer = r)));
+    const reconciling = reconcileDailyRhythm('u1');
+    await Promise.resolve();
+    signIn('u2');
+    answer({ allNotificationsEnabled: true, dailyRhythm: { enabled: true, reminderTime: NINE } });
+
+    // Mutation caught: the check made once at queue time, or before the read, instead of at each change.
+    await expect(reconciling).resolves.toBe('session-changed');
+    expect(mockOps).toEqual([]);
+  });
+
+  test('the uid changes between the two changes: the later one does not happen', async () => {
+    mockOnCancel = (id) => {
+      if (id === INSIGHTS_ID) signIn('u2');
+    };
+    mockGetPrefs.mockResolvedValue({
+      allNotificationsEnabled: true,
+      dailyRhythm: { enabled: true, reminderTime: NINE },
+    });
+    // Mutation caught: dropping the check between the Insights cancel and the daily change.
+    await expect(reconcileDailyRhythm('u1')).resolves.toBe('session-changed');
+    expect(mockOps).toEqual([`cancel:${INSIGHTS_ID}`]);
   });
 });
 
@@ -148,7 +193,20 @@ describe('the reconcile overlay is only laid for the signed-in owner', () => {
       dailyRhythm: { enabled: true, reminderTime: NINE },
     });
 
+    // Changed under Kyle's ruling on D: the reconcile's own owner check now stops it first.
+    await expect(reconcileDailyRhythm('u1')).resolves.toBe('session-changed');
+    expect(mockOps).toEqual([]);
+  });
+
+  test('the overlay itself returns nothing for an account that is not signed in', async () => {
+    await AsyncStorage.setItem(
+      NOTIFICATION_INTENT_KEY,
+      JSON.stringify({ v: 1, uid: 'u1', entries: { general: { value: true, seq: 1 } } })
+    );
+    // The owner sees the entry, so the empty result below is the check, not an empty journal.
+    await expect(pendingDailyRhythmOverlay('u1')).resolves.toEqual({ general: true });
+    signIn('u2');
     // Mutation caught: dropping the ownership check from the overlay.
-    await expect(reconcileDailyRhythm('u1')).resolves.toBe('cancelled');
+    await expect(pendingDailyRhythmOverlay('u1')).resolves.toEqual({});
   });
 });

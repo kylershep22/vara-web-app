@@ -113,6 +113,9 @@ const NotificationSettingsScreen: React.FC = () => {
             onPress={() => setPickerOpen(true)}
             accessibilityRole="button"
             accessibilityLabel={SPOKEN.dailyReminder(formattedTime, s.saving.dailyTime)}
+            // The subtitle visible on this row, spoken as its hint (Kyle, ruling 2 on
+            // Build B): including Turn on General notifications to get this reminder.
+            accessibilityHint={timeSubtitle}
             activeOpacity={0.8}
             testID="daily-reminder-row"
           >
