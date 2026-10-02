@@ -1,389 +1,230 @@
 /**
- * Notification Settings Screen
- * 4-category layout with max 8 toggles. Clean, fast, brand-aligned.
+ * Notification Settings Screen (NPM-2, NOTIFICATION-SETTINGS-TRUTHFULNESS).
+ *
+ * The settings say what the app does. In order: the device permission, General
+ * notifications, the Daily reminder time, and Community (Direct messages,
+ * Connection requests). Kyle's rulings D2 to D9 and Rulings 1 to 10 of
+ * 2026-10-02.
+ *
+ * - General alone decides whether the daily reminder is active (Ruling 2). The
+ *   time row is always shown and always tappable, also while General is off,
+ *   and setting a time never turns General on.
+ * - A change shows at once and is saved through the pending-intent journal
+ *   (useNotificationSettingsState); Saving... appears after 500 ms unresolved.
+ * - Hidden for V1, not rendered and with no write path, stored values
+ *   untouched: Insights, Milestones, Completion Sound, Quiet Hours. Removed:
+ *   Community Activity, and the Daily Reminder switch (Ruling 1).
+ * Every string comes from notificationSettings.copy.
  */
-
-import React, { useState, useCallback, useEffect } from 'react';
-import { Audio } from 'expo-av';
-import {
-  View,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  StyleSheet,
-  Platform,
-} from 'react-native';
+import React, { useState } from 'react';
+import { View, ScrollView, TouchableOpacity, Switch, StyleSheet, Platform } from 'react-native';
 import Text from '../components/shared/Text';
 import { Ionicons, MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors, Spacing, Typography, Layout } from '../constants';
-import { useNotificationPreferences } from '../hooks';
 import { LoadingSpinner } from '../components';
+import { TimePickerSheet, formatReminderTime } from '../components/shared/TimePickerSheet';
+import { NotificationPermissionRow } from '../components/shared/NotificationPermissionRow';
+import { useNotificationSettingsState } from '../hooks/useNotificationSettingsState';
+import { DEFAULT_ANCHOR_HOUR } from '../constants/onboardingStressRecovery';
+import { NOTIFICATION_SETTINGS_COPY as COPY, NOTIFICATION_SPOKEN as SPOKEN } from './notificationSettings.copy';
 import { ReminderTime } from '../types';
-import { formatReminderTime } from '../services/firebase';
 
 const NotificationSettingsScreen: React.FC = () => {
   const navigation = useNavigation();
-  const {
-    preferences,
-    loading,
-    updateCategory,
-    toggleAll,
-    setQuietHours,
-  } = useNotificationPreferences();
+  const s = useNotificationSettingsState();
+  const [pickerOpen, setPickerOpen] = useState(false);
 
-  const [previewSound, setPreviewSound] = useState<Audio.Sound | null>(null);
+  if (s.phase === 'loading') {
+    return <LoadingSpinner message={COPY.loading} />;
+  }
 
-  const completionSoundOptions = [
-    { key: 'singing-bowl' as const, label: 'Singing Bowl' },
-    { key: 'soft-chime' as const, label: 'Soft Chime' },
-    { key: 'nature-bell' as const, label: 'Nature Bell' },
-    { key: 'stream' as const, label: 'Stream' },
-  ];
-
-  useEffect(() => {
-    return () => {
-      previewSound?.unloadAsync().catch(() => {});
-    };
-  }, [previewSound]);
-
-  const [timePicker, setTimePicker] = useState<{
-    visible: boolean;
-    field: string;
-    currentTime: ReminderTime;
-  }>({ visible: false, field: '', currentTime: { hour: 8, minute: 0 } });
-
-  const reminderTimeToDate = (time: ReminderTime): Date => {
-    const d = new Date();
-    d.setHours(time.hour, time.minute, 0, 0);
-    return d;
-  };
-
-  const openTimePicker = (field: string, currentTime: ReminderTime) => {
-    setTimePicker({ visible: true, field, currentTime });
-  };
-
-  const handleTimeChange = useCallback(
-    async (_event: any, selectedDate?: Date) => {
-      if (Platform.OS === 'android') {
-        setTimePicker((prev) => ({ ...prev, visible: false }));
-      }
-      if (!selectedDate || !preferences) return;
-
-      const newTime: ReminderTime = {
-        hour: selectedDate.getHours(),
-        minute: selectedDate.getMinutes(),
-      };
-
-      if (timePicker.field === 'dailyRhythmTime') {
-        await updateCategory('dailyRhythm', { ...preferences.dailyRhythm, reminderTime: newTime });
-      } else if (timePicker.field === 'quietStart') {
-        await setQuietHours({ ...preferences.quietHours, startTime: newTime });
-      } else if (timePicker.field === 'quietEnd') {
-        await setQuietHours({ ...preferences.quietHours, endTime: newTime });
-      }
-    },
-    [timePicker.field, preferences, updateCategory, setQuietHours],
+  const header = (
+    <View style={styles.header}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backButton}
+        accessibilityRole="button"
+        accessibilityLabel={SPOKEN.back}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+      </TouchableOpacity>
+      <Text style={styles.screenTitle} accessibilityRole="header">
+        {COPY.title}
+      </Text>
+    </View>
   );
 
-  const closeTimePicker = () => setTimePicker((prev) => ({ ...prev, visible: false }));
-
-  const handleSoundSelect = async (soundKey: typeof completionSoundOptions[number]['key']) => {
-    await updateCategory('completionSound', {
-      ...preferences.completionSound,
-      sound: soundKey,
-    });
-
-    // Stop previous preview
-    if (previewSound) {
-      try { await previewSound.unloadAsync(); } catch {}
-    }
-    // Preview playback will be enabled when audio files are added
-  };
-
-  if (loading || !preferences) {
-    return <LoadingSpinner message="Loading notification settings..." />;
+  if (s.phase === 'unavailable') {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {header}
+        <View style={styles.unavailable}>
+          <Text style={styles.unavailableText}>{COPY.loadFailed}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={s.retry}
+            accessibilityRole="button"
+            accessibilityLabel={SPOKEN.tryAgain}
+            testID="notification-settings-retry"
+          >
+            <Text style={styles.retryLabel}>{COPY.tryAgain}</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
   }
+
+  const formattedTime = s.dailyTime ? formatReminderTime(s.dailyTime) : null;
+  const pickerSeed: ReminderTime = s.dailyTime ?? { hour: DEFAULT_ANCHOR_HOUR, minute: 0 };
+  // Decision 5: only when a valid time exists and General is off.
+  const timeSubtitle =
+    s.dailyTime && !s.general ? COPY.dailyReminder.subtitleGeneralOff : COPY.dailyReminder.subtitle;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.screenTitle}>Notifications</Text>
-      </View>
+      {header}
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Master Toggle */}
+        {/* Device permission (D4, Ruling 4) */}
+        <View style={styles.card}>
+          <NotificationPermissionRow />
+        </View>
+
+        {/* General notifications (D2) */}
         <View style={styles.card}>
           <SettingRow
             icon="bell"
-            iconBg={Colors.evergreenTeal + '20'}
-            iconColor={Colors.evergreenTeal}
-            label="General notifications"
-            description="Controls Vara’s general reminders and updates. Routine reminders are managed within each routine."
-            value={preferences.allNotificationsEnabled}
-            onToggle={(v) => toggleAll(v)}
+            label={COPY.general.label}
+            description={COPY.general.subtitle}
+            value={s.general}
+            saving={s.saving.general}
+            onToggle={s.setGeneral}
+            testID="general-switch"
           />
         </View>
 
-        {/* Daily Rhythm */}
-        <Text style={styles.sectionHeader}>Daily Rhythm</Text>
+        {/* Daily reminder time (Rulings 1 to 3, D7) */}
         <View style={styles.card}>
-          <SettingRow
-            icon="clock-outline"
-            iconBg={Colors.evergreenTeal + '20'}
-            iconColor={Colors.evergreenTeal}
-            label="Daily Reminder"
-            description="One reminder per day at your chosen time"
-            value={preferences.dailyRhythm.enabled}
-            onToggle={(v) => updateCategory('dailyRhythm', { ...preferences.dailyRhythm, enabled: v })}
-          />
-          {preferences.dailyRhythm.enabled && preferences.dailyRhythm.reminderTime && (
-            <>
-              <View style={styles.divider} />
-              <TouchableOpacity
-                style={styles.timeRow}
-                onPress={() => openTimePicker('dailyRhythmTime', preferences.dailyRhythm.reminderTime!)}
-              >
-                <Text style={styles.subLabel}>Reminder Time</Text>
-                <View style={styles.timeValue}>
-                  <Text style={styles.timeText}>
-                    {formatReminderTime(preferences.dailyRhythm.reminderTime)}
-                  </Text>
-                  <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
-                </View>
-              </TouchableOpacity>
-            </>
-          )}
+          <TouchableOpacity
+            style={styles.timeRow}
+            onPress={() => setPickerOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={SPOKEN.dailyReminder(formattedTime, s.saving.dailyTime)}
+            activeOpacity={0.8}
+            testID="daily-reminder-row"
+          >
+            <View style={styles.settingInfo}>
+              <View style={styles.iconWrap}>
+                <Icon name="clock-outline" size={22} color={Colors.evergreenTeal} />
+              </View>
+              <View style={styles.settingText}>
+                <Text style={styles.settingLabel}>{COPY.dailyReminder.label}</Text>
+                <Text style={styles.settingDesc}>{timeSubtitle}</Text>
+              </View>
+            </View>
+            <View style={styles.timeValue}>
+              <Text style={formattedTime ? styles.timeText : styles.addTimeText}>
+                {formattedTime ?? COPY.dailyReminder.addTime}
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
+            </View>
+          </TouchableOpacity>
+          {s.saving.dailyTime && <SavingCaption />}
         </View>
 
-        {/* Insights & Learning */}
-        <Text style={styles.sectionHeader}>Insights & Learning</Text>
-        <View style={styles.card}>
-          <SettingRow
-            icon="lightbulb-on-outline"
-            iconBg={Colors.goldenApricot + '20'}
-            iconColor={Colors.goldenApricot}
-            label="Brain-Health Insights"
-            description="2-3 insights per week from our content library"
-            value={preferences.insightsLearning.enabled}
-            onToggle={(v) => updateCategory('insightsLearning', { ...preferences.insightsLearning, enabled: v })}
-          />
-        </View>
-
-        {/* Messages & Social */}
-        <Text style={styles.sectionHeader}>Messages & Social</Text>
+        {/* Community (Ruling 7: independent of General) */}
+        <Text style={styles.sectionHeader} accessibilityRole="header">
+          {COPY.community.header}
+        </Text>
         <View style={styles.card}>
           <SettingRow
             icon="message-text-outline"
-            iconBg={Colors.evergreenTeal + '20'}
-            iconColor={Colors.evergreenTeal}
-            label="Direct Messages"
-            description="Notifications when someone messages you"
-            value={preferences.socialConnection.directMessages}
-            onToggle={(v) => updateCategory('socialConnection', { ...preferences.socialConnection, directMessages: v })}
+            label={COPY.community.directMessages.label}
+            description={COPY.community.directMessages.subtitle}
+            value={s.directMessages}
+            saving={s.saving.directMessages}
+            onToggle={s.setDirectMessages}
+            testID="direct-messages-switch"
           />
           <View style={styles.divider} />
           <SettingRow
             icon="account-plus-outline"
-            iconBg={Colors.evergreenTeal + '20'}
-            iconColor={Colors.evergreenTeal}
-            label="Connection Requests"
-            description="When someone wants to connect"
-            value={preferences.socialConnection.connectionRequests}
-            onToggle={(v) => updateCategory('socialConnection', { ...preferences.socialConnection, connectionRequests: v })}
+            label={COPY.community.connectionRequests.label}
+            description={COPY.community.connectionRequests.subtitle}
+            value={s.connectionRequests}
+            saving={s.saving.connectionRequests}
+            onToggle={s.setConnectionRequests}
+            testID="connection-requests-switch"
           />
-          <View style={styles.divider} />
-          <SettingRow
-            icon="account-group-outline"
-            iconBg={Colors.evergreenTeal + '20'}
-            iconColor={Colors.evergreenTeal}
-            label="Community Activity"
-            description="Updates from your groups"
-            value={preferences.socialConnection.communityDigest}
-            onToggle={(v) => updateCategory('socialConnection', { ...preferences.socialConnection, communityDigest: v })}
-          />
-        </View>
-
-        {/* Milestones */}
-        <Text style={styles.sectionHeader}>Milestones & Reflection</Text>
-        <View style={styles.card}>
-          <SettingRow
-            icon="trophy-outline"
-            iconBg={Colors.goldenApricot + '20'}
-            iconColor={Colors.goldenApricot}
-            label="Milestones"
-            description="Celebrate progress and time-based reflections"
-            value={preferences.milestonesReflection.enabled}
-            onToggle={(v) => updateCategory('milestonesReflection', { enabled: v })}
-          />
-        </View>
-
-        {/* Completion Sound */}
-        <Text style={styles.sectionHeader}>Completion Sound</Text>
-        <View style={styles.card}>
-          <SettingRow
-            icon="volume-high"
-            iconBg={Colors.evergreenTeal + '20'}
-            iconColor={Colors.evergreenTeal}
-            label="Timer completion sound"
-            description="Plays when timers and sessions finish"
-            value={preferences.completionSound?.enabled ?? true}
-            onToggle={(v) => updateCategory('completionSound', {
-              ...preferences.completionSound,
-              enabled: v,
-              sound: preferences.completionSound?.sound ?? 'singing-bowl',
-            })}
-          />
-          {(preferences.completionSound?.enabled ?? true) && (
-            <>
-              <View style={styles.divider} />
-              {completionSoundOptions.map((option) => {
-                const isSelected = (preferences.completionSound?.sound ?? 'singing-bowl') === option.key;
-                return (
-                  <TouchableOpacity
-                    key={option.key}
-                    style={styles.timeRow}
-                    onPress={() => handleSoundSelect(option.key)}
-                  >
-                    <Text style={[styles.subLabel, isSelected && { color: Colors.evergreenTeal, fontWeight: '600' }]}>
-                      {option.label}
-                    </Text>
-                    <Ionicons
-                      name={isSelected ? 'radio-button-on' : 'radio-button-off'}
-                      size={20}
-                      color={isSelected ? Colors.evergreenTeal : Colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                );
-              })}
-            </>
-          )}
-        </View>
-
-        {/* Quiet Hours */}
-        <Text style={styles.sectionHeader}>Quiet Hours</Text>
-        <View style={styles.card}>
-          <SettingRow
-            icon="moon-waning-crescent"
-            iconBg={Colors.lavenderMist + '20'}
-            iconColor={Colors.lavenderMist}
-            label="Enable Quiet Hours"
-            description="Pause notifications during specific times"
-            value={preferences.quietHours.enabled}
-            onToggle={(v) => setQuietHours({ ...preferences.quietHours, enabled: v })}
-          />
-          {preferences.quietHours.enabled && (
-            <>
-              <View style={styles.divider} />
-              <TouchableOpacity
-                style={styles.timeRow}
-                onPress={() => openTimePicker('quietStart', preferences.quietHours.startTime)}
-              >
-                <Text style={styles.subLabel}>Start</Text>
-                <View style={styles.timeValue}>
-                  <Text style={styles.timeText}>{formatReminderTime(preferences.quietHours.startTime)}</Text>
-                  <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
-                </View>
-              </TouchableOpacity>
-              <View style={styles.divider} />
-              <TouchableOpacity
-                style={styles.timeRow}
-                onPress={() => openTimePicker('quietEnd', preferences.quietHours.endTime)}
-              >
-                <Text style={styles.subLabel}>End</Text>
-                <View style={styles.timeValue}>
-                  <Text style={styles.timeText}>{formatReminderTime(preferences.quietHours.endTime)}</Text>
-                  <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
-                </View>
-              </TouchableOpacity>
-            </>
-          )}
         </View>
 
         <View style={{ height: Spacing['3xl'] }} />
       </ScrollView>
 
-      {/* Time Picker */}
-      {timePicker.visible &&
-        (Platform.OS === 'ios' ? (
-          <View style={styles.pickerOverlay}>
-            <View style={styles.pickerContainer}>
-              <View style={styles.pickerHeader}>
-                <TouchableOpacity onPress={closeTimePicker}>
-                  <Text style={styles.pickerCancel}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={closeTimePicker}>
-                  <Text style={styles.pickerDone}>Done</Text>
-                </TouchableOpacity>
-              </View>
-              <DateTimePicker
-                value={reminderTimeToDate(timePicker.currentTime)}
-                mode="time"
-                display="spinner"
-                onChange={handleTimeChange}
-                style={{ height: 200 }}
-              />
-            </View>
-          </View>
-        ) : (
-          <DateTimePicker
-            value={reminderTimeToDate(timePicker.currentTime)}
-            mode="time"
-            is24Hour={false}
-            display="default"
-            onChange={handleTimeChange}
-          />
-        ))}
+      {/* Draft only; Done commits once; Cancel discards (D7). */}
+      <TimePickerSheet
+        visible={pickerOpen}
+        value={pickerSeed}
+        onChange={s.setDailyTime}
+        onClose={() => setPickerOpen(false)}
+      />
     </SafeAreaView>
   );
 };
 
 // ==========================================
-// SETTING ROW COMPONENT
+// SETTING ROW AND SAVING CAPTION
 // ==========================================
 
 interface SettingRowProps {
   icon: string;
-  iconBg: string;
-  iconColor: string;
   label: string;
   description: string;
   value: boolean;
+  saving: boolean;
   onToggle: (value: boolean) => void;
+  testID: string;
 }
 
-const SettingRow: React.FC<SettingRowProps> = ({
-  icon,
-  iconBg,
-  iconColor,
-  label,
-  description,
-  value,
-  onToggle,
-}) => (
-  <View style={styles.settingRow}>
-    <View style={styles.settingInfo}>
-      <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
-        <Icon name={icon as any} size={22} color={iconColor} />
+/** The switch is named for its row; the subtitle is its hint. */
+const SettingRow: React.FC<SettingRowProps> = ({ icon, label, description, value, saving, onToggle, testID }) => (
+  <>
+    <View style={styles.settingRow}>
+      <View style={styles.settingInfo}>
+        <View style={styles.iconWrap}>
+          <Icon name={icon as React.ComponentProps<typeof Icon>['name']} size={22} color={Colors.evergreenTeal} />
+        </View>
+        <View style={styles.settingText}>
+          <Text style={styles.settingLabel}>{label}</Text>
+          <Text style={styles.settingDesc}>{description}</Text>
+        </View>
       </View>
-      <View style={styles.settingText}>
-        <Text style={styles.settingLabel}>{label}</Text>
-        <Text style={styles.settingDesc}>{description}</Text>
-      </View>
+      <Switch
+        value={value}
+        onValueChange={onToggle}
+        accessibilityLabel={SPOKEN.switchLabel(label, saving)}
+        accessibilityHint={description}
+        trackColor={{ false: Colors.silverSage, true: Colors.evergreenTeal }}
+        thumbColor={Colors.white}
+        testID={testID}
+      />
     </View>
-    <Switch
-      value={value}
-      onValueChange={onToggle}
-      trackColor={{ false: Colors.silverSage, true: Colors.evergreenTeal }}
-      thumbColor="#fff"
-    />
-  </View>
+    {saving && <SavingCaption />}
+  </>
+);
+
+/** Visual only: the control's own spoken label already carries "saving". */
+const SavingCaption: React.FC = () => (
+  <Text
+    style={styles.saving}
+    accessibilityElementsHidden
+    importantForAccessibility="no-hide-descendants"
+  >
+    {COPY.saving}
+  </Text>
 );
 
 // ==========================================
@@ -405,12 +246,12 @@ const styles = StyleSheet.create({
   backButton: { padding: Spacing.xs, marginRight: Spacing.sm },
   screenTitle: {
     fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.medium as any,
+    fontWeight: Typography.fontWeight.medium,
     color: Colors.softCharcoal,
   },
   sectionHeader: {
-    fontSize: 18,
-    fontWeight: '500' as any,
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.medium,
     color: Colors.softCharcoal,
     marginTop: Spacing.lg,
     marginBottom: Spacing.sm,
@@ -422,9 +263,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.borderLight,
     marginHorizontal: Spacing.base,
+    marginTop: Spacing.sm,
     marginBottom: Spacing.sm,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 8 },
+      ios: { shadowColor: Colors.shadowColor, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 8 },
       android: { elevation: 1 },
     }),
   },
@@ -443,22 +285,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.sm,
+    backgroundColor: Colors.evergreenTeal + '20',
   },
   settingText: { flex: 1 },
   settingLabel: {
     fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium as any,
+    fontWeight: Typography.fontWeight.medium,
     color: Colors.softCharcoal,
   },
   settingDesc: {
-    fontSize: 14,
+    fontSize: Typography.fontSize.sm,
     color: Colors.mutedSageGray,
     marginTop: 1,
-  },
-  subLabel: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.softCharcoal,
-    flex: 1,
   },
   divider: { height: 1, backgroundColor: Colors.borderLight, marginHorizontal: Spacing.base },
   timeRow: {
@@ -466,39 +304,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.base,
-    minHeight: 56,
+    minHeight: 64,
   },
   timeValue: { flexDirection: 'row', alignItems: 'center' },
   timeText: {
     fontSize: Typography.fontSize.base,
     color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.medium as any,
+    fontWeight: Typography.fontWeight.medium,
     marginRight: Spacing.xs,
   },
-  pickerOverlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  pickerContainer: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius: Layout.borderRadius.xl,
-    borderTopRightRadius: Layout.borderRadius.xl,
-  },
-  pickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.base,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
-  },
-  pickerCancel: { fontSize: Typography.fontSize.base, color: Colors.textSecondary },
-  pickerDone: {
+  addTimeText: {
     fontSize: Typography.fontSize.base,
     color: Colors.evergreenTeal,
-    fontWeight: Typography.fontWeight.semibold as any,
+    marginRight: Spacing.xs,
+  },
+  saving: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.mutedSageGray,
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.sm,
+  },
+  unavailable: { padding: Spacing.lg, alignItems: 'flex-start' },
+  unavailableText: { fontSize: Typography.fontSize.base, color: Colors.softCharcoal },
+  retryButton: { marginTop: Spacing.base, minHeight: 44, justifyContent: 'center' },
+  retryLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.evergreenTeal,
   },
 });
 
