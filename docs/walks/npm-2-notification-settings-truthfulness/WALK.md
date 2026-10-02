@@ -3,6 +3,10 @@
 Branch `journey/npm-2-notification-settings-truthfulness`. Kyle walks; results are recorded by Kyle
 only. The before-state evidence is in `before/` beside this file.
 
+## Walk results
+
+Walked by Kyle against `f516f78` on 2026-10-02. The result under each step is Kyle's attestation, in his words. Reviewer notes are marked as such and are not his words.
+
 ## Conditions
 
 iPhone 14 Plus, iOS 26.3, default Dynamic Type, between 8 AM and 9 PM, Focus off, dev client
@@ -30,19 +34,19 @@ airplane mode with Wi-Fi off. The walk runs against the head of this branch afte
 Notifications switch. Notification Preferences is present.
 Watch the Device notifications row as each screen opens. If it appears with a noticeable jump, stop the walk and report it.
 
-Result:
+Result: Kyle: "Pass"
 
 **2. Notifications layout.** Present: the Device notifications row, General notifications with its
 subtitle, Daily reminder, the Community header, Direct messages, Connection requests. Absent: the
 Daily Reminder switch, Community Activity, Insights, Milestones, Completion Sound, Quiet Hours.
 
-Result:
+Result: Kyle: "Pass"
 
 **3. Picker.** Tap Daily reminder. The sheet opens at the stored time. Scroll, then Cancel: the time
 is unchanged. Open again, set a time 2 to 3 minutes ahead, Done: the row shows it at once. Lock the
 phone: the reminder fires at that time.
 
-Result:
+Result: Kyle: "Pass"
 
 **4. Air, in session.** With Notifications open, turn on Air. Set the time 3 minutes ahead, Done: it
 shows at once, and Saving... appears after about half a second and stays. Lock the phone: the
@@ -50,17 +54,17 @@ reminder fires while offline. Return: the new time and Saving... are still shown
 Saving... clears and the console shows the new time (`dailyRhythm.reminderTime` on
 `notificationPreferences/{main uid}`).
 
-Result:
+Result: Kyle: "Pass - saw saving - new time is not able to save in airplane mode but turning airplane mode off allows it to finish the save. When the phone is locked and in Airplane mode, the notification still comes through as normal"
 
 5. Air, General. Turn on Air. Set the time 2 to 3 minutes ahead, Done. Turn General off. Lock the phone until that time has passed: nothing fires. Then set the time 2 to 3 minutes ahead again and turn General on. Lock the phone: it fires. Turn Air off: the console shows General true and the new time.
 
-Result:
+Result: Kyle: "Pass"
 
 **6. Restart.** Turn on Air. Set the time to T, at least 6 minutes ahead. Wait until Saving...
 shows. Force-quit Vara. Turn Air off. Relaunch. Notifications shows T. The console shows T
 (`dailyRhythm.reminderTime`). Lock the phone: the reminder fires at T.
 
-Result:
+Result: Kyle: "Pass"
 
 **7. Stored enabled false.** Leave Vara in the background. In the console, on
 `notificationPreferences/{main uid}`, set:
@@ -71,13 +75,13 @@ Result:
 
 Return to Vara without opening Settings, then lock the phone: the reminder fires.
 
-Result:
+Result: Kyle: "Pass"
 
 **8. Permission denied.** Turn notifications off for the app in iOS Settings and return. The row
 reads Off in your device settings with Open Settings, on both screens. General is unchanged. Tap the
 row: iOS Settings opens. Turn notifications on and return: the row reads Allowed.
 
-Result:
+Result: Kyle: "Pass"
 
 ## Second account
 
@@ -87,7 +91,7 @@ Result:
 
 Sign out of the main account and sign in as A2.
 
-Result:
+Result: Kyle: "Not tested". NOT RUN. Kyle's statement on the steps not tested, verbatim: "The ones marked as not tested I do not care about so please continue with the results provided. I appreciate the thoroughness of the test cases but I am not spending my time on these edge cases. If we launch a user submits a support case we can deal with it then - I want these tests to cover 90 - 95% of common use cases"
 
 **10. Recovery.**
 - Daily reminder shows Add a time with the normal subtitle.
@@ -99,7 +103,9 @@ Result:
 - Lock the phone: nothing fires.
 - Set the time 2 to 3 minutes ahead again and turn General on. Lock the phone: it fires.
 
-Result:
+Result: Kyle: "Pass"
+
+[Reviewer note, not Kyle's words: step 9, the setup for this step, was not run; the starting state for step 10 is not stated.]
 
 **11. Failure alert, A2 only.**
 - With Notifications open, delete the document `notificationPreferences/{A2 uid}` in the console.
@@ -111,7 +117,7 @@ Result:
   `dailyRhythm.reminderTime` null. Confirm in the console that `notificationPreferences/{A2 uid}`
   exists again.
 
-Result:
+Result: Kyle: "Not Tested". NOT RUN. Kyle's statement on the steps not tested, verbatim: "The ones marked as not tested I do not care about so please continue with the results provided. I appreciate the thoroughness of the test cases but I am not spending my time on these edge cases. If we launch a user submits a support case we can deal with it then - I want these tests to cover 90 - 95% of common use cases"
 
 **12. Account switch.**
 - Sign out of A2 and sign in to the main account.
@@ -122,9 +128,9 @@ Result:
 - Then sign out and sign in to the main account in the same session, and record what its time
   shows. Recorded as observed; either outcome is acceptable (Kyle's Decision 13).
 
-Result:
+Result: Kyle: "not tested". NOT RUN. Kyle's statement on the steps not tested, verbatim: "The ones marked as not tested I do not care about so please continue with the results provided. I appreciate the thoroughness of the test cases but I am not spending my time on these edge cases. If we launch a user submits a support case we can deal with it then - I want these tests to cover 90 - 95% of common use cases"
 
-Observed for the main account's time:
+Observed for the main account's time: NOT RUN.
 
 ## Reinstall
 
@@ -136,11 +142,13 @@ Observed for the main account's time:
 - In the console, the main account's push token fields on `userPrivate/{main uid}` are updated
   (`expoPushToken`, `pushTokenUpdatedAt`).
 
-Result:
+Result: Kyle: "not tested". NOT RUN. Kyle's statement on the steps not tested, verbatim: "The ones marked as not tested I do not care about so please continue with the results provided. I appreciate the thoroughness of the test cases but I am not spending my time on these edge cases. If we launch a user submits a support case we can deal with it then - I want these tests to cover 90 - 95% of common use cases"
 
 **14. Journal.** Write and save a journal entry. The notification opt-in screen does not open.
 
-Result:
+Result: Kyle: "no opt in screen appears"
+
+[Reviewer note, not Kyle's words: this step ran without the reinstall in step 13, so the journal-optin regression test is the code-level proof.]
 
 ## Not run, recorded with the reason
 
@@ -153,3 +161,8 @@ until after the first generally available release; automated label coverage is t
 - The offline cold start, owned by the standalone-build check (OFFLINE-COLD-START-DEVICE-CHECK).
 - A replayed write rejected while Settings is closed.
 - The journal persistence failure alert.
+- The failure alert and revert on a rejected write (step 11).
+- Account-switch isolation (step 12).
+- The Not allowed yet state, the Allow notifications action and the token save after a grant (step 13).
+
+Steps 11, 12 and 13 (and step 9, the setup for step 10) were not run, by Kyle's decision of 2026-10-02; tests are the evidence.
