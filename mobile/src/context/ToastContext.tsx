@@ -16,6 +16,7 @@ import React, {
   useCallback,
   useRef,
   useEffect,
+  useMemo,
   ReactNode,
 } from 'react';
 import { DiscoverableFeatureId } from '../types/featureDiscovery';
@@ -149,6 +150,15 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     setNotificationToast(null);
   }, []);
 
+  // Stable for the life of one toast. NotificationToast restarts its timer
+  // when onDismiss changes, so an inline function here would extend the toast
+  // on every unrelated re-render of this provider.
+  const notificationToastKey = notificationToast?.key;
+  const dismissThisNotificationToast = useMemo(
+    () => () => handleNotificationToastDismiss(notificationToastKey),
+    [notificationToastKey, handleNotificationToastDismiss]
+  );
+
   const dismissCurrentToast = useCallback(() => {
     if (isNotificationToastVisible) {
       handleNotificationToastDismiss();
@@ -184,7 +194,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
             title={notificationToast.title}
             body={notificationToast.body}
             visible={isNotificationToastVisible}
-            onDismiss={() => handleNotificationToastDismiss(notificationToast.key)}
+            onDismiss={dismissThisNotificationToast}
             onTap={notificationToast.onTap}
             autoDismissDelay={notificationToast.actionLabel ? 4000 : TOAST_DISPLAY_DURATION}
             actionLabel={notificationToast.actionLabel}
