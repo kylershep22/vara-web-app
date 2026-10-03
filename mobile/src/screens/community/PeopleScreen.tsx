@@ -17,7 +17,7 @@ import Text from '../../components/shared/Text';
 import TextInput from '../../components/shared/TextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTabBarInset } from '../../hooks/useTabBarInset';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Button, Card, LoadingSpinner, PersonCard } from '../../components';
 import { Colors, Spacing, Typography, Layout } from '../../constants';
 import { CommunityAvatar } from '../../components/shared/CommunityAvatar';
@@ -32,6 +32,7 @@ import { useAuth } from '../../context/AuthContext';
 import { UserProfile, getUserById } from '../../services/firebase';
 import { EnhancedUserProfile } from '../../services/firebase/connections.service';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import type { PeopleRequestsParams } from '../../navigation/communityPushRoute';
 
 type FilterTab = 'connections' | 'discover' | 'requests';
 
@@ -40,7 +41,11 @@ const PeopleScreen: React.FC = () => {
   const tabBarInset = useTabBarInset();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
-  const [filter, setFilter] = useState<FilterTab>('connections');
+  const route = useRoute();
+  const routeParams = route.params as Partial<PeopleRequestsParams> | undefined;
+  const [filter, setFilter] = useState<FilterTab>(
+    routeParams?.initialFilter === 'requests' ? 'requests' : 'connections'
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchHintOpacity = useRef(new Animated.Value(0)).current;
@@ -67,6 +72,19 @@ const PeopleScreen: React.FC = () => {
 
   const { profiles: connectionProfiles, loading: profilesLoading } = useConnectionProfiles(connectionIds);
   const { startConversation } = useStartConversation();
+
+  // A connection-request push opens People on Requests (NPM-3a-ii, R1-K8). Each
+  // tap carries a new filterRequestId, so this also re-selects Requests when
+  // People is already mounted on another tab. Shows the list as it is (II-D14).
+  useEffect(() => {
+    if (routeParams?.initialFilter === 'requests') {
+      setFilter('requests');
+      setSearchQuery('');
+      clear();
+    }
+    // `clear` is not a dependency: only a new request from a tap should re-run this.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeParams?.initialFilter, routeParams?.filterRequestId]);
 
   // Profiles for incoming requests
   const [requestProfiles, setRequestProfiles] = useState<UserProfile[]>([]);

@@ -43,6 +43,12 @@ import {
 import { navigationRef } from '../navigation/AppNavigator';
 import { ROUTES } from '../navigation/routes';
 import { NAV_TARGETS } from '../navigation/navTargets';
+import { communityPushTarget, isCommunityPush } from '../navigation/communityPushRoute';
+import {
+  isCurrentConversation,
+  openCommunityTarget,
+  waitForMainRoute,
+} from '../navigation/communityPushNavigation';
 import {
   reconcileDailyRhythm,
   dailyRhythmNotificationId,
@@ -104,14 +110,36 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return next;
   }, []);
 
+  // The signed-in uid as of the latest render, for the listeners below that are
+  // registered once (NPM-3a-ii: a Community push is checked against it).
+  const signedInUidRef = useRef(user?.uid);
+  signedInUidRef.current = user?.uid;
+
+  // Identifiers of Community notification responses already handled, so a tap
+  // is routed once even when both the live listener and the cold-start read
+  // see it, and never again after the user changes (NPM-3a-ii).
+  const handledResponsesRef = useRef(new Set<string>());
+
   // Register foreground notification handler → route to toast
   useEffect(() => {
-    setForegroundNotificationHandler(async (title: string, body: string, data?: Record<string, unknown>) => {
-      // Habit reminders left V1 (V1-HABITS-RETIREMENT, Kyle ruling 2 of
-      // 2026-09-29). A stale one scheduled by an earlier build shows nothing.
-      if (data?.type === 'habit-reminder') return;
-      showNotificationToast(title, body);
-    });
+    setForegroundNotificationHandler(
+      async (title: string, body: string, data?: Record<string, unknown>, identifier?: string) => {
+        // Habit reminders left V1 (V1-HABITS-RETIREMENT, Kyle ruling 2 of
+        // 2026-09-29). A stale one scheduled by an earlier build shows nothing.
+        if (data?.type === 'habit-reminder') return;
+        // Community pushes (NPM-3a-ii; R1-K13, II-D6, II-D17): nothing unless the
+        // push is provably for the signed-in user; nothing while that
+        // conversation is open; otherwise a toast whose press opens what a tap
+        // on the banner opens (II-D7).
+        if (isCommunityPush(data)) {
+          const target = communityPushTarget(data, user?.uid, identifier ?? '');
+          if (!target || (target.kind === 'chat' && isCurrentConversation(target.conversationId))) return;
+          showNotificationToast(title, body, () => openCommunityTarget(target));
+          return;
+        }
+        showNotificationToast(title, body);
+      }
+    );
   }, [showNotificationToast, user?.uid]);
 
   // Push token registration (NPM-3a-ii, Kyle's II-D1 and II-D12). Only for a
@@ -217,6 +245,17 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const data = response.notification.request.content.data;
       if (!data?.type || !navigationRef.isReady()) return;
 
+      // Community pushes (NPM-3a-ii; R1-K8, II-D5, II-D17): one router, once
+      // per notification, and only for the signed-in user.
+      if (isCommunityPush(data)) {
+        const id = response.notification.request.identifier;
+        if (handledResponsesRef.current.has(id)) return;
+        handledResponsesRef.current.add(id);
+        const target = communityPushTarget(data, signedInUidRef.current, id);
+        if (target) openCommunityTarget(target);
+        return;
+      }
+
       // Same one-cast-at-the-boundary idiom as navigateToFocusTimer above:
       // navigationRef is untyped, and casting the function once beats casting
       // every argument to `never`, which is what previously let a route name
@@ -249,6 +288,32 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     return () => subscription.remove();
   }, []);
+
+  // Cold-launch Community tap (NPM-3a-ii). The launch response is read once per
+  // signed-in user, routed only for that user, only once Main is in the root
+  // navigator (bounded wait), and never twice: its identifier is remembered
+  // before the wait, so a later sign-in that reads the same launch response
+  // routes nothing.
+  useEffect(() => {
+    if (!user?.uid) return;
+    const uid = user.uid;
+    let cancelled = false;
+    (async () => {
+      const response = await getLastNotificationResponse();
+      if (cancelled || !response) return;
+      const data = response.notification.request.content.data;
+      if (!isCommunityPush(data)) return;
+      const id = response.notification.request.identifier;
+      if (handledResponsesRef.current.has(id)) return;
+      handledResponsesRef.current.add(id);
+      const target = communityPushTarget(data, uid, id);
+      if (!target || !(await waitForMainRoute()) || cancelled) return;
+      openCommunityTarget(target);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid]);
 
   // Cold-launch deep link: the app was opened by TAPPING a focus-complete
   // notification while killed, so the warm response listener above never saw the

@@ -15,7 +15,14 @@ import { logger } from '../utils/logger';
 // ==========================================
 
 let _isForeground = AppState.currentState === 'active';
-let _onForegroundNotification: ((title: string, body: string, data?: Record<string, unknown>) => void) | null = null;
+/** `identifier` is the notification request's id (NPM-3a-ii: a toast tap routes with it). */
+type ForegroundNotificationHandler = (
+  title: string,
+  body: string,
+  data?: Record<string, unknown>,
+  identifier?: string
+) => void;
+let _onForegroundNotification: ForegroundNotificationHandler | null = null;
 let _notificationHandlerReady = false;
 
 // Track foreground state — wrapped in try-catch to prevent module-load crashes
@@ -31,9 +38,7 @@ try {
  * Register a callback for notifications received while foregrounded.
  * The NotificationContext calls this to route to ToastContext.
  */
-export function setForegroundNotificationHandler(
-  handler: (title: string, body: string, data?: Record<string, unknown>) => void,
-): void {
+export function setForegroundNotificationHandler(handler: ForegroundNotificationHandler): void {
   _onForegroundNotification = handler;
 }
 
@@ -49,7 +54,7 @@ try {
         const body = notification.request.content.body || '';
         if (_onForegroundNotification && (title || body)) {
           const data = notification.request.content.data as Record<string, unknown> | undefined;
-          _onForegroundNotification(title, body, data);
+          _onForegroundNotification(title, body, data, notification.request.identifier);
         }
         return {
           shouldShowAlert: false,

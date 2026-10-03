@@ -26,6 +26,12 @@ const UnlockToast = React.lazy(() => import('../components/discovery/UnlockToast
 const NotificationToast = React.lazy(() => import('../components/shared/NotificationToast'));
 
 interface NotificationToastData {
+  /**
+   * A new key for every toast shown (NPM-3a-ii, Kyle's II-D8: newest wins, with
+   * a full duration). The toast is keyed by it, so a newer one mounts fresh
+   * with its own timer, and only the current toast's own dismissal clears it.
+   */
+  key: number;
   title: string;
   body: string;
   onTap?: () => void;
@@ -67,6 +73,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   // Notification toast state (separate from feature unlock queue)
   const [notificationToast, setNotificationToast] = useState<NotificationToastData | null>(null);
   const [isNotificationToastVisible, setIsNotificationToastVisible] = useState(false);
+  const notificationToastKeyRef = useRef(0);
 
   // Process the unlock toast queue
   const processQueue = useCallback(() => {
@@ -129,11 +136,15 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   const showNotificationToast = useCallback((title: string, body: string, onTap?: () => void, actionLabel?: string, onAction?: () => void) => {
     // Don't show if an unlock toast is visible
     if (isToastVisible) return;
-    setNotificationToast({ title, body, onTap, actionLabel, onAction });
+    notificationToastKeyRef.current += 1;
+    setNotificationToast({ key: notificationToastKeyRef.current, title, body, onTap, actionLabel, onAction });
     setIsNotificationToastVisible(true);
   }, [isToastVisible]);
 
-  const handleNotificationToastDismiss = useCallback(() => {
+  // `key` names the toast whose fade-out finished. One that was replaced while
+  // fading must not clear its successor (II-D8).
+  const handleNotificationToastDismiss = useCallback((key?: number) => {
+    if (key !== undefined && key !== notificationToastKeyRef.current) return;
     setIsNotificationToastVisible(false);
     setNotificationToast(null);
   }, []);
@@ -169,10 +180,11 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
         )}
         {notificationToast && (
           <NotificationToast
+            key={notificationToast.key}
             title={notificationToast.title}
             body={notificationToast.body}
             visible={isNotificationToastVisible}
-            onDismiss={handleNotificationToastDismiss}
+            onDismiss={() => handleNotificationToastDismiss(notificationToast.key)}
             onTap={notificationToast.onTap}
             autoDismissDelay={notificationToast.actionLabel ? 4000 : TOAST_DISPLAY_DURATION}
             actionLabel={notificationToast.actionLabel}
