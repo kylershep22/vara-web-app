@@ -1,0 +1,6 @@
+# NPM-3a-ii walk helper. Never commit the real allowlist or a credential.
+allowlist.local.json
+serviceAccountKey.json
+*.key.json
+*-key.json
+*.pem

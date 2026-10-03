@@ -1,0 +1,9 @@
+{
+  "_comment": "Copy to allowlist.local.json (ignored by git) and fill in. projectId is the Firebase project the credential must belong to. uids maps the walk's labels to the test accounts' UIDs; the helper refuses any other UID.",
+  "projectId": "your-firebase-project-id",
+  "uids": {
+    "A": "UID-OF-ACCOUNT-A-ON-THE-PHONE",
+    "B": "UID-OF-ACCOUNT-B-CONNECTED-TO-A",
+    "C": "UID-OF-ACCOUNT-C-NOT-CONNECTED-TO-A"
+  }
+}
