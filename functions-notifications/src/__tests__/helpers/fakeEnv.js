@@ -18,6 +18,31 @@
 const SERVER_TIMESTAMP = {__fake: "serverTimestamp"};
 
 /**
+ * An obviously fake Expo access token. The real one is a Firebase secret and
+ * never appears in this repo. install() puts this in process.env, which is
+ * where the secret's value() reads it from at run time.
+ */
+const FAKE_EXPO_ACCESS_TOKEN = "fake-expo-access-token-for-tests-only";
+
+/**
+ * Expo.isExpoPushToken from expo-server-sdk 4.0.0
+ * (build/ExpoClient.js, static isExpoPushToken), copied rather than loaded:
+ * jest.requireActual on the SDK caches a real SDK wired to whichever
+ * node-fetch stand-in was current, and a later test that wants the real SDK
+ * would silently get that stale one. The realExpo suites exercise the real
+ * method itself.
+ * @param {*} token
+ * @return {boolean}
+ */
+function isExpoPushTokenLikeSdk(token) {
+  return (typeof token === "string" &&
+    (((token.startsWith("ExponentPushToken[") ||
+      token.startsWith("ExpoPushToken[")) && token.endsWith("]")) ||
+      /^[a-z\d]{8}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{12}$/i
+          .test(token)));
+}
+
+/**
  * A Firestore Timestamp stand-in. Only toMillis is read by the sender.
  * @param {number} ms
  * @return {object}
@@ -28,9 +53,35 @@ function timestamp(ms) {
 
 /**
  * Build a fresh fake world and register every mock.
+ * @param {object=} options
+ * @param {boolean=} options.realExpo keep the real expo-server-sdk, so a test
+ *   can observe the HTTP request it builds
+ * @param {function=} options.fetch REQUIRED with realExpo: the stand-in for
+ *   node-fetch. It is registered here, FIRST, before anything below can load
+ *   the real SDK, because a module loaded before its mock keeps the real
+ *   dependency - and the real node-fetch would reach Expo's servers.
  * @return {object} handles for seeding, failure injection and observation
  */
-function install() {
+function install(options) {
+  const opts = options || {};
+  process.env.EXPO_ACCESS_TOKEN = FAKE_EXPO_ACCESS_TOKEN;
+
+  // NO NETWORK, EVER. node-fetch is always mocked: by the caller's stand-in
+  // in realExpo mode, and otherwise by one that throws, so a test that
+  // somehow reaches the real SDK fails loudly instead of calling Expo.
+  if (opts.realExpo && typeof opts.fetch !== "function") {
+    throw new Error("install({realExpo: true}) requires a fetch stand-in");
+  }
+  const realFetch = jest.requireActual("node-fetch");
+  const fetchStandIn = opts.realExpo ? opts.fetch : jest.fn(async () => {
+    throw new Error("network blocked in tests: node-fetch was called");
+  });
+  const fetchModule = Object.assign(fetchStandIn, {
+    __esModule: true,
+    default: fetchStandIn,
+    Headers: realFetch.Headers,
+  });
+  jest.doMock("node-fetch", () => fetchModule);
   const store = new Map();
   const writes = [];
   const queries = [];
@@ -189,14 +240,17 @@ function install() {
   jest.doMock("firebase-admin", () => admin);
 
   // ---- expo-server-sdk ----------------------------------------------------
-  const actualExpo = jest.requireActual("expo-server-sdk").Expo;
   const expoSend = jest.fn(async (messages) => messages.map(() => ({
     status: "ok", id: "ticket",
   })));
+  const expoClients = [];
   /** Fake Expo client. */
   class Expo {
-    /** Constructor. */
-    constructor() {
+    /**
+     * @param {object=} clientOptions recorded, so tests see the access token
+     */
+    constructor(clientOptions) {
+      expoClients.push(clientOptions);
       this.sendPushNotificationsAsync = expoSend;
     }
     /**
@@ -204,10 +258,13 @@ function install() {
      * @return {boolean}
      */
     static isExpoPushToken(token) {
-      return actualExpo.isExpoPushToken(token);
+      return isExpoPushTokenLikeSdk(token);
     }
   }
-  jest.doMock("expo-server-sdk", () => ({Expo}));
+  // A doMock registration survives jest.resetModules(), so real-SDK mode
+  // must undo an earlier test's fake explicitly or it silently gets the fake.
+  if (opts.realExpo) jest.dontMock("expo-server-sdk");
+  else jest.doMock("expo-server-sdk", () => ({Expo}));
 
   // ---- @sendgrid/mail -----------------------------------------------------
   const mailSend = jest.fn(async () => undefined);
@@ -237,6 +294,7 @@ function install() {
     failures,
     logs,
     expoSend,
+    expoClients,
     mailSend,
     getUser,
     seed: (path, data) => store.set(path, clone(data)),
@@ -261,4 +319,4 @@ function install() {
   };
 }
 
-module.exports = {install, timestamp, SERVER_TIMESTAMP};
+module.exports = {install, timestamp, SERVER_TIMESTAMP, FAKE_EXPO_ACCESS_TOKEN};

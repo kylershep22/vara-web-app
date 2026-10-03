@@ -11,6 +11,7 @@ const admin = require("firebase-admin");
 const {checkDeliveryEligibility} = require("./eligibility");
 const {markAndSend} = require("./send");
 const {logCommunity} = require("./log");
+const {readExpoAccessToken} = require("./secrets");
 
 /**
  * @param {string} kind direct_message | connection_request
@@ -38,7 +39,7 @@ function communityHandler(kind, paramName) {
       return;
     }
 
-    await markAndSend(db, kind, eventId, eligible);
+    await markAndSend(db, kind, eventId, eligible, readExpoAccessToken());
   };
 }
 

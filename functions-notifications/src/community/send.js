@@ -11,13 +11,16 @@
  *
  * NO RECEIPT POLLING in V1 (ruling 7). A ticket that comes back with an
  * error is logged with Expo's error code and nothing else.
+ *
+ * EXPO ACCESS TOKEN. Every request carries the Expo access token
+ * (src/community/secrets.js). Without one there is no send, and the check
+ * runs BEFORE the marker, so a configuration fault does not consume it and
+ * the event is not silently marked as delivered.
  */
 
 const admin = require("firebase-admin");
 const {Expo} = require("expo-server-sdk");
 const {logCommunity} = require("./log");
-
-const expo = new Expo();
 
 /** Firestore's ALREADY_EXISTS, as the Admin SDK reports it. */
 const ALREADY_EXISTS = 6;
@@ -63,15 +66,22 @@ function composePush(kind, eventId, eligible) {
  * @param {string} kind
  * @param {string} eventId
  * @param {object} eligible
+ * @param {string|null} accessToken the Expo access token, or null
  * @return {Promise<boolean>} whether a push was handed to Expo
  */
-async function markAndSend(db, kind, eventId, eligible) {
+async function markAndSend(db, kind, eventId, eligible, accessToken) {
   const base = {
     kind,
     eventId,
     actorId: eligible.actorId,
     recipientId: eligible.recipientId,
   };
+
+  if (!accessToken) {
+    logCommunity("error", Object.assign(
+        {reason: "expo_access_token_missing"}, base));
+    return false;
+  }
 
   try {
     await db.doc(
@@ -101,6 +111,7 @@ async function markAndSend(db, kind, eventId, eligible) {
     channelId: "default",
   };
 
+  const expo = new Expo({accessToken});
   let tickets;
   try {
     tickets = await expo.sendPushNotificationsAsync([message]);

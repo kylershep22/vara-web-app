@@ -7,6 +7,8 @@
  * Both go through src/community: one shared eligibility check, then a
  * duplicate marker, then one push.
  *
+ * Both are bound to the EXPO_ACCESS_TOKEN secret, and only they are.
+ *
  * And, unchanged:
  *   notifyOnInviteCreated             connectionInvites/{inviteId}
  * which is dormant legacy web infrastructure (K3); see src/legacy.
@@ -27,15 +29,16 @@ const {
   handleDirectMessageCreated,
   handleConnectionRequestCreated,
 } = require("./src/community/triggers");
+const {EXPO_ACCESS_TOKEN} = require("./src/community/secrets");
 const {handleInviteCreated} = require("./src/legacy/inviteCreated");
 
 exports.notifyOnDirectMessageCreated = onDocumentCreated(
-    "directMessages/{messageId}",
+    {document: "directMessages/{messageId}", secrets: [EXPO_ACCESS_TOKEN]},
     handleDirectMessageCreated,
 );
 
 exports.notifyOnConnectionRequestCreated = onDocumentCreated(
-    "connections/{connectionId}",
+    {document: "connections/{connectionId}", secrets: [EXPO_ACCESS_TOKEN]},
     handleConnectionRequestCreated,
 );
 
