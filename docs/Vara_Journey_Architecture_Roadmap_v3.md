@@ -439,7 +439,7 @@ deploy. Deploy state lives on Kyle's checklist.
 | NPM-2 NOTIFICATION-SETTINGS-TRUTHFULNESS | **[DONE, merged at 7e8750b. WALK STEPS 9, 11, 12 AND 13 NOT RUN BY KYLE'S DECISION; TESTS ARE THE EVIDENCE.]** **[NPM-2 HIDES QUIET HOURS (Kyle's Ruling 9, 2026-10-02). NOTIFICATION BEHAVIOUR IS NOT LAUNCH-READY UNTIL NPM-3a REMOVES SERVER ENFORCEMENT OF STORED QUIET HOURS.]** Was: **[Next]** **[BUILT AND WALKED at f516f78, AWAITING MERGE. LAUNCH-BLOCKING. WALK STEPS 9, 11, 12 AND 13 NOT RUN BY KYLE'S DECISION; TESTS ARE THE EVIDENCE.]** **[NPM-2 HIDES QUIET HOURS (Kyle's Ruling 9, 2026-10-02). NOTIFICATION BEHAVIOUR IS NOT LAUNCH-READY UNTIL NPM-3a REMOVES SERVER ENFORCEMENT OF STORED QUIET HOURS.]** Was: **[Next]** **[BUILT, WALK PENDING on journey/npm-2-notification-settings-truthfulness. LAUNCH-BLOCKING.]** **[NPM-2 HIDES QUIET HOURS (Kyle's Ruling 9, 2026-10-02). NOTIFICATION BEHAVIOUR IS NOT LAUNCH-READY UNTIL NPM-3a REMOVES SERVER ENFORCEMENT OF STORED QUIET HOURS.]** Was: **[READY. LAUNCH-BLOCKING. Starts after ROUTINE-REMINDER-OFFLINE-RESILIENCE merges.]** Was: **[READY. LAUNCH-BLOCKING. Starts after NPM-1 merges.]** **[NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-10-01, split from NOTIFICATION-PREFERENCES-MODEL.]** The Notifications settings say what the app does *(row added 2026-10-01)* | **OWNS KYLE'S RULINGS D4, D6, D7, D8, AND D9'S REACHABLE REMOVAL**, verbatim in the ADDED 2026-10-01 (NPM-1's build docs) block at the end of §5: the OS-permission status/action row; removing Community Activity and the dead Push Notifications control, replacing the latter with OS notification-permission status; hiding Completion Sound, Insights and Milestone notification controls; the draft/Done/Cancel pickers with an Add a time state; hiding Quiet Hours; removing the reachable Journal opt-in. **ABSORBS** NOTIFICATION-SETTINGS-SWITCH-LABELS and the ADDED 2026-10-01 addendum on the Settings time pickers committing on every scroll tick. **OWNS RECOVERY FOR THE ONBOARDING WRITE-FAILURE CASE** (ledger row DAILY-RHYTHM-ONBOARDING-WRITE-FAILURE). Whether a Settings commit reconciles the daily rhythm immediately, rather than at the next return, is decided here. | NPM-1 merged. | Yes, Kyle's device walk. |
 | NPM-3a COMMUNITY-NOTIFICATION-CORRECTNESS | **[SPLIT 2026-10-02 into NPM-3a-i (Community server, rules and push correctness) and NPM-3a-ii (Community mobile notification correctness); see the two rows below.]** Was: **[READY. LAUNCH-BLOCKING.]** **LAUNCH DEPENDENCY (Kyle's Ruling 9, 2026-10-02): NPM-3a MUST REMOVE SERVER ENFORCEMENT OF STORED QUIET HOURS** (`functions/src/notifications/social.js` lines 36 and 91, and every other `isWithinQuietHours` caller under `functions/src/notifications/`) **before notification behaviour is launch-ready. NPM-2 has hidden the control; the stored default is enabled, 21:00 to 08:00.** ALSO: Kyle's Ruling 7 confirms that NPM-3a removes the `allNotificationsEnabled` check from the DM and connection-request senders (`social.js` lines 35 and 90): Community notification preferences are independent of General. *(Added 2026-10-02 at NPM-2's build docs.)* **[NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-10-01, split from NOTIFICATION-PREFERENCES-MODEL.]** One correct push per Community event *(row added 2026-10-01)* | **KYLE'S RULING, VERBATIM (D5 and ruling 6, as revised):** "Community is part of V1, including its current Messages, People and Connect functionality. Do not create a retirement slice for those entry points. The DM and connection issues belong to a separate launch-blocking NPM-3a COMMUNITY-NOTIFICATION-CORRECTNESS row. It must resolve the duplicate DM sender architecture, the connection-request field mismatch, preference enforcement, and prove one correct push per relevant event. Do not widen NPM-1 with that server work." **ALSO OWNS** push-token registration for Community pushes, and what the server does with stored Quiet Hours once NPM-2 hides that control. **INHERITS** SOCIAL-PUSH-FLAG-BYPASS and NOTIFICATIONS-CODEBASE-IGNORES-PREFS (whose `notifyOnInviteCreated` sends no push, and triggers on `connectionInvites`, which mobile never writes; see NPM-1's §13 entry). **NEEDS A FUNCTIONS DEPLOY, with `npm test` in `functions/` first.** | None. | Yes, Kyle's walk with two accounts after the deploy. |
 | NPM-3a-i COMMUNITY-PUSH-SERVER | **[DONE, merged at bdaabef. E4 NOT RUN BY KYLE'S DECISION; TESTS ARE THE EVIDENCE.]** Was: **[Next]** **[BUILT AND WALKED at 40e17af, DEPLOYED from 3acafa8 on 2026-10-03, AWAITING MERGE. LAUNCH-BLOCKING. E4 NOT RUN BY KYLE'S DECISION; TESTS ARE THE EVIDENCE.]** Was: **[Next]** **[BUILT at 40e17af on journey/npm-3a-i-community-push-server. DEPLOY AND WALK PENDING. LAUNCH-BLOCKING.]** **[Row added 2026-10-03, split from NPM-3a.]** Community server, rules and push correctness *(row added 2026-10-03)* | **SCOPE, KYLE'S WORDING VERBATIM (register entry PA-3, item 1):** "1. NPM-3a-i — Community server/rules/push correctness" / "Consolidate the push sender, remove duplicate/legacy senders and bell docs/email, harden conversations/messages/connections rules, enforce accepted-connection push eligibility, clamp display names, and remove Community coupling to Quiet Hours and `serverPushEnabled`." **IMPLEMENTS register entries:** R1-K2, R1-K3, R1-K4, R1-K6, R1-K7, R1-K8 (push only), R1-K9, R1-K10, R1-D1, R1-K12, R1-K15, R1-K16, S2-1 to S2-10, RI-6 (push eligibility), EXPO-SEC, S3-1, S3-3, S3-4, S3-5. **TEXT OF RECORD** for every ruling named here: `docs/decisions/community-v1-rulings.md`. **BUILD LOG:** the 2026-10-03 NPM-3a-i entry in §13. | NPM-2 merged. | Yes, Kyle's deploy and walk: `docs/walks/npm-3a-i/WALK.md`. |
-| NPM-3a-ii COMMUNITY-PUSH-PHONE | **[Next]** **[IN BUILD on journey/npm-3a-ii-community-push-phone. LAUNCH-BLOCKING.]** Was: **[QUEUED. LAUNCH-BLOCKING. STARTS AFTER NPM-3a-i MERGES.]** **[Row added 2026-10-03, split from NPM-3a.]** Community mobile notification correctness *(row added 2026-10-03)* | **SCOPE, KYLE'S WORDING VERBATIM (register entry PA-3, item 2):** "2. NPM-3a-ii — Community mobile notification correctness" / "Token registration, tap routing, foreground toast, active-conversation suppression, sign-out cleanup and end-to-end push proof." **OWNS register entries:** R1-K5, R1-K8 (tap routing), R1-K11 with its Round 6 confirmation, R1-K13, R1-K14. **INHERITS** JOURNAL-OPTIN-TOKEN-SAVE-REMOVED and the open items in NPM3A-NOTIFICATION-FINDINGS. **TEXT OF RECORD:** `docs/decisions/community-v1-rulings.md`. | NPM-3a-i merged. | Yes, Kyle's device walk. |
+| NPM-3a-ii COMMUNITY-PUSH-PHONE | **[Next]** **[BUILT at 67e6112 on journey/npm-3a-ii-community-push-phone. DEPLOY AND WALK PENDING. LAUNCH-BLOCKING.]** Was: **[Next]** **[IN BUILD on journey/npm-3a-ii-community-push-phone. LAUNCH-BLOCKING.]** Was: **[QUEUED. LAUNCH-BLOCKING. STARTS AFTER NPM-3a-i MERGES.]** **[Row added 2026-10-03, split from NPM-3a.]** Community mobile notification correctness *(row added 2026-10-03)* | **SCOPE, KYLE'S WORDING VERBATIM (register entry PA-3, item 2):** "2. NPM-3a-ii — Community mobile notification correctness" / "Token registration, tap routing, foreground toast, active-conversation suppression, sign-out cleanup and end-to-end push proof." **OWNS register entries:** R1-K5, R1-K8 (tap routing), R1-K11 with its Round 6 confirmation, R1-K13, R1-K14. **INHERITS** JOURNAL-OPTIN-TOKEN-SAVE-REMOVED and the open items in NPM3A-NOTIFICATION-FINDINGS. **TEXT OF RECORD:** `docs/decisions/community-v1-rulings.md`. | NPM-3a-i merged. | Yes, Kyle's device walk. |
 | COMMUNITY-RULES-INTEGRITY | **[QUEUED. LAUNCH-BLOCKING.]** **[Row added 2026-10-03 under register entry PA-3.]** Community rules integrity *(row added 2026-10-03)* | **SCOPE, KYLE'S WORDING VERBATIM (register entry PA-3, item 3):** "3. COMMUNITY-RULES-INTEGRITY — launch-blocking" / "Close unauthorized comment edits/deletes, like inflation, non-connection messaging writes, connection abuse and suspension gaps. Verify a rules-only comment design first." **OWNS register entries:** RI-1 to RI-7, S3-2. **TEXT OF RECORD:** `docs/decisions/community-v1-rulings.md`. | Its own read-only Step 0. | Yes, Kyle's walk. |
 | COMMUNITY-SAFETY-AND-MODERATION | **[QUEUED. LAUNCH-BLOCKING.]** **[Row added 2026-10-03 under register entries PA-3 and R1-K17.]** Community safety and moderation *(row added 2026-10-03)* | **SCOPE, KYLE'S WORDING VERBATIM (register entry PA-3, item 4):** "4. COMMUNITY-SAFETY-AND-MODERATION — launch-blocking" / "Block user; report user; report message; repair post reporting; block enforcement in both directions; remove connection on block; moderation delivery/runbook; objectionable-content filtering appropriate to each public surface; published support/contact information." **KYLE'S RULING, VERBATIM (register entry R1-K17, Kyle's ruling):** "K17: broaden and rename." / "Create `COMMUNITY-SAFETY-AND-MODERATION — LAUNCH BLOCKING`, not only `COMMUNITY-BLOCK-AND-REPORT`." / "Its Step 0/build must cover:" / "block user; report user; report message; enforcement preventing blocked users from relevant messaging/connection interactions; non-connection message-write gap; message abuse/rate limits; existing objectionable-content filtering/moderation coverage; operational handling of reports; and published user-facing support/contact information." / "Do not assume new sophisticated moderation is required until Step 0 inventories what Vara already has. The launch gate is compliance with the actual UGC safety surface, not merely the presence of Block and Report buttons." / "Add an App Store pre-submission checklist item to answer the current social-media capability questions in the age-rating questionnaire." **OWNS register entries:** SM-1 to SM-15, SM-REHEARSAL. **TEXT OF RECORD:** `docs/decisions/community-v1-rulings.md`; the Step 0 is `docs/walks/npm-3a-i/reports/community_safety_step0.txt`. | Its own build Step 0. | Yes, Kyle's walk. |
 | AGE-TERMS-SUBMISSION-ALIGNMENT | **[QUEUED. LAUNCH-BLOCKING.]** **[Row added 2026-10-03 under register entries PA-3 and R1-K17.]** Age, Terms and submission alignment *(row added 2026-10-03)* | **SCOPE, KYLE'S WORDING VERBATIM (register entry PA-3, item 5):** "5. AGE-TERMS-SUBMISSION-ALIGNMENT — launch-blocking" / "Reconcile repo/published Terms; settle one minimum-age policy; add the matching signup statement; update the App Store age-rating/submission checklist for social media, UGC, messaging/chat and wellness content." **OWNS register entries:** AT-1 to AT-6, and the checklist item in R1-K17. **TEXT OF RECORD:** `docs/decisions/community-v1-rulings.md`. | Its own read-only Step 0. | Kyle's checks. |
@@ -3653,6 +3653,16 @@ rule is cited as §12.1.
 >   hook (register entry II-D9), so a daily rhythm tap no longer routes to Home while Settings is
 >   open. The row stays open for Kyle's ruling.
 
+> **ADDED 2026-10-03 (NPM-3a-ii's closing docs, build prompt 2). ONE MARKER CHANGE.** The rule and
+> the blocks above are left unedited. The update keeps the entire prior marker verbatim after
+> "Was:".
+>
+> - **NPM-3a-ii's MARKER.** IN BUILD becomes *"BUILT at 67e6112 on
+>   journey/npm-3a-ii-community-push-phone. DEPLOY AND WALK PENDING. LAUNCH-BLOCKING."* **[Next]**
+>   stays on this row. The rationale: both build prompts are complete at `67e6112`, every suite
+>   green, and the deploy and walk script is `docs/walks/npm-3a-ii/WALK.md`. The 2026-10-03
+>   NPM-3a-ii entry in section 13 is the build log.
+
 ---
 
 ## 13. Build log (amendments as slices close)
@@ -4912,6 +4922,89 @@ advancement, the Today journey-action slot, the journey line and the Start here 
   the map route still offers it. **Record the result in this entry when observed. Until then
   the budget is test-pinned and device-unobserved**, and that is the honest description rather
   than a gap.
+
+### 2026-10-03 - NPM-3a-ii COMMUNITY-PUSH-PHONE: the phone owns its push token, clears it at sign-out, and opens only its own Community pushes (branch `journey/npm-3a-ii-community-push-phone`, `9f02374` and `c42d5fa` the before-state evidence, `edba9b5` the first docs, `031c133` and `e531a85` token registration and sign-out, `61bb069` recipientId on the server, `c331249` and `1901008` the router and the toast, `f656c65` the walk helper, `67e6112` the toast-duration fix, this entry the docs; **BUILT AT `67e6112`, DEPLOY AND WALK PENDING**, script at `docs/walks/npm-3a-ii/WALK.md`)
+
+**THE RULINGS ARE IN THE REGISTER.** `docs/decisions/community-v1-rulings.md`: R1-K5, R1-K8 (tap
+routing), R1-K11 with its Round 6 confirmation, R1-K13, R1-K14, S3-4, R0-WALK-SCOPE with its
+clarification, and Round 8 (II-D1 to II-D17 and Kyle's closing sentences). This entry records what
+was built against them and does not restate them.
+
+**BEFORE-STATE EVIDENCE.** Kyle's two observations are in `docs/walks/npm-3a-ii/before/before-notes.txt`:
+after logging out the account's expoPushToken was still in userPrivate, and tapping a Community
+toast did nothing. Sixteen regression tests failed on unchanged code, each for its intended reason,
+and passed after the build with no assertion changed: RG1 to RG6 (`docs/walks/npm-3a-ii/before/`)
+and RG7 to RG14 (`docs/walks/npm-3a-ii/before/build2/`).
+
+**WHAT WAS BUILT.**
+- **One owner for registration** (`031c133`). `pushRegistration.service`, called only by the
+  always-mounted NotificationProvider on its exclusive queue: at sign-in and on a cold start, when
+  the email becomes verified, on every return to the app, after any in-app permission grant (one
+  request path, `requestOsNotificationPermission`, emits the grant), and on a token change. It
+  reads userPrivate from the server and writes only the token that differs (expoPushToken and
+  fcmToken compared separately). Removed: the onboarding step's discarded token fetch, the
+  Settings row's own save, the separate fcmToken effect, and `useNotifications` with its Settings
+  mount.
+- **Ending a session** (`031c133`). logout dismisses delivered notifications, then clears each
+  stored token only if it still equals this device's, in a transaction that requires the
+  departing UID to still be signed in, bounded at five seconds, then signs out whatever happened.
+  Account deletion dismisses and skips the clear. The session-loss effect also dismisses; its
+  condition is unchanged. The forced sign-outs are unchanged.
+- **recipientId on the server** (`61bb069`). Both Community payloads carry it. Nothing else about
+  the sender changed. The payload shape is pinned in a fixture the phone's router tests also read.
+- **One router** (`c331249`). `navigation/communityPushRoute` returns a target only for a Community
+  push whose recipientId is a well-formed UID equal to the signed-in UID: Chat with the
+  conversation and the sender, or People on Requests. The provider uses it for a background tap,
+  a cold-start tap (waiting, bounded at ten seconds, for Main in the root navigator; each response
+  routed once) and a toast press. No daily-rhythm branch.
+- **The toast** (`c331249`, `67e6112`). Nothing for another account; nothing in the open
+  conversation; otherwise a toast that opens what the banner opens. The newest toast wins with a
+  full duration, including during a fade-out, and a re-render no longer extends a showing toast.
+- **The walk helper** (`f656c65`). `scripts/walk/community-push/communityPushHelper.js`, per
+  II-D11: an ignored allowlist file, dry run by default, two event shapes from the sender's
+  fixture, refusals for a missing conversation or an existing connection, no credentials in the
+  repo.
+
+**TESTS THAT CHANGED, AND WHY.** The Settings permission row's L5 now pins that the row saves no
+token (II-D1, II-D5; its "failed save" test lost its subject). `npm2Regress.push-switch-present`
+lost its useNotifications assertion (II-D9). The pushToken suite lost its three
+registerAndSaveFCMToken tests (the function is gone; pushRegistration's suite pins the same
+properties). The sender's two fixed-data tests compare against the shared fixture (II-D4). The RG1
+to RG6 files' mock factories use `jest.requireActual` in place of `require` (lint only).
+
+**PATHS PROVEN ONLY IN TESTS, UNTIL THE WALK.** A notification tap is delivered through the
+response listener the provider registers, not a rendered banner. The focus-timer grant calls the
+service function directly. Native alert buttons are pressed through the Alert spy. Token rotation
+is a fired fake listener. The toast stands in for `React.lazy` because jest cannot run its dynamic
+import; the component pressed is the real one.
+
+**MUTATIONS.** Build prompt 1: 34 run, 33 killed; the survivor removes two early sign-out guards
+that a later pre-write check makes redundant. Build prompt 2: 35 run, 30 killed; the survivors are
+the two recipientId well-formedness checks taken one at a time (the equality check covers each;
+removing both is killed), People's initial state from the param (the mount effect covers it), and
+the toast's key taken alone, twice (the per-toast onDismiss also restarts the timer). The pass
+found one real defect, fixed in `67e6112`: an inline onDismiss restarted a showing toast's timer
+on every provider re-render.
+
+**BASELINES AT `67e6112`.** Mobile jest 4315 tests in 293 suites (from 4242 in 279); tsc 136, the
+error list identical to bdaabef apart from line numbers; lint 885 errors and 1238 warnings (from 885
+and 1242); sentinel 156; functions 60 in 6; functions-notifications 125 in 8 (from 109 in 6), lint
+clean; rules 220 passed and 2 skipped.
+
+**MANIFEST.** No new Firestore collection, document path or field: the slice writes and deletes
+existing userPrivate token fields, already on the deleteAccount manifest. No new local key; the
+device's tokens are held in memory. The walk helper's allowlist is a local, git-ignored file.
+
+**DEPLOY INVENTORY (read-only).** Kyle runs an unscoped `firebase deploy --only functions` from the
+branch; there is no rules deploy. Behaviour changes in two functions only: notifyOnDirectMessageCreated
+and notifyOnConnectionRequestCreated (the push data gains recipientId). Every other function, in
+both codebases, is redeployed unchanged: since the deploy from `3acafa8`, nothing under `functions/`
+or in `firebase.json` changed, and the exported functions in `functions-notifications/index.js`
+did not change, so no deletion prompt is expected. The only commits touching
+`functions-notifications/` since `3acafa8` are this branch's `61bb069` and `f656c65` (the latter
+adds a test only). There are no UNREVIEWED commits.
+
+**STATUS: BUILT AT `67e6112`. DEPLOY AND WALK PENDING.**
 
 ### 2026-10-03 - NPM-3a-i COMMUNITY-PUSH-SERVER: one Community push per event, from one sender (branch `journey/npm-3a-i-community-push-server`, `08b0859` the before-state evidence, `1f66c71` the sender, `688d277` the FCM senders retired, `a7a8ec9` the Expo access token, `4ea5113` the rules, `40e17af` the evidence lines, this entry the docs; **BUILT AT `40e17af`, DEPLOY AND WALK PENDING**, script at `docs/walks/npm-3a-i/WALK.md`)
 
