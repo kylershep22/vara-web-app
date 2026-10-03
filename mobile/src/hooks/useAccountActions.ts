@@ -82,7 +82,10 @@ export function useAccountActions() {
                       await clearNotificationIntent();
                       // Sign out locally so auth listener navigates to login,
                       // not onboarding (the user doc is already deleted).
-                      await logout();
+                      // Delivered notifications are dismissed; the push
+                      // token clear is skipped because the server deleted
+                      // userPrivate/{uid} with the account (NPM-3a-ii).
+                      await logout({ skipTokenClear: true });
                     } catch (err: any) {
                       setDeleting(false);
                       Alert.alert(

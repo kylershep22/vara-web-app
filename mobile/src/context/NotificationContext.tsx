@@ -1,7 +1,10 @@
 /**
  * Notification Context
- * Manages notification scheduling, foreground consolidation, FCM token registration,
+ * Manages notification scheduling, foreground consolidation, push token registration,
  * and provides notification functions to the app.
+ *
+ * It is the one owner of push token registration (NPM-3a-ii, Kyle's II-D1):
+ * see pushRegistration.service for what a pass reads and writes.
  *
  * The daily rhythm is local only in V1 (Kyle's ruling D1 and NPM-1 ruling 1):
  * whether it should exist is decided by reconcileDailyRhythm from a FRESH read of
@@ -15,10 +18,15 @@ import { useToast } from './ToastContext';
 import {
   setForegroundNotificationHandler,
   cancelAllScheduledExceptFocusComplete,
-  registerAndSaveFCMToken,
   addNotificationResponseListener,
   getLastNotificationResponse,
+  onNotificationPermissionGranted,
+  dismissAllDeliveredNotifications,
 } from '../services/notifications.service';
+import {
+  ensurePushRegistration,
+  onDeviceTokenChange,
+} from '../services/pushRegistration.service';
 import {
   getActiveFocusSession,
   clearActiveFocusSession,
@@ -106,12 +114,28 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     });
   }, [showNotificationToast, user?.uid]);
 
-  // Register FCM token on login
+  // Push token registration (NPM-3a-ii, Kyle's II-D1 and II-D12). Only for a
+  // signed-in user with a verified email. Runs at sign-in and on a cold start
+  // with a restored session, when the email becomes verified (the effect
+  // re-runs on that change), after any in-app permission grant and on a token
+  // change. The return to the app is in the foreground handler below. Every
+  // pass goes through runExclusive, and a pass never prompts.
+  const registrationUid = user?.uid;
+  const emailVerified = !!user?.emailVerified;
   useEffect(() => {
-    if (!user?.uid) return;
-    // Register native push token for FCM
-    registerAndSaveFCMToken(user.uid);
-  }, [user?.uid]);
+    if (!registrationUid || !emailVerified) return;
+    const uid = registrationUid;
+    const register = () => {
+      void runExclusive(() => ensurePushRegistration(uid));
+    };
+    register();
+    const stopGrants = onNotificationPermissionGranted(register);
+    const tokenChanges = onDeviceTokenChange(register);
+    return () => {
+      stopGrants();
+      tokenChanges.remove();
+    };
+  }, [registrationUid, emailVerified, runExclusive]);
 
   // Foreground consolidation: cancel pending, reschedule future. Spares the
   // pending focus-complete notification (the OS owns it; the timer relies on it
@@ -145,11 +169,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           // bounded, so a hung read cannot hold this queue indefinitely.
           await syncAllReminders(uid);
         });
+        // Push token registration on every return to the app (II-D1), after
+        // the reminder work and on the same queue.
+        if (user.emailVerified) {
+          await runExclusive(() => ensurePushRegistration(uid));
+        }
       }
       appStateRef.current = nextState;
     });
     return () => subscription.remove();
-  }, [user?.uid, runExclusive]);
+  }, [user?.uid, user?.emailVerified, runExclusive]);
 
   // Reconcile the daily rhythm on sign-in and cold start. The reconcile reads the
   // preferences fresh and decides; nothing here consults a stored copy.
@@ -275,6 +304,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // user's object is replaced, and not on unmount (NPM-1 T5: replacing the
       // object used to cancel the daily rhythm too).
       if (user?.uid && currentUidRef.current !== user.uid) {
+        // Every notification already delivered goes too (Kyle's II-D15), on
+        // this and every other authoritative session-loss path. Local, never
+        // rejects. logout() has usually done it already; twice is harmless.
+        void dismissAllDeliveredNotifications();
         // The departing user's pending notification changes go with the
         // session (NPM-2): cleared from memory and made inert synchronously,
         // removed from disk after. Never applied to the next account.

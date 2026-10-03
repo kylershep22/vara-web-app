@@ -23,7 +23,22 @@ import { setUserId as setCrashReportingUserId, setUserAttributes, clearUser as c
 import { logEvent } from '../services/firebase/analyticsEvents.service';
 import { identifyPurchaser, clearPurchaser } from '../services/purchases.service';
 import { clearRcEntitlement } from '../services/rcEntitlement';
+import { dismissAllDeliveredNotifications } from '../services/notifications.service';
+import {
+  beginPushSessionEnd,
+  clearDevicePushTokens,
+  finishPushSessionEnd,
+} from '../services/pushRegistration.service';
 import { logger } from '../utils/logger';
+
+export interface LogoutOptions {
+  /**
+   * Skip the push token clear. Account deletion passes it: the server has
+   * already deleted userPrivate/{uid}, so there is nothing to clear (II-D15
+   * still dismisses delivered notifications).
+   */
+  skipTokenClear?: boolean;
+}
 
 // Types
 interface AuthContextType {
@@ -33,7 +48,7 @@ interface AuthContextType {
   refreshCounter: number;
   signup: (email: string, password: string, displayName: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: (options?: LogoutOptions) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   sendVerificationEmail: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -299,15 +314,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   /**
-   * Log out
+   * Log out. In Kyle's order (R1-K11 with its Round 6 confirmation; II-D3;
+   * II-D15 and his ordering clarification):
+   *   1. capture the departing uid and this device's push tokens;
+   *   2. dismiss every delivered notification, locally and immediately;
+   *   3. clear this device's tokens from userPrivate, each only if it still
+   *      matches, while still signed in, bounded at five seconds;
+   *   4. sign out whatever step 3 did.
+   * The two forced sign-outs (token refresh failure above, and the API 401)
+   * do not come through here; they stay under AUTH-OFFLINE-REFRESH-SIGNOUT.
    */
-  const logout = async () => {
+  const logout = async (options?: LogoutOptions) => {
     if (!auth) {
       throw new Error('Firebase is not initialized. Please check your internet connection and restart the app.');
     }
 
     setIsLoading(true);
+    const departing = beginPushSessionEnd();
     try {
+      await dismissAllDeliveredNotifications();
+      if (!options?.skipTokenClear) {
+        // Never rejects; a reject or timeout is logged inside.
+        await clearDevicePushTokens(departing);
+      }
       await signOut(auth);
       await SecureStore.deleteItemAsync('userId');
       logger.log('✅ Logout successful');
@@ -315,6 +344,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logger.error('❌ Logout error:', error);
       throw error;
     } finally {
+      finishPushSessionEnd();
       setIsLoading(false);
     }
   };

@@ -10,7 +10,8 @@
  * Harness adaptations: the shared permission row renders for real, so its OS
  * permission read (notifications.service), expo-notifications and
  * useFocusEffect are replaced; the row appears after that read answers, so
- * Device notifications is awaited. useNotifications is asserted mounted.
+ * Device notifications is awaited. NPM-3a-ii (Kyle's II-D9) removed
+ * useNotifications, so its mock and its mounted assertion are gone.
  */
 import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
@@ -23,7 +24,6 @@ jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ goBack: jest.fn(), navigate: jest.fn() }),
   useFocusEffect: (cb: () => void) => jest.requireActual('react').useEffect(() => cb(), [cb]),
 }));
-const mockUseNotifications = jest.fn(() => ({ permissionStatus: 'granted', requestPermissions: jest.fn() }));
 jest.mock('../../services/notifications.service', () => ({
   getPermissionsStatus: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
   requestNotificationPermission: jest.fn(),
@@ -41,9 +41,6 @@ const mockAuth = { user: { uid: 'u1', email: 'a@b.c' } };
 jest.mock('../../context/AuthContext', () => ({ useAuth: () => mockAuth }));
 jest.mock('../../context/AIConsentContext', () => ({
   useAIConsent: () => ({ hasConsent: false, setConsent: jest.fn() }),
-}));
-jest.mock('../../hooks/useNotifications', () => ({
-  useNotifications: () => mockUseNotifications(),
 }));
 jest.mock('../../hooks/useSubscription', () => ({
   useSubscription: () => ({ status: null, formattedType: 'Premium', description: null }),
@@ -80,7 +77,5 @@ describe('regress: SettingsScreen shows the dead Push Notifications switch', () 
 
     expect(view.queryByText('Push Notifications')).toBeNull();
     expect(await view.findByText('Device notifications')).toBeTruthy();
-    // Ruling 5: still mounted, for its push-token save on mount.
-    expect(mockUseNotifications).toHaveBeenCalled();
   });
 });

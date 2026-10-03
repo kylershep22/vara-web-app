@@ -57,6 +57,9 @@ jest.mock('../../../services/firebase/routines.service', () => ({
 // the same mocked OS call, so the test controls one source of truth.
 jest.mock('../../../services/notifications.service', () => ({
   getPermissionsStatus: () => mockGetPerms(),
+  // NPM-3a-ii: the editor asks through the app's one request path, which
+  // forwards to the same mocked OS request.
+  requestOsNotificationPermission: () => mockRequestPerms(),
 }));
 jest.mock('../../../config/firebase', () => ({ db: null }));
 jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');

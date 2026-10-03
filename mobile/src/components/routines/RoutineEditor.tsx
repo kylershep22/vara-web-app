@@ -15,7 +15,6 @@ import {
   Modal,
   Linking,
 } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import Text from '../shared/Text';
 import TextInput from '../shared/TextInput';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
@@ -44,7 +43,10 @@ import {
   ReminderPermission,
   RoutineReminderInput,
 } from '../../services/reminderScheduler.service';
-import { getPermissionsStatus } from '../../services/notifications.service';
+import {
+  getPermissionsStatus,
+  requestOsNotificationPermission,
+} from '../../services/notifications.service';
 import { formatReminderTime } from '../../services/firebase/notificationPreferences.service';
 import { REMINDER_ALERTS, REMINDER_ROW } from './routineEditor.copy';
 import { TimePickerSheet } from '../shared/TimePickerSheet';
@@ -337,7 +339,9 @@ export const RoutineEditor: React.FC<RoutineEditorProps> = ({
         onPress: async () => {
           let after: ReminderPermission;
           try {
-            await Notifications.requestPermissionsAsync();
+            // The app's one request path, so a grant reaches the push
+            // registration owner (NPM-3a-ii). Same sheet, same moment.
+            await requestOsNotificationPermission();
             after = classifyReminderPermission(await getPermissionsStatus());
           } catch (error) {
             console.error('Error requesting notification permission:', error);

@@ -17,7 +17,6 @@ import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useAIConsent } from '../context/AIConsentContext';
-import { useNotifications } from '../hooks/useNotifications';
 import { NotificationPermissionRow } from '../components/shared/NotificationPermissionRow';
 import { useSubscription } from '../hooks/useSubscription';
 import { useFeatureUnlock } from '../hooks/useFeatureUnlock';
@@ -51,10 +50,6 @@ const SettingsScreen = () => {
   const { deleting, confirmLogout, confirmDeleteAccount } = useAccountActions();
   const { hasConsent: aiConsent, setConsent: setAIConsent } = useAIConsent();
   const navigation = useNavigation();
-  // Kept mounted for what it does on mount: with permission already granted,
-  // it registers and saves the Expo push token (NPM-2 Ruling 5; NPM-3a owns
-  // token registration). The Push Notifications switch it used to drive is gone.
-  useNotifications();
   const { status: subscriptionStatus, formattedType, description: subscriptionDescription } = useSubscription();
   const { access, selectedPillarInfo, unlockAll, loading: featureUnlockLoading } = useFeatureUnlock();
   const [unlockingFeatures, setUnlockingFeatures] = useState(false);

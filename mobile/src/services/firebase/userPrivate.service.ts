@@ -112,8 +112,23 @@ export async function setUserPrivate(
   uid: string,
   patch: UserPrivatePatch
 ): Promise<void> {
+  const existing = await getDoc(userPrivateRef(uid));
+  await setUserPrivateKnowingExistence(uid, patch, existing.exists());
+}
+
+/**
+ * setUserPrivate for a caller that has ALREADY read the document and so knows
+ * whether it exists. Same write (merge, `updatedAt` always, `createdAt` only on
+ * the first write) without a second read. NPM-3a-ii's token registration uses
+ * it: it reads userPrivate from the server to compare tokens, and that one read
+ * also decides createdAt.
+ */
+export async function setUserPrivateKnowingExistence(
+  uid: string,
+  patch: UserPrivatePatch,
+  exists: boolean
+): Promise<void> {
   const ref = userPrivateRef(uid);
-  const existing = await getDoc(ref);
 
   // Strip the three fields this module owns before merging the patch in.
   // UserPrivatePatch already omits them at the type level, so this only matters
@@ -132,7 +147,7 @@ export async function setUserPrivate(
     {
       ...safePatch,
       uid,
-      ...(existing.exists() ? {} : { createdAt: serverTimestamp() }),
+      ...(exists ? {} : { createdAt: serverTimestamp() }),
       updatedAt: serverTimestamp(),
     },
     { merge: true }
