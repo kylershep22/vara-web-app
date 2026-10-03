@@ -1,0 +1,195 @@
+NPM-3a-i regression tests run against UNCHANGED code on branch journey/npm-3a-i-community-push-server (base 7e8750b), 2026-10-02 21:29 EDT.
+
+=== functions-notifications: npx jest --runInBand (RG1-RG7, plus the passing notifyOnInviteCreated characterization) ===
+FAIL src/__tests__/regression.directMessage.test.js
+  ● NPM-3a-i direct-message regressions › RG1: the recipient's direct-message preference off sends nothing
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 0
+    Received length: 1
+    Received array:  [{"body": "Sam Sender: the secret words of this message", "channelId": "default", "data": {"conversationId": "conv-1", "senderId": "uid-sender-S", "type": "message"}, "priority": "high", "sound": "default", "title": "New message", "to": "ExponentPushToken[recipient-R-token]"}]
+
+      45 |     });
+      46 |     await runDm(world.dmEvent(env));
+    > 47 |     expect(env.sentMessages()).toHaveLength(0);
+         |                                ^
+      48 |   });
+      49 |
+      50 |   it("RG2: the push says New message / {name} sent you a message., no text", async () => {
+
+      at Object.toHaveLength (src/__tests__/regression.directMessage.test.js:47:32)
+
+  ● NPM-3a-i direct-message regressions › RG2: the push says New message / {name} sent you a message., no text
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Sam Sender sent you a message."
+    Received: "Sam Sender: the secret words of this message"
+
+      54 |     expect(sent[0].to).toBe(world.RECIPIENT_TOKEN);
+      55 |     expect(sent[0].title).toBe("New message");
+    > 56 |     expect(sent[0].body).toBe(`${world.SENDER_NAME} sent you a message.`);
+         |                          ^
+      57 |     expect(JSON.stringify(sent)).not.toContain(world.MESSAGE_TEXT);
+      58 |   });
+      59 |
+
+      at Object.toBe (src/__tests__/regression.directMessage.test.js:56:26)
+
+  ● NPM-3a-i direct-message regressions › RG3: writes no notifications document and attempts no email
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 17
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "data": Object {
+    +       "body": "Sam Sender: the secret words of this message",
+    +       "createdAt": Object {
+    +         "__fake": "serverTimestamp",
+    +       },
+    +       "link": "/community?tab=messages",
+    +       "read": false,
+    +       "recipientId": "uid-recipient-R",
+    +       "title": "New message",
+    +       "type": "message",
+    +     },
+    +     "op": "add",
+    +     "path": "notifications/auto1",
+    +   },
+    + ]
+
+      62 |     await runDm(world.dmEvent(env));
+      63 |     const bells = env.writes.filter((w) => w.path.startsWith("notifications/"));
+    > 64 |     expect(bells).toEqual([]);
+         |                   ^
+      65 |     expect(env.mailSend).not.toHaveBeenCalled();
+      66 |     expect(env.getUser).not.toHaveBeenCalled();
+      67 |   });
+
+      at Object.toEqual (src/__tests__/regression.directMessage.test.js:64:19)
+
+  ● NPM-3a-i direct-message regressions › RG5: no accepted connection between the two sends nothing
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 0
+    Received length: 1
+    Received array:  [{"body": "Sam Sender: the secret words of this message", "channelId": "default", "data": {"conversationId": "conv-1", "senderId": "uid-sender-S", "type": "message"}, "priority": "high", "sound": "default", "title": "New message", "to": "ExponentPushToken[recipient-R-token]"}]
+
+      70 |     env.store.delete("connections/conn-accepted");
+      71 |     await runDm(world.dmEvent(env));
+    > 72 |     expect(env.sentMessages()).toHaveLength(0);
+         |                                ^
+      73 |   });
+      74 |
+      75 |   it("RG6: the same event delivered twice sends once", async () => {
+
+      at Object.toHaveLength (src/__tests__/regression.directMessage.test.js:72:32)
+
+  ● NPM-3a-i direct-message regressions › RG6: the same event delivered twice sends once
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 1
+    Received length: 2
+    Received array:  [{"body": "Sam Sender: the secret words of this message", "channelId": "default", "data": {"conversationId": "conv-1", "senderId": "uid-sender-S", "type": "message"}, "priority": "high", "sound": "default", "title": "New message", "to": "ExponentPushToken[recipient-R-token]"}, {"body": "Sam Sender: the secret words of this message", "channelId": "default", "data": {"conversationId": "conv-1", "senderId": "uid-sender-S", "type": "message"}, "priority": "high", "sound": "default", "title": "New message", "to": "ExponentPushToken[recipient-R-token]"}]
+
+      77 |     await runDm(event);
+      78 |     await runDm(event);
+    > 79 |     expect(env.sentMessages()).toHaveLength(1);
+         |                                ^
+      80 |   });
+      81 |
+      82 |   it("RG7: a suspended sender sends nothing", async () => {
+
+      at Object.toHaveLength (src/__tests__/regression.directMessage.test.js:79:32)
+
+  ● NPM-3a-i direct-message regressions › RG7: a suspended sender sends nothing
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 0
+    Received length: 1
+    Received array:  [{"body": "Sam Sender: the secret words of this message", "channelId": "default", "data": {"conversationId": "conv-1", "senderId": "uid-sender-S", "type": "message"}, "priority": "high", "sound": "default", "title": "New message", "to": "ExponentPushToken[recipient-R-token]"}]
+
+      88 |     });
+      89 |     await runDm(world.dmEvent(env));
+    > 90 |     expect(env.sentMessages()).toHaveLength(0);
+         |                                ^
+      91 |   });
+      92 | });
+      93 |
+
+      at Object.toHaveLength (src/__tests__/regression.directMessage.test.js:90:32)
+
+FAIL src/__tests__/regression.connectionRequest.test.js
+  ● NPM-3a-i connection-request regression › RG4: a mobile-shape request sends exactly one push to the addressee
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "function"
+    Received: "undefined"
+
+      30 |   it("RG4: a mobile-shape request sends exactly one push to the addressee", async () => {
+      31 |     expect(typeof notifications.notifyOnConnectionRequestCreated)
+    > 32 |         .toBe("function");
+         |          ^
+      33 |     await notifications.notifyOnConnectionRequestCreated.run(
+      34 |         world.requestEvent(env),
+      35 |     );
+
+      at Object.toBe (src/__tests__/regression.connectionRequest.test.js:32:10)
+
+
+Test Suites: 2 failed, 1 passed, 3 total
+Tests:       7 failed, 4 passed, 11 total
+Snapshots:   0 total
+Time:        1.099 s, estimated 2 s
+Ran all test suites.
+
+=== functions: firebase emulators:exec --only firestore,auth,storage jest src/__tests__/deleteAccountNotificationsRecipient.test.js (RG8) ===
+i  emulators: Starting emulators: auth, firestore, storage
+i  firestore: Firestore Emulator logging to firestore-debug.log
++  firestore: Firestore Emulator UI websocket is running on 9150.
+i  Running script: npx jest --testEnvironment=node --runInBand --colors=false src/__tests__/deleteAccountNotificationsRecipient.test.js
+FAIL src/__tests__/deleteAccountNotificationsRecipient.test.js
+  RG8: deleteAccount sweeps notifications by recipientId
+    × deletes a bell addressed to the user and keeps a bystander's (2493 ms)
+
+  ● RG8: deleteAccount sweeps notifications by recipientId › deletes a bell addressed to the user and keeps a bystander's
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      57 |
+      58 |     expect(failures).toEqual([]);
+    > 59 |     expect((await mine.get()).exists).toBe(false);
+         |                                       ^
+      60 |     expect(counts["notifications.recipientId"]).toBe(1);
+      61 |     expect((await theirs.get()).exists).toBe(true);
+      62 |   });
+
+      at Object.toBe (src/__tests__/deleteAccountNotificationsRecipient.test.js:59:39)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        2.775 s, estimated 3 s
+Ran all test suites matching src/__tests__/deleteAccountNotificationsRecipient.test.js.
+!  Script exited unsuccessfully (code 1)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+!  Firestore Emulator has exited upon receiving signal: SIGINT
+i  auth: Stopping Authentication Emulator
+i  storage: Stopping Storage Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator
+
+Error: Script "npx jest --testEnvironment=node --runInBand --colors=false src/__tests__/deleteAccountNotificationsRecipient.test.js" exited with code 1

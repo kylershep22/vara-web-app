@@ -1,0 +1,15 @@
+Device observations. One iPhone, two test accounts: R receives, S sends. R was signed out on this phone whenever S was signed in.
+- Connection request: signed in as S, I sent R a connection request. No notification banner arrived. I then signed in as R, saw the request, and accepted it.
+- Direct message: signed in as S, I sent R a direct message. No notification banner arrived.
+- Phone locked after sending
+- The cause of the missing banners was not established at the time of writing.
+
+Firebase console facts I read:
+- userPrivate for a test user has an expoPushToken in the ExponentPushToken[...] format and an fcmToken that is 64 hexadecimal characters. The values are left out on purpose.
+- Last deployed 9/6/26: sendDailyRhythm, sendHabitReminders, sendInsights, sendMilestones, onNewDirectMessage, onNewConnection, deleteAccount.
+- Last deployed 8/30/26: notifyOnDirectMessageCreated, notifyOnInviteCreated.
+- Neither notifyondirectmessagecreated nor notifyoninvitecreated has SENDGRID_API_KEY listed as an environment variable.
+- The four scheduled jobs paused on 2026-10-01 (sendDailyRhythm, sendHabitReminders, sendInsights, sendMilestones) are still paused.
+
+Branch, hash and time:
+Not sure - I ran this test on the current main, so whatever hash that is - I did that about 5 mins ago, 9:20 PM ET
