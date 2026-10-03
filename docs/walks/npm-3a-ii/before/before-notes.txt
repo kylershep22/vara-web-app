@@ -1,0 +1,4 @@
+Kyle's before-state observations on main at bdaabef, in his words, copied exactly from the message that released NPM-3a-ii build prompt 1 (2026-10-03):
+
+1. After logging out, is that account's expoPushToken still in userPrivate: the token is still there
+2. What happens when I tap a Community toast today: I tapped the toast and nothing happened, which makes sense though as that notification would be for the 63 account but I was logged into the 62 account where I sent the message from and tried to tap the toast
