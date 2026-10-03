@@ -20,8 +20,6 @@ setGlobalOptions({
 const notifications = require("./src/notifications");
 exports.sendDailyRhythm = notifications.sendDailyRhythm;
 exports.sendInsights = notifications.sendInsights;
-exports.onNewDirectMessage = notifications.onNewDirectMessage;
-exports.onNewConnection = notifications.onNewConnection;
 exports.sendMilestones = notifications.sendMilestones;
 exports.sendHabitReminders = notifications.sendHabitReminders;
 
