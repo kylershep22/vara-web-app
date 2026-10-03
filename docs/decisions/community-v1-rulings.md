@@ -2,7 +2,7 @@
 
 Path of record: `docs/decisions/community-v1-rulings.md`
 First committed with: NPM-3a-i, first docs commit
-Covers: every ruling Kyle made on Community for V1 in the review thread that began 2026-10-02, from the NPM-3a Step 0 through NPM-3a-i sheet 3 (Round 7, 2026-10-03).
+Covers: every ruling Kyle made on Community for V1 in the review thread that began 2026-10-02, from the NPM-3a Step 0 through NPM-3a-ii sheet 1 (Round 8, 2026-10-03).
 
 ## How to read this file
 
@@ -789,6 +789,47 @@ These are the reviewer's words (verbatim). Kyle's refinements are quoted under R
 - **Ruling (Kyle, verbatim):**
   > The earlier test-harness network calls are accepted as handled, provided the build record preserves the disclosure and the new guard/tests continue to prove tests cannot reach Expo.
 - **Notes:** Reviewer note: during build prompt 2, CC's first test harness sent four real requests to Expo's push API with a fake access token and a fake push token. Expo rejected all four. The guard and its two tests landed in commit a7a8ec9.
+
+---
+
+## Round 8: rulings on NPM-3a-ii, sheet 1 (2026-10-03)
+
+All entries in this round are Active. Owner/workstream for all: 3a-ii. II-D4 amends S2-ENG's fixed payload.
+
+**Kyle's rulings, verbatim:**
+
+> Approve D1–D16 as recommended with these clarifications.
+> D1: the always-mounted owner also retries token registration when the authenticated user's email-verification state transitions to verified.
+> D3/D15 ordering: delivered Vara notifications are cleared locally and immediately when the session ends, before waiting for server token deletion. Token deletion then gets up to five seconds; sign-out completes regardless of the result.
+> D11: approve the walk helper script. It must be constrained to explicitly named test UIDs, refuse any UID outside that allowlist, show project/sender/recipient before writing, write only the exact test event shapes, contain no committed credentials, and preferably default to dry-run unless an explicit execute flag is supplied.
+> D13: tests-only is approved for the two-device case. Record that V1 stores one token per user and does not claim comprehensive multi-device push behavior.
+> D15: clear all delivered Vara notifications on every authoritative session-loss path.
+> D16: approve the two written before-state observations rather than four captures.
+> Add one ruling:
+> D17 — Missing recipient ownership: Community payloads with missing, malformed, or nonmatching `recipientId` fail closed. They produce no foreground toast and no navigation on tap. Never infer that a payload without a valid recipient belongs to the currently signed-in user.
+> Unscoped deployment remains the rule, with the same deploy gates used by NPM-3a-i.
+> The walk should separately prove after sign-out that existing delivered notifications are cleared and that newly generated events for the departed account no longer reach that phone.
+
+**Reviewer recommendations Kyle approved (reviewer's words, verbatim). Entry IDs are II-D1 to II-D16; Kyle's added ruling above is II-D17.**
+
+- II-D1, who registers the token: One owner in the always-mounted provider. It runs at sign-in, on every return to the app, after any permission grant and on token rotation. It compares against the stored value and writes only on change.
+- II-D2, fcmToken: Register it in the same owner and clear it in the same sign-out step, each under its own match test.
+- II-D3, sign-out wait: Up to 5 seconds for the server to confirm the clear, then sign out anyway. No copy.
+- II-D4, recipient ID in the push: Add `recipientId` to both Community payloads. This amends the fixed payload you approved in sheet 2. Deploy unscoped, with the 3a-i gates.
+- II-D5, tap on another account's push: No navigation and no message.
+- II-D6, foreground push for another account: Show nothing.
+- II-D7, toast tap: Same destination as the banner tap, for messages and for requests.
+- II-D8, two toasts close together: Newest wins, with a full duration.
+- II-D9, old Settings-only hook: Remove it. Add a dated note on the daily-rhythm tap row that its accidental Settings-only route to Home goes with it.
+- II-D10, unused local Community notification code: Leave it, with a ledger row.
+- II-D11, walk sender: A helper script that you run, limited to accounts you name, for the positive steps. The two required negative steps use the app. (CC: console documents.)
+- II-D12, unverified accounts: No token registration until the email is verified.
+- II-D13, two-device walk step: Tests only. (CC: required.)
+- II-D14, request no longer pending when tapped: Show the Requests list as it is. No new copy.
+- II-D15, delivered notifications at sign-out: Clear all delivered notifications whenever a session ends, on every path.
+- II-D16, before-state evidence: Two observations in your words, which CC writes into the notes file, as happened in NPM-3a-i. (CC: four captures, including a fresh account through onboarding.)
+
+**Reviewer notes, not Kyle's words:** "authoritative session-loss path" in Kyle's D15 clarification is implemented as the transitions the existing session-loss effect already uses (explicit sign-out, account deletion, a different account signing in); a signed-out cold start is not one. The two forced sign-out paths are not changed by this slice and stay under AUTH-OFFLINE-REFRESH-SIGNOUT.
 
 ---
 

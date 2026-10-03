@@ -19,6 +19,7 @@ import React, { useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '../../context/AuthContext';
+import { requestOsNotificationPermission } from '../../services/notifications.service';
 import { completeOnboarding } from '../../services/firebase/onboarding.service';
 import { Colors } from '../../constants';
 import { BrainState } from '../../types';
@@ -61,7 +62,7 @@ const OnboardingV2ProtocolScreen: React.FC<OnboardingV2ProtocolScreenProps> = ({
         const { status: existingStatus } =
           await Notifications.getPermissionsAsync();
         if (existingStatus !== 'granted') {
-          await Notifications.requestPermissionsAsync();
+          await requestOsNotificationPermission();
         }
 
         // Onboarding completes regardless of terminal.step or

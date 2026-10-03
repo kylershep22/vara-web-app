@@ -1,0 +1,306 @@
+FAIL src/__tests__/npm3aii/rg456.logoutTokenCleanup.test.tsx
+  ● RG4: logout clears the stored Expo token that equals this device token, before signOut
+
+    expect(received).toBeUndefined()
+
+    Received: "ExponentPushToken[device-A]"
+
+      65 |   await logout();
+      66 |
+    > 67 |   expect(userPrivate('u1')?.expoPushToken).toBeUndefined();
+         |                                            ^
+      68 |   const cleared = world.log.indexOf('write:userPrivate/u1');
+      69 |   expect(cleared).toBeGreaterThanOrEqual(0);
+      70 |   expect(cleared).toBeLessThan(world.log.indexOf('signOut'));
+
+      at Object.toBeUndefined (src/__tests__/npm3aii/rg456.logoutTokenCleanup.test.tsx:67:44)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● RG5: logout leaves a stored Expo token that differs from this device untouched (fcmToken under its own match)
+
+    expect(received).toBeUndefined()
+
+    Received: "apns-device-A-0123456789abcdef"
+
+      78 |
+      79 |   expect(userPrivate('u1')?.expoPushToken).toBe(EXPO_OTHER);
+    > 80 |   expect(userPrivate('u1')?.fcmToken).toBeUndefined();
+         |                                       ^
+      81 |   expect(world.log).toContain('signOut');
+      82 | });
+      83 |
+
+      at Object.toBeUndefined (src/__tests__/npm3aii/rg456.logoutTokenCleanup.test.tsx:80:39)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● RG6: logout dismisses delivered notifications before the token clear starts
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 0
+    Received:    -1
+
+      88 |
+      89 |   const dismissed = world.log.indexOf('dismissAll');
+    > 90 |   expect(dismissed).toBeGreaterThanOrEqual(0);
+         |                     ^
+      91 |   const firstTokenStep = world.log.findIndex(
+      92 |     (entry) => entry === 'tx:start' || entry.endsWith('userPrivate/u1')
+      93 |   );
+
+      at Object.toBeGreaterThanOrEqual (src/__tests__/npm3aii/rg456.logoutTokenCleanup.test.tsx:90:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL src/__tests__/npm3aii/rg2.foregroundRegistration.test.tsx
+  ● RG2a: stored tokens replaced by another device are written back on return to the app
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "ExponentPushToken[device-A]"
+    Received: "ExponentPushToken[device-OTHER]"
+
+      102 |   await returnToApp();
+      103 |
+    > 104 |   await waitFor(() => expect(userPrivate('u1')?.expoPushToken).toBe(EXPO_A));
+          |                ^
+      105 |   expect(userPrivate('u1')?.fcmToken).toBe(DEVICE_A);
+      106 | });
+      107 |
+
+      at Object.<anonymous> (src/__tests__/npm3aii/rg2.foregroundRegistration.test.tsx:104:16)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● RG2b: stored tokens equal to this device: nothing is written, on mount or on return
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 8
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "fcmToken": "apns-device-A-0123456789abcdef",
+    +     "fcmTokenUpdatedAt": "SERVER_TIMESTAMP",
+    +     "uid": "u1",
+    +     "updatedAt": "SERVER_TIMESTAMP",
+    +   },
+    + ]
+
+      117 |   await settle();
+      118 |
+    > 119 |   expect(userPrivateWrites('u1')).toEqual([]);
+          |                                   ^
+      120 | });
+      121 |
+
+      at Object.toEqual (src/__tests__/npm3aii/rg2.foregroundRegistration.test.tsx:119:35)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL src/__tests__/npm3aii/rg1.onboardingGrantSavesToken.test.tsx
+  ● Console
+
+    console.warn
+      The "EXNativeModulesProxy" native module is not exported through NativeModules; verify that expo-modules-core's native code is linked properly
+
+      4 |  */
+      5 |
+    > 6 | import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';
+        | ^
+      7 | import { Colors } from './colors';
+      8 | import { Typography } from './typography';
+      9 |
+
+      at Object.warn (node_modules/expo-modules-core/src/NativeModulesProxy.native.ts:81:11)
+      at Object.require (node_modules/expo-modules-core/src/requireNativeModule.ts:3:1)
+      at Object.require (node_modules/expo-modules-core/src/sweet/NativeJSLogger.ts:1:1)
+      at Object.require (node_modules/expo-modules-core/src/sweet/setUpJsLogger.fx.ts:1:1)
+      at Object.require (node_modules/expo-modules-core/src/index.ts:1:1)
+      at Object.require (node_modules/expo-font/src/Font.ts:1:1)
+      at Object.require (node_modules/expo-font/src/index.ts:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/createIconSet.tsx:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/MaterialCommunityIcons.ts:3:1)
+      at Object.require (node_modules/@expo/vector-icons/MaterialCommunityIcons.js:1:1)
+      at require (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:45:14)
+      at Object.loadIconModule (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:67:20)
+      at Object.require (node_modules/react-native-paper/src/core/settings.tsx:3:1)
+      at Object.require (node_modules/react-native-paper/src/core/PaperProvider.tsx:10:1)
+      at Object.require (node_modules/react-native-paper/src/index.tsx:13:1)
+      at Object.require (src/constants/theme.ts:6:1)
+      at Object.require (src/constants/index.ts:8:1)
+      at Object.require (src/components/shared/Text.tsx:59:1)
+      at Object.require (src/screens/onboarding/v3/OnboardingV3ReminderScreen.tsx:18:1)
+      at Object.require (src/__tests__/npm3aii/rg1.onboardingGrantSavesToken.test.tsx:69:1)
+
+    console.warn
+      The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation.
+
+      4 |  */
+      5 |
+    > 6 | import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';
+        | ^
+      7 | import { Colors } from './colors';
+      8 | import { Typography } from './typography';
+      9 |
+
+      at Object.warn (node_modules/expo-modules-core/src/Platform.ts:15:11)
+      at Object.require (node_modules/expo-modules-core/src/sweet/setUpJsLogger.fx.ts:2:1)
+      at Object.require (node_modules/expo-modules-core/src/index.ts:1:1)
+      at Object.require (node_modules/expo-font/src/Font.ts:1:1)
+      at Object.require (node_modules/expo-font/src/index.ts:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/createIconSet.tsx:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/MaterialCommunityIcons.ts:3:1)
+      at Object.require (node_modules/@expo/vector-icons/MaterialCommunityIcons.js:1:1)
+      at require (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:45:14)
+      at Object.loadIconModule (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:67:20)
+      at Object.require (node_modules/react-native-paper/src/core/settings.tsx:3:1)
+      at Object.require (node_modules/react-native-paper/src/core/PaperProvider.tsx:10:1)
+      at Object.require (node_modules/react-native-paper/src/index.tsx:13:1)
+      at Object.require (src/constants/theme.ts:6:1)
+      at Object.require (src/constants/index.ts:8:1)
+      at Object.require (src/components/shared/Text.tsx:59:1)
+      at Object.require (src/screens/onboarding/v3/OnboardingV3ReminderScreen.tsx:18:1)
+      at Object.require (src/__tests__/npm3aii/rg1.onboardingGrantSavesToken.test.tsx:69:1)
+
+  ● RG1: Allow at the onboarding Reminder step saves the Expo token to userPrivate
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "ExponentPushToken[device-A]"
+    Received: undefined
+
+      92 |
+      93 |   await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
+    > 94 |   await waitFor(() => expect(userPrivate('u1')?.expoPushToken).toBe(EXPO_A));
+         |                ^
+      95 |   expect(world.log).toContain('requestPermission');
+      96 | });
+      97 |
+
+      at Object.<anonymous> (src/__tests__/npm3aii/rg1.onboardingGrantSavesToken.test.tsx:94:16)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL src/__tests__/npm3aii/rg3.otherGrantSitesSaveToken.test.tsx
+  ● Console
+
+    console.warn
+      The "EXNativeModulesProxy" native module is not exported through NativeModules; verify that expo-modules-core's native code is linked properly
+
+      4 |  */
+      5 |
+    > 6 | import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';
+        | ^
+      7 | import { Colors } from './colors';
+      8 | import { Typography } from './typography';
+      9 |
+
+      at Object.warn (node_modules/expo-modules-core/src/NativeModulesProxy.native.ts:81:11)
+      at Object.require (node_modules/expo-modules-core/src/requireNativeModule.ts:3:1)
+      at Object.require (node_modules/expo-modules-core/src/sweet/NativeJSLogger.ts:1:1)
+      at Object.require (node_modules/expo-modules-core/src/sweet/setUpJsLogger.fx.ts:1:1)
+      at Object.require (node_modules/expo-modules-core/src/index.ts:1:1)
+      at Object.require (node_modules/expo-font/src/Font.ts:1:1)
+      at Object.require (node_modules/expo-font/src/index.ts:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/createIconSet.tsx:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/MaterialCommunityIcons.ts:3:1)
+      at Object.require (node_modules/@expo/vector-icons/MaterialCommunityIcons.js:1:1)
+      at require (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:45:14)
+      at Object.loadIconModule (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:67:20)
+      at Object.require (node_modules/react-native-paper/src/core/settings.tsx:3:1)
+      at Object.require (node_modules/react-native-paper/src/core/PaperProvider.tsx:10:1)
+      at Object.require (node_modules/react-native-paper/src/index.tsx:13:1)
+      at Object.require (src/constants/theme.ts:6:1)
+      at Object.require (src/constants/index.ts:8:1)
+      at Object.require (src/components/shared/Text.tsx:59:1)
+      at Object.require (src/components/routines/RoutineEditor.tsx:19:1)
+      at Object.require (src/__tests__/npm3aii/rg3.otherGrantSitesSaveToken.test.tsx:74:1)
+
+    console.warn
+      The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation.
+
+      4 |  */
+      5 |
+    > 6 | import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';
+        | ^
+      7 | import { Colors } from './colors';
+      8 | import { Typography } from './typography';
+      9 |
+
+      at Object.warn (node_modules/expo-modules-core/src/Platform.ts:15:11)
+      at Object.require (node_modules/expo-modules-core/src/sweet/setUpJsLogger.fx.ts:2:1)
+      at Object.require (node_modules/expo-modules-core/src/index.ts:1:1)
+      at Object.require (node_modules/expo-font/src/Font.ts:1:1)
+      at Object.require (node_modules/expo-font/src/index.ts:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/createIconSet.tsx:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/MaterialCommunityIcons.ts:3:1)
+      at Object.require (node_modules/@expo/vector-icons/MaterialCommunityIcons.js:1:1)
+      at require (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:45:14)
+      at Object.loadIconModule (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:67:20)
+      at Object.require (node_modules/react-native-paper/src/core/settings.tsx:3:1)
+      at Object.require (node_modules/react-native-paper/src/core/PaperProvider.tsx:10:1)
+      at Object.require (node_modules/react-native-paper/src/index.tsx:13:1)
+      at Object.require (src/constants/theme.ts:6:1)
+      at Object.require (src/constants/index.ts:8:1)
+      at Object.require (src/components/shared/Text.tsx:59:1)
+      at Object.require (src/components/routines/RoutineEditor.tsx:19:1)
+      at Object.require (src/__tests__/npm3aii/rg3.otherGrantSitesSaveToken.test.tsx:74:1)
+
+    console.log
+      [reminderScheduler] Cancelled routine reminder: routine-reminder-r1
+
+      at Object.apply [as log] (src/utils/logger.ts:6:27)
+
+    console.log
+      [reminderScheduler] Scheduled routine reminder: routine-reminder-r1 at 19:30
+
+      at Object.apply [as log] (src/utils/logger.ts:6:27)
+
+  ● RG3a: allowing notifications from the routine editor saves the Expo token
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "ExponentPushToken[device-A]"
+    Received: undefined
+
+      135 |
+      136 |   expect(world.log).toContain('requestPermission');
+    > 137 |   await waitFor(() => expect(userPrivate('u1')?.expoPushToken).toBe(EXPO_A));
+          |                ^
+      138 | });
+      139 |
+      140 | test('RG3b: a grant from the focus timer saves the Expo token', async () => {
+
+      at Object.<anonymous> (src/__tests__/npm3aii/rg3.otherGrantSitesSaveToken.test.tsx:137:16)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● RG3b: a grant from the focus timer saves the Expo token
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "ExponentPushToken[device-A]"
+    Received: undefined
+
+      150 |
+      151 |   expect(world.log).toContain('requestPermission');
+    > 152 |   await waitFor(() => expect(userPrivate('u1')?.expoPushToken).toBe(EXPO_A));
+          |                ^
+      153 | });
+      154 |
+
+      at Object.<anonymous> (src/__tests__/npm3aii/rg3.otherGrantSitesSaveToken.test.tsx:152:16)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 4 failed, 4 total
+Tests:       8 failed, 8 total
+Snapshots:   0 total
+Time:        6.596 s
+Ran all test suites matching /src\\__tests__\\npm3aii/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

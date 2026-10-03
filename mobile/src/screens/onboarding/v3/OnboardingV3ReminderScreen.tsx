@@ -27,10 +27,7 @@ import {
   getNotificationPreferences,
   updateNotificationPreferences,
 } from '../../../services/firebase/notificationPreferences.service';
-import {
-  registerPushToken,
-  requestNotificationPermission,
-} from '../../../services/notifications.service';
+import { requestNotificationPermission } from '../../../services/notifications.service';
 import { reconcileDailyRhythm } from '../../../services/notificationScheduler.service';
 import { logger } from '../../../utils/logger';
 import { REMINDER_COPY } from './copy';
@@ -160,10 +157,10 @@ export const OnboardingV3ReminderScreen: React.FC = () => {
       return;
     }
 
-    // Deliberately NOT awaited. The push token is a network round-trip that
-    // says nothing about the local daily reminder, and awaiting it here would
-    // let a slow APNs handshake hold the user on this screen for no benefit.
-    void registerPushToken();
+    // No token work here (NPM-3a-ii, Kyle's II-D1). The grant above is
+    // announced to NotificationProvider, the one owner of push token
+    // registration, which saves the token on its own queue, so a slow APNs
+    // handshake never holds the user on this screen.
 
     setBusy(false);
     navigation.navigate(V3_ROUTES.Done);

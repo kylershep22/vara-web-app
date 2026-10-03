@@ -7,6 +7,10 @@
  * NO dual-write here: mirroring the token back to the public document would
  * leave a fresh one there and defeat the move entirely. Server delivery stays
  * correct instead through the read-through in functions/src/lib/userFields.js.
+ *
+ * NPM-3a-ii: registerAndSaveFCMToken is gone. The FCM token is registered by
+ * pushRegistration.service, whose suite pins the same three properties
+ * (userPrivate only, never users/{uid}, nothing without permission).
  */
 const mockSetUserPrivate = jest.fn(() => Promise.resolve(undefined));
 const mockUpdateDoc = jest.fn(() => Promise.resolve(undefined));
@@ -40,7 +44,7 @@ jest.mock('expo-notifications', () => ({
 }));
 jest.mock('expo-device', () => ({ isDevice: true }));
 
-import { registerAndSaveFCMToken, savePushTokenToUser } from '../notifications.service';
+import { savePushTokenToUser } from '../notifications.service';
 
 describe('push token repoint', () => {
   beforeEach(() => {
@@ -64,30 +68,5 @@ describe('push token repoint', () => {
 
     expect(mockUpdateDoc).not.toHaveBeenCalled();
     expect(mockDoc.mock.calls.map((c) => c[1])).not.toContain('users');
-  });
-
-  test('the FCM device token is written to userPrivate', async () => {
-    // The token the Cloud Functions senders actually push through.
-    const token = await registerAndSaveFCMToken('u1');
-
-    expect(token).toBe('fcm-device-token');
-    expect(mockSetUserPrivate).toHaveBeenCalledTimes(1);
-    const [uid, patch] = mockSetUserPrivate.mock.calls[0] as any[];
-    expect(uid).toBe('u1');
-    expect(patch).toMatchObject({ fcmToken: 'fcm-device-token' });
-  });
-
-  test('the FCM device token is NOT written to users/{uid}', async () => {
-    await registerAndSaveFCMToken('u1');
-
-    expect(mockUpdateDoc).not.toHaveBeenCalled();
-    expect(mockDoc.mock.calls.map((c) => c[1])).not.toContain('users');
-  });
-
-  test('no token is stored when permission has not been granted', async () => {
-    mockGetPerms.mockResolvedValueOnce({ status: 'denied' });
-
-    expect(await registerAndSaveFCMToken('u1')).toBeNull();
-    expect(mockSetUserPrivate).not.toHaveBeenCalled();
   });
 });

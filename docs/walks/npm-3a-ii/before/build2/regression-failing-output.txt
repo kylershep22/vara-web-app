@@ -1,0 +1,707 @@
+=== mobile: RG7 to RG13 (run from mobile/) ===
+FAIL src/__tests__/npm3aii/rg13.toastNewestWins.test.tsx
+  ● Console
+
+    console.warn
+      The "EXNativeModulesProxy" native module is not exported through NativeModules; verify that expo-modules-core's native code is linked properly
+
+      4 |  */
+      5 |
+    > 6 | import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';
+        | ^
+      7 | import { Colors } from './colors';
+      8 | import { Typography } from './typography';
+      9 |
+
+      at Object.warn (node_modules/expo-modules-core/src/NativeModulesProxy.native.ts:81:11)
+      at Object.require (node_modules/expo-modules-core/src/requireNativeModule.ts:3:1)
+      at Object.require (node_modules/expo-modules-core/src/sweet/NativeJSLogger.ts:1:1)
+      at Object.require (node_modules/expo-modules-core/src/sweet/setUpJsLogger.fx.ts:1:1)
+      at Object.require (node_modules/expo-modules-core/src/index.ts:1:1)
+      at Object.require (node_modules/expo-font/src/Font.ts:1:1)
+      at Object.require (node_modules/expo-font/src/index.ts:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/createIconSet.tsx:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/MaterialCommunityIcons.ts:3:1)
+      at Object.require (node_modules/@expo/vector-icons/MaterialCommunityIcons.js:1:1)
+      at require (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:45:14)
+      at Object.loadIconModule (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:67:20)
+      at Object.require (node_modules/react-native-paper/src/core/settings.tsx:3:1)
+      at Object.require (node_modules/react-native-paper/src/core/PaperProvider.tsx:10:1)
+      at Object.require (node_modules/react-native-paper/src/index.tsx:13:1)
+      at Object.require (src/constants/theme.ts:6:1)
+      at Object.require (src/constants/index.ts:8:1)
+      at Object.require (src/components/shared/Text.tsx:59:1)
+      at Object.require (src/components/shared/NotificationToast.tsx:19:1)
+      at requireActual (src/__tests__/npm3aii/rg13.toastNewestWins.test.tsx:22:28)
+      at Object.react-stack-bottom-frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13976:20)
+      at renderWithHooks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2866:22)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6006:19)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7474:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+
+    console.warn
+      The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation.
+
+      4 |  */
+      5 |
+    > 6 | import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';
+        | ^
+      7 | import { Colors } from './colors';
+      8 | import { Typography } from './typography';
+      9 |
+
+      at Object.warn (node_modules/expo-modules-core/src/Platform.ts:15:11)
+      at Object.require (node_modules/expo-modules-core/src/sweet/setUpJsLogger.fx.ts:2:1)
+      at Object.require (node_modules/expo-modules-core/src/index.ts:1:1)
+      at Object.require (node_modules/expo-font/src/Font.ts:1:1)
+      at Object.require (node_modules/expo-font/src/index.ts:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/createIconSet.tsx:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/MaterialCommunityIcons.ts:3:1)
+      at Object.require (node_modules/@expo/vector-icons/MaterialCommunityIcons.js:1:1)
+      at require (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:45:14)
+      at Object.loadIconModule (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:67:20)
+      at Object.require (node_modules/react-native-paper/src/core/settings.tsx:3:1)
+      at Object.require (node_modules/react-native-paper/src/core/PaperProvider.tsx:10:1)
+      at Object.require (node_modules/react-native-paper/src/index.tsx:13:1)
+      at Object.require (src/constants/theme.ts:6:1)
+      at Object.require (src/constants/index.ts:8:1)
+      at Object.require (src/components/shared/Text.tsx:59:1)
+      at Object.require (src/components/shared/NotificationToast.tsx:19:1)
+      at requireActual (src/__tests__/npm3aii/rg13.toastNewestWins.test.tsx:22:28)
+      at Object.react-stack-bottom-frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13976:20)
+      at renderWithHooks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2866:22)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6006:19)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7474:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10980:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10349:13)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:566:34)
+      at node_modules/react/cjs/react.development.js:822:21
+
+  ● RG13a: a second toast while the first is visible is shown for its own full duration
+
+    Unable to find an element with text: Ben sent you a message.
+
+      119 |   // 3400 ms after Ben arrived: past the first toast's deadline, inside Ben's own.
+      120 |   await advance(3400);
+    > 121 |   expect(screen.getByText('Ben sent you a message.')).toBeTruthy();
+          |                 ^
+      122 |
+      123 |   // And it does go: its own 3500 ms plus the 300 ms fade.
+      124 |   await advance(1000);
+
+      at Object.getByText (src/__tests__/npm3aii/rg13.toastNewestWins.test.tsx:121:17)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● RG13b: a toast that arrives during the previous one's fade-out is shown for a full duration
+
+    Unable to find an element with text: Ben sent you a message.
+
+      135 |
+      136 |   await advance(3000);
+    > 137 |   expect(screen.getByText('Ben sent you a message.')).toBeTruthy();
+          |                 ^
+      138 | });
+      139 |
+
+      at Object.getByText (src/__tests__/npm3aii/rg13.toastNewestWins.test.tsx:137:17)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL src/__tests__/npm3aii/rg8.peopleRequestsParam.test.tsx
+  ● Console
+
+    console.warn
+      The "EXNativeModulesProxy" native module is not exported through NativeModules; verify that expo-modules-core's native code is linked properly
+
+      4 |  */
+      5 |
+    > 6 | import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';
+        | ^
+      7 | import { Colors } from './colors';
+      8 | import { Typography } from './typography';
+      9 |
+
+      at Object.warn (node_modules/expo-modules-core/src/NativeModulesProxy.native.ts:81:11)
+      at Object.require (node_modules/expo-modules-core/src/requireNativeModule.ts:3:1)
+      at Object.require (node_modules/expo-modules-core/src/sweet/NativeJSLogger.ts:1:1)
+      at Object.require (node_modules/expo-modules-core/src/sweet/setUpJsLogger.fx.ts:1:1)
+      at Object.require (node_modules/expo-modules-core/src/index.ts:1:1)
+      at Object.require (node_modules/expo-font/src/Font.ts:1:1)
+      at Object.require (node_modules/expo-font/src/index.ts:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/createIconSet.tsx:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/MaterialCommunityIcons.ts:3:1)
+      at Object.require (node_modules/@expo/vector-icons/MaterialCommunityIcons.js:1:1)
+      at require (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:45:14)
+      at Object.loadIconModule (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:67:20)
+      at Object.require (node_modules/react-native-paper/src/core/settings.tsx:3:1)
+      at Object.require (node_modules/react-native-paper/src/core/PaperProvider.tsx:10:1)
+      at Object.require (node_modules/react-native-paper/src/index.tsx:13:1)
+      at Object.require (src/constants/theme.ts:6:1)
+      at Object.require (src/constants/index.ts:8:1)
+      at Object.require (src/components/shared/Text.tsx:59:1)
+      at Object.require (src/screens/community/PeopleScreen.tsx:16:1)
+      at Object.require (src/__tests__/npm3aii/rg8.peopleRequestsParam.test.tsx:66:1)
+
+    console.warn
+      The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation.
+
+      4 |  */
+      5 |
+    > 6 | import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';
+        | ^
+      7 | import { Colors } from './colors';
+      8 | import { Typography } from './typography';
+      9 |
+
+      at Object.warn (node_modules/expo-modules-core/src/Platform.ts:15:11)
+      at Object.require (node_modules/expo-modules-core/src/sweet/setUpJsLogger.fx.ts:2:1)
+      at Object.require (node_modules/expo-modules-core/src/index.ts:1:1)
+      at Object.require (node_modules/expo-font/src/Font.ts:1:1)
+      at Object.require (node_modules/expo-font/src/index.ts:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/createIconSet.tsx:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/MaterialCommunityIcons.ts:3:1)
+      at Object.require (node_modules/@expo/vector-icons/MaterialCommunityIcons.js:1:1)
+      at require (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:45:14)
+      at Object.loadIconModule (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:67:20)
+      at Object.require (node_modules/react-native-paper/src/core/settings.tsx:3:1)
+      at Object.require (node_modules/react-native-paper/src/core/PaperProvider.tsx:10:1)
+      at Object.require (node_modules/react-native-paper/src/index.tsx:13:1)
+      at Object.require (src/constants/theme.ts:6:1)
+      at Object.require (src/constants/index.ts:8:1)
+      at Object.require (src/components/shared/Text.tsx:59:1)
+      at Object.require (src/screens/community/PeopleScreen.tsx:16:1)
+      at Object.require (src/__tests__/npm3aii/rg8.peopleRequestsParam.test.tsx:66:1)
+
+  ● RG8 (People): opened with the Requests param, People shows Requests
+
+    Unable to find an element with text: No pending requests
+
+    <View>
+      <View>
+        <View>
+          <View>
+            <View
+              accessible={true}
+            >
+              <MockedMaterialCommunityIcons />
+            </View>
+            <Text>
+              People
+            </Text>
+          </View>
+          <Text>
+            0
+             connection
+            s
+          </Text>
+        </View>
+        <Text>
+          Build your wellness network
+        </Text>
+      </View>
+      <View>
+        <View>
+          <MockedMaterialCommunityIcons />
+          <TextInput
+            placeholder="Search by name or interests..."
+            value=""
+          />
+        </View>
+        <View
+          pointerEvents="none"
+          style={
+            {
+              "opacity": 0,
+            }
+          }
+        >
+          <MockedMaterialCommunityIcons />
+          <Text>
+            Showing search results below
+          </Text>
+        </View>
+      </View>
+      <View>
+        <View
+          accessible={true}
+        >
+          <Text>
+            Connections
+          </Text>
+        </View>
+        <View
+          accessible={true}
+        >
+          <Text>
+            Discover
+          </Text>
+        </View>
+        <View
+          accessible={true}
+        >
+          <Text>
+            Requests
+          </Text>
+        </View>
+      </View>
+      <RCTScrollView>
+        <View>
+          <View />
+          <View>
+            <MockedMaterialCommunityIcons />
+            <Text>
+              No connections yet
+            </Text>
+            <Text>
+              Tap Discover to find and connect with people
+            </Text>
+            <View
+              accessible={true}
+            >
+              <Text>
+                Discover People
+              </Text>
+            </View>
+          </View>
+        </View>
+      </RCTScrollView>
+    </View>
+
+      74 |   render(<PeopleScreen />);
+      75 |
+    > 76 |   expect(screen.getByText('No pending requests')).toBeTruthy();
+         |                 ^
+      77 | });
+      78 |
+      79 | test('RG8 (People): already mounted on another tab, a new Requests param selects Requests', async () => {
+
+      at Object.getByText (src/__tests__/npm3aii/rg8.peopleRequestsParam.test.tsx:76:17)
+
+  ● RG8 (People): already mounted on another tab, a new Requests param selects Requests
+
+    Unable to find an element with text: No pending requests
+
+    <View>
+      <View>
+        <View>
+          <View>
+            <View
+              accessible={true}
+            >
+              <MockedMaterialCommunityIcons />
+            </View>
+            <Text>
+              People
+            </Text>
+          </View>
+          <Text>
+            0
+             connection
+            s
+          </Text>
+        </View>
+        <Text>
+          Build your wellness network
+        </Text>
+      </View>
+      <View>
+        <View>
+          <MockedMaterialCommunityIcons />
+          <TextInput
+            placeholder="Search by name or interests..."
+            value=""
+          />
+        </View>
+        <View
+          pointerEvents="none"
+          style={
+            {
+              "opacity": 0,
+            }
+          }
+        >
+          <MockedMaterialCommunityIcons />
+          <Text>
+            Showing search results below
+          </Text>
+        </View>
+      </View>
+      <View>
+        <View
+          accessible={true}
+        >
+          <Text>
+            Connections
+          </Text>
+        </View>
+        <View
+          accessible={true}
+        >
+          <Text>
+            Discover
+          </Text>
+        </View>
+        <View
+          accessible={true}
+        >
+          <Text>
+            Requests
+          </Text>
+        </View>
+      </View>
+      <RCTScrollView>
+        <View>
+          <View />
+          <View>
+            <MockedMaterialCommunityIcons />
+            <Text>
+              No connections yet
+            </Text>
+            <Text>
+              Tap Discover to find and connect with people
+            </Text>
+            <View
+              accessible={true}
+            >
+              <Text>
+                Discover People
+              </Text>
+            </View>
+          </View>
+        </View>
+      </RCTScrollView>
+    </View>
+
+      83 |   mockRoute.params = { initialFilter: 'requests', filterRequestId: 'notif-1' };
+      84 |   view.rerender(<PeopleScreen />);
+    > 85 |   expect(screen.getByText('No pending requests')).toBeTruthy();
+         |                 ^
+      86 |
+      87 |   // The user moves to Connections, and a second request notification is tapped.
+      88 |   await act(async () => {
+
+      at Object.getByText (src/__tests__/npm3aii/rg8.peopleRequestsParam.test.tsx:85:17)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+FAIL src/__tests__/npm3aii/rg7to12.communityTapsAndToast.test.tsx
+  ● Console
+
+    console.warn
+      The "EXNativeModulesProxy" native module is not exported through NativeModules; verify that expo-modules-core's native code is linked properly
+
+      4 |  */
+      5 |
+    > 6 | import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';
+        | ^
+      7 | import { Colors } from './colors';
+      8 | import { Typography } from './typography';
+      9 |
+
+      at Object.warn (node_modules/expo-modules-core/src/NativeModulesProxy.native.ts:81:11)
+      at Object.require (node_modules/expo-modules-core/src/requireNativeModule.ts:3:1)
+      at Object.require (node_modules/expo-modules-core/src/sweet/NativeJSLogger.ts:1:1)
+      at Object.require (node_modules/expo-modules-core/src/sweet/setUpJsLogger.fx.ts:1:1)
+      at Object.require (node_modules/expo-modules-core/src/index.ts:1:1)
+      at Object.require (node_modules/expo-font/src/Font.ts:1:1)
+      at Object.require (node_modules/expo-font/src/index.ts:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/createIconSet.tsx:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/MaterialCommunityIcons.ts:3:1)
+      at Object.require (node_modules/@expo/vector-icons/MaterialCommunityIcons.js:1:1)
+      at require (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:45:14)
+      at Object.loadIconModule (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:67:20)
+      at Object.require (node_modules/react-native-paper/src/core/settings.tsx:3:1)
+      at Object.require (node_modules/react-native-paper/src/core/PaperProvider.tsx:10:1)
+      at Object.require (node_modules/react-native-paper/src/index.tsx:13:1)
+      at Object.require (src/constants/theme.ts:6:1)
+      at Object.require (src/constants/index.ts:8:1)
+      at Object.require (src/components/shared/Text.tsx:59:1)
+      at Object.require (src/components/shared/NotificationToast.tsx:19:1)
+      at requireActual (src/__tests__/npm3aii/rg7to12.communityTapsAndToast.test.tsx:42:28)
+      at Object.react-stack-bottom-frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13976:20)
+      at renderWithHooks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2866:22)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6006:19)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7474:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+
+    console.warn
+      The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation.
+
+      4 |  */
+      5 |
+    > 6 | import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';
+        | ^
+      7 | import { Colors } from './colors';
+      8 | import { Typography } from './typography';
+      9 |
+
+      at Object.warn (node_modules/expo-modules-core/src/Platform.ts:15:11)
+      at Object.require (node_modules/expo-modules-core/src/sweet/setUpJsLogger.fx.ts:2:1)
+      at Object.require (node_modules/expo-modules-core/src/index.ts:1:1)
+      at Object.require (node_modules/expo-font/src/Font.ts:1:1)
+      at Object.require (node_modules/expo-font/src/index.ts:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/createIconSet.tsx:1:1)
+      at Object.require (node_modules/@expo/vector-icons/src/MaterialCommunityIcons.ts:3:1)
+      at Object.require (node_modules/@expo/vector-icons/MaterialCommunityIcons.js:1:1)
+      at require (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:45:14)
+      at Object.loadIconModule (node_modules/react-native-paper/src/components/MaterialCommunityIcon.tsx:67:20)
+      at Object.require (node_modules/react-native-paper/src/core/settings.tsx:3:1)
+      at Object.require (node_modules/react-native-paper/src/core/PaperProvider.tsx:10:1)
+      at Object.require (node_modules/react-native-paper/src/index.tsx:13:1)
+      at Object.require (src/constants/theme.ts:6:1)
+      at Object.require (src/constants/index.ts:8:1)
+      at Object.require (src/components/shared/Text.tsx:59:1)
+      at Object.require (src/components/shared/NotificationToast.tsx:19:1)
+      at requireActual (src/__tests__/npm3aii/rg7to12.communityTapsAndToast.test.tsx:42:28)
+      at Object.react-stack-bottom-frame (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:13976:20)
+      at renderWithHooks (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2866:22)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6006:19)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7474:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10980:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10349:13)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:566:34)
+      at node_modules/react/cjs/react.development.js:822:21
+
+  ● RG7: a tap on a direct_message push for the signed-in user opens Main, Community, Chat with the conversation and the sender
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      167 |   await tap(DM);
+      168 |
+    > 169 |   expect(mockNavigate).toHaveBeenCalledTimes(1);
+          |                        ^
+      170 |   const target = nestedScreen(mockNavigate.mock.calls[0]);
+      171 |   expect(target).toMatchObject({ name: 'Main', tab: 'Community', screen: 'Chat' });
+      172 |   expect(target.params).toMatchObject({ conversationId: 'conv-AB', otherUserId: 'uid-B' });
+
+      at Object.toHaveBeenCalledTimes (src/__tests__/npm3aii/rg7to12.communityTapsAndToast.test.tsx:169:24)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● RG8 (navigation): a tap on a connection_request push for the signed-in user opens Main, Community, People on Requests
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      177 |   await tap(REQUEST);
+      178 |
+    > 179 |   expect(mockNavigate).toHaveBeenCalledTimes(1);
+          |                        ^
+      180 |   const target = nestedScreen(mockNavigate.mock.calls[0]);
+      181 |   expect(target).toMatchObject({ name: 'Main', tab: 'Community', screen: 'People' });
+      182 |   expect(target.params).toMatchObject({ initialFilter: 'requests' });
+
+      at Object.toHaveBeenCalledTimes (src/__tests__/npm3aii/rg7to12.communityTapsAndToast.test.tsx:179:24)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● RG9: a payload that is not provably for the signed-in user: no navigation on tap, no toast in the foreground › recipientId missing
+
+    expect(received).toBeNull()
+
+    Received: {"_fiber": {"_debugHookTypes": null, "_debugInfo": null, "_debugNeedsRemount": false, "_debugOwner": [FiberNode], "_debugStack": [Error: react-stack-top-frame], "_debugTask": null, "actualDuration": -0, "actualStartTime": 1791051472110, "alternate": null, "child": [FiberNode], "childLanes": 0, "deletions": null, "dependencies": null, "elementType": "Text", "flags": 0, "index": 0, "key": null, "lanes": 0, "memoizedProps": [Object], "memoizedState": null, "mode": 1, "pendingProps": [Object], "ref": null, "refCleanup": null, "return": [FiberNode], "selfBaseDuration": -0, "sibling": null, "stateNode": [Object], "subtreeFlags": 0, "tag": 5, "treeBaseDuration": -0, "type": "Text", "updateQueue": null}}
+
+      198 |
+      199 |     expect(mockNavigate).not.toHaveBeenCalled();
+    > 200 |     expect(screen.queryByText('New message')).toBeNull();
+          |                                               ^
+      201 |   });
+      202 | });
+      203 |
+
+      at toBeNull (src/__tests__/npm3aii/rg7to12.communityTapsAndToast.test.tsx:200:47)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● RG9: a payload that is not provably for the signed-in user: no navigation on tap, no toast in the foreground › recipientId empty
+
+    expect(received).toBeNull()
+
+    Received: {"_fiber": {"_debugHookTypes": null, "_debugInfo": null, "_debugNeedsRemount": false, "_debugOwner": [FiberNode], "_debugStack": [Error: react-stack-top-frame], "_debugTask": null, "actualDuration": -0, "actualStartTime": 1791051472281, "alternate": null, "child": [FiberNode], "childLanes": 0, "deletions": null, "dependencies": null, "elementType": "Text", "flags": 0, "index": 0, "key": null, "lanes": 0, "memoizedProps": [Object], "memoizedState": null, "mode": 1, "pendingProps": [Object], "ref": null, "refCleanup": null, "return": [FiberNode], "selfBaseDuration": -0, "sibling": null, "stateNode": [Object], "subtreeFlags": 0, "tag": 5, "treeBaseDuration": -0, "type": "Text", "updateQueue": null}}
+
+      198 |
+      199 |     expect(mockNavigate).not.toHaveBeenCalled();
+    > 200 |     expect(screen.queryByText('New message')).toBeNull();
+          |                                               ^
+      201 |   });
+      202 | });
+      203 |
+
+      at toBeNull (src/__tests__/npm3aii/rg7to12.communityTapsAndToast.test.tsx:200:47)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● RG9: a payload that is not provably for the signed-in user: no navigation on tap, no toast in the foreground › recipientId not a string
+
+    expect(received).toBeNull()
+
+    Received: {"_fiber": {"_debugHookTypes": null, "_debugInfo": null, "_debugNeedsRemount": false, "_debugOwner": [FiberNode], "_debugStack": [Error: react-stack-top-frame], "_debugTask": null, "actualDuration": -0, "actualStartTime": 1791051472389, "alternate": null, "child": [FiberNode], "childLanes": 0, "deletions": null, "dependencies": null, "elementType": "Text", "flags": 0, "index": 0, "key": null, "lanes": 0, "memoizedProps": [Object], "memoizedState": null, "mode": 1, "pendingProps": [Object], "ref": null, "refCleanup": null, "return": [FiberNode], "selfBaseDuration": -0, "sibling": null, "stateNode": [Object], "subtreeFlags": 0, "tag": 5, "treeBaseDuration": -0, "type": "Text", "updateQueue": null}}
+
+      198 |
+      199 |     expect(mockNavigate).not.toHaveBeenCalled();
+    > 200 |     expect(screen.queryByText('New message')).toBeNull();
+          |                                               ^
+      201 |   });
+      202 | });
+      203 |
+
+      at toBeNull (src/__tests__/npm3aii/rg7to12.communityTapsAndToast.test.tsx:200:47)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● RG9: a payload that is not provably for the signed-in user: no navigation on tap, no toast in the foreground › recipientId another account
+
+    expect(received).toBeNull()
+
+    Received: {"_fiber": {"_debugHookTypes": null, "_debugInfo": null, "_debugNeedsRemount": false, "_debugOwner": [FiberNode], "_debugStack": [Error: react-stack-top-frame], "_debugTask": null, "actualDuration": -0, "actualStartTime": 1791051472496, "alternate": null, "child": [FiberNode], "childLanes": 0, "deletions": null, "dependencies": null, "elementType": "Text", "flags": 0, "index": 0, "key": null, "lanes": 0, "memoizedProps": [Object], "memoizedState": null, "mode": 1, "pendingProps": [Object], "ref": null, "refCleanup": null, "return": [FiberNode], "selfBaseDuration": -0, "sibling": null, "stateNode": [Object], "subtreeFlags": 0, "tag": 5, "treeBaseDuration": -0, "type": "Text", "updateQueue": null}}
+
+      198 |
+      199 |     expect(mockNavigate).not.toHaveBeenCalled();
+    > 200 |     expect(screen.queryByText('New message')).toBeNull();
+          |                                               ^
+      201 |   });
+      202 | });
+      203 |
+
+      at toBeNull (src/__tests__/npm3aii/rg7to12.communityTapsAndToast.test.tsx:200:47)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● RG9: a payload that is not provably for the signed-in user: no navigation on tap, no toast in the foreground › a request for another account
+
+    expect(received).toBeNull()
+
+    Received: {"_fiber": {"_debugHookTypes": null, "_debugInfo": null, "_debugNeedsRemount": false, "_debugOwner": [FiberNode], "_debugStack": [Error: react-stack-top-frame], "_debugTask": null, "actualDuration": -0, "actualStartTime": 1791051472604, "alternate": null, "child": [FiberNode], "childLanes": 0, "deletions": null, "dependencies": null, "elementType": "Text", "flags": 0, "index": 0, "key": null, "lanes": 0, "memoizedProps": [Object], "memoizedState": null, "mode": 1, "pendingProps": [Object], "ref": null, "refCleanup": null, "return": [FiberNode], "selfBaseDuration": -0, "sibling": null, "stateNode": [Object], "subtreeFlags": 0, "tag": 5, "treeBaseDuration": -0, "type": "Text", "updateQueue": null}}
+
+      198 |
+      199 |     expect(mockNavigate).not.toHaveBeenCalled();
+    > 200 |     expect(screen.queryByText('New message')).toBeNull();
+          |                                               ^
+      201 |   });
+      202 | });
+      203 |
+
+      at toBeNull (src/__tests__/npm3aii/rg7to12.communityTapsAndToast.test.tsx:200:47)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● RG10: a foreground Community push for the signed-in user shows a toast, and pressing it runs the tap router
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      211 |   });
+      212 |
+    > 213 |   expect(mockNavigate).toHaveBeenCalledTimes(1);
+          |                        ^
+      214 |   const target = nestedScreen(mockNavigate.mock.calls[0]);
+      215 |   expect(target).toMatchObject({ name: 'Main', tab: 'Community', screen: 'Chat' });
+      216 |   expect(target.params).toMatchObject({ conversationId: 'conv-AB', otherUserId: 'uid-B' });
+
+      at Object.toHaveBeenCalledTimes (src/__tests__/npm3aii/rg7to12.communityTapsAndToast.test.tsx:213:24)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● RG11: no toast while that conversation is the current route; a toast for a different conversation
+
+    expect(received).toBeNull()
+
+    Received: {"_fiber": {"_debugHookTypes": null, "_debugInfo": null, "_debugNeedsRemount": false, "_debugOwner": [FiberNode], "_debugStack": [Error: react-stack-top-frame], "_debugTask": null, "actualDuration": -0, "actualStartTime": 1791051472718, "alternate": null, "child": [FiberNode], "childLanes": 0, "deletions": null, "dependencies": null, "elementType": "Text", "flags": 0, "index": 0, "key": null, "lanes": 0, "memoizedProps": [Object], "memoizedState": null, "mode": 1, "pendingProps": [Object], "ref": null, "refCleanup": null, "return": [FiberNode], "selfBaseDuration": -0, "sibling": null, "stateNode": [Object], "subtreeFlags": 0, "tag": 5, "treeBaseDuration": -0, "type": "Text", "updateQueue": null}}
+
+      223 |   await arrive('New message', 'Bea sent you a message.', DM, 'n-same');
+      224 |   await settle();
+    > 225 |   expect(screen.queryByText('Bea sent you a message.')).toBeNull();
+          |                                                         ^
+      226 |
+      227 |   await arrive('New message', 'Cal sent you a message.', { ...DM, conversationId: 'conv-AC', senderId: 'uid-C' }, 'n-other');
+      228 |   expect(await screen.findByText('Cal sent you a message.')).toBeTruthy();
+
+      at Object.toBeNull (src/__tests__/npm3aii/rg7to12.communityTapsAndToast.test.tsx:225:57)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● RG12: a cold-start tap is routed once, only after Main is in the root navigator, and not again after the user changes
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      238 |
+      239 |   mockNav.routeNames = ['Main'];
+    > 240 |   await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1), { timeout: 2000 });
+          |                ^
+      241 |   expect(nestedScreen(mockNavigate.mock.calls[0])).toMatchObject({ screen: 'Chat' });
+      242 |
+      243 |   // Sign out and back in: the launch response is still the last one the OS
+
+      at Object.<anonymous> (src/__tests__/npm3aii/rg7to12.communityTapsAndToast.test.tsx:240:16)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 3 failed, 3 total
+Tests:       14 failed, 14 total
+Snapshots:   0 total
+Time:        7.445 s
+Ran all test suites matching /src\\__tests__\\npm3aii\\rg7to12|src\\__tests__\\npm3aii\\rg8.people|src\\__tests__\\npm3aii\\rg13/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+
+=== functions-notifications: RG14 (run from functions-notifications/) ===
+FAIL src/__tests__/regression.recipientId.test.js
+  ● NPM-3a-ii RG14: recipientId in both Community payloads › a direct-message push carries recipientId equal to the recipient's UID
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "uid-recipient-R"
+    Received: undefined
+
+      34 |         const sent = env.sentMessages();
+      35 |         expect(sent).toHaveLength(1);
+    > 36 |         expect(sent[0].data.recipientId).toBe(world.RECIPIENT);
+         |                                          ^
+      37 |       });
+      38 |
+      39 |   it("a connection-request push carries recipientId equal to the recipient's UID",
+
+      at Object.toBe (src/__tests__/regression.recipientId.test.js:36:42)
+
+  ● NPM-3a-ii RG14: recipientId in both Community payloads › a connection-request push carries recipientId equal to the recipient's UID
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "uid-recipient-R"
+    Received: undefined
+
+      43 |         const sent = env.sentMessages();
+      44 |         expect(sent).toHaveLength(1);
+    > 45 |         expect(sent[0].data.recipientId).toBe(world.RECIPIENT);
+         |                                          ^
+      46 |       });
+      47 | });
+      48 |
+
+      at Object.toBe (src/__tests__/regression.recipientId.test.js:45:42)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+Snapshots:   0 total
+Time:        0.492 s, estimated 1 s
+Ran all test suites matching src/__tests__/regression.recipientId.test.js.

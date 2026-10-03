@@ -1,0 +1,120 @@
+/**
+ * RG2 (NPM-3a-ii, regression): returning to the app writes this device's
+ * tokens when the stored ones differ, and writes nothing when they are equal.
+ *
+ * Kyle's ruling II-D1: the owner runs on every return to the app, compares
+ * against the stored value and writes only on change. Before NPM-3a-ii the
+ * provider wrote fcmToken on every sign-in or cold start without comparing,
+ * and nothing ran on a return to the app.
+ *
+ * The return to the app is driven through the AppState listener the provider
+ * registers, captured from a spy (the same seam NotificationContext.test.tsx
+ * uses). The store and the device tokens are faked at their boundaries.
+ */
+jest.mock('expo-notifications', () => jest.requireActual('../helpers/pushHarness').fakeNotifications);
+jest.mock('expo-device', () => jest.requireActual('../helpers/pushHarness').fakeDevice);
+jest.mock('firebase/firestore', () => jest.requireActual('../helpers/pushHarness').fakeFirestore);
+jest.mock('firebase/auth', () => jest.requireActual('../helpers/pushHarness').fakeAuth);
+jest.mock('../../config/firebase', () => jest.requireActual('../helpers/pushHarness').fakeConfigFirebase);
+jest.mock('../../context/AuthContext', () => ({
+  useAuth: () => ({ user: { uid: 'u1', emailVerified: true }, isAuthReady: true }),
+}));
+jest.mock('../../context/ToastContext', () => jest.requireActual('../helpers/pushHarness').fakeToastContext);
+jest.mock('../../services/notificationScheduler.service', () =>
+  jest.requireActual('../helpers/pushHarness').fakeNotificationScheduler
+);
+jest.mock('../../services/firebase/focusSession.service', () =>
+  jest.requireActual('../helpers/pushHarness').fakeFocusSession
+);
+jest.mock('../../services/notificationIntentJournal', () =>
+  jest.requireActual('../helpers/pushHarness').fakeIntentJournal
+);
+jest.mock('../../navigation/AppNavigator', () => jest.requireActual('../helpers/pushHarness').fakeAppNavigator);
+jest.mock('../../services/reminderScheduler.service', () => ({
+  syncAllReminders: async () => undefined,
+  cancelAllRoutineReminders: async () => undefined,
+  invalidateRoutineReminderAttempts: () => undefined,
+  isRoutineReminderId: (id: string) => id.startsWith('routine-reminder-'),
+}));
+
+import React from 'react';
+import { AppState, AppStateStatus } from 'react-native';
+import { act, render, waitFor } from '@testing-library/react-native';
+import { NotificationProvider } from '../../context/NotificationContext';
+import {
+  DEVICE_A,
+  DEVICE_OTHER,
+  EXPO_A,
+  EXPO_OTHER,
+  Empty,
+  resetWorld,
+  userPrivate,
+  userPrivateWrites,
+  world,
+} from '../helpers/pushHarness';
+
+let appStateHandlers: ((state: AppStateStatus) => void)[] = [];
+
+beforeEach(() => {
+  resetWorld();
+  appStateHandlers = [];
+  jest.spyOn(AppState, 'addEventListener').mockImplementation(((
+    _type: string,
+    handler: (state: AppStateStatus) => void
+  ) => {
+    appStateHandlers.push(handler);
+    return { remove: () => undefined };
+  }) as unknown as typeof AppState.addEventListener);
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+async function returnToApp() {
+  await act(async () => {
+    appStateHandlers.forEach((h) => h('background'));
+  });
+  await act(async () => {
+    appStateHandlers.forEach((h) => h('active'));
+  });
+}
+
+/** Lets every queued effect and microtask settle. */
+async function settle() {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  });
+}
+
+test('RG2a: stored tokens replaced by another device are written back on return to the app', async () => {
+  world.store.set('userPrivate/u1', { uid: 'u1', expoPushToken: EXPO_A, fcmToken: DEVICE_A });
+  render(
+    <NotificationProvider>
+      <Empty />
+    </NotificationProvider>
+  );
+  await settle();
+
+  // Another device signs in as u1 while this phone is in the background.
+  world.store.set('userPrivate/u1', { uid: 'u1', expoPushToken: EXPO_OTHER, fcmToken: DEVICE_OTHER });
+
+  await returnToApp();
+
+  await waitFor(() => expect(userPrivate('u1')?.expoPushToken).toBe(EXPO_A));
+  expect(userPrivate('u1')?.fcmToken).toBe(DEVICE_A);
+});
+
+test('RG2b: stored tokens equal to this device: nothing is written, on mount or on return', async () => {
+  world.store.set('userPrivate/u1', { uid: 'u1', expoPushToken: EXPO_A, fcmToken: DEVICE_A });
+  render(
+    <NotificationProvider>
+      <Empty />
+    </NotificationProvider>
+  );
+  await settle();
+  await returnToApp();
+  await settle();
+
+  expect(userPrivateWrites('u1')).toEqual([]);
+});

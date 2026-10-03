@@ -7,9 +7,9 @@
  * whenever the screen regains focus.
  *
  * Any granted status, provisional included, is 'allowed'. 'denied' leads to iOS
- * Settings. 'notAsked' asks the OS; on a grant the Expo push token is registered
- * and saved, as the removed Push Notifications switch did. That save is
- * best-effort: a failure is logged and never reported as a permission failure.
+ * Settings. 'notAsked' asks the OS. A grant is announced to NotificationProvider,
+ * the one owner of push token registration (NPM-3a-ii, Kyle's II-D1), which
+ * saves the token; this hook saves nothing itself.
  * Nothing here writes a notification preference (D4: General stays as the user
  * set it whatever the device allows).
  */
@@ -17,12 +17,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Linking } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
-import { useAuth } from '../context/AuthContext';
 import {
   getPermissionsStatus,
-  registerPushToken,
   requestNotificationPermission,
-  savePushTokenToUser,
 } from '../services/notifications.service';
 import { logger } from '../utils/logger';
 
@@ -48,8 +45,6 @@ export function permissionStateFrom(
 }
 
 export function useNotificationPermission() {
-  const { user } = useAuth();
-  const uid = user?.uid ?? null;
   /** null until the first read answers: the row renders nothing until then. */
   const [state, setState] = useState<NotificationPermissionState | null>(null);
   const mounted = useRef(true);
@@ -90,16 +85,10 @@ export function useNotificationPermission() {
   }, []);
 
   const requestPermission = useCallback(async () => {
-    const granted = await requestNotificationPermission();
+    // A grant reaches the registration owner through the permission signal.
+    await requestNotificationPermission();
     await refresh();
-    if (granted && uid) {
-      // Best-effort, and never in the way of the status: a failed token save is
-      // logged only (Ruling 5; NPM-3a owns token registration).
-      void registerPushToken()
-        .then((token) => (token ? savePushTokenToUser(uid, token) : undefined))
-        .catch((error) => logger.warn('[useNotificationPermission] push token not saved', error));
-    }
-  }, [refresh, uid]);
+  }, [refresh]);
 
   return { state, refresh, openSettings, requestPermission };
 }

@@ -58,12 +58,20 @@ jest.mock('../ToastContext', () => ({
     showNotificationToast: (title: string, body: string) => mockShowNotificationToast(title, body),
   }),
 }));
+// NPM-3a-ii: push token registration is not under test here; its suites are
+// src/__tests__/npm3aii and src/services/__tests__/pushRegistration.*.
+jest.mock('../../services/pushRegistration.service', () => ({
+  ensurePushRegistration: jest.fn().mockResolvedValue(undefined),
+  onDeviceTokenChange: () => ({ remove: () => undefined }),
+}));
 jest.mock('../../services/notifications.service', () => ({
   setForegroundNotificationHandler: (handler: NonNullable<typeof foregroundHandler>) => {
     foregroundHandler = handler;
   },
   cancelAllScheduledExceptFocusComplete: (...a: any[]) => mockCancelExceptFocus(...(a as [])),
-  registerAndSaveFCMToken: jest.fn().mockResolvedValue(null),
+  // NPM-3a-ii: registration moved to pushRegistration.service (mocked below).
+  onNotificationPermissionGranted: () => () => undefined,
+  dismissAllDeliveredNotifications: jest.fn().mockResolvedValue(undefined),
   isServerPushEnabled: jest.fn().mockResolvedValue(false),
   addNotificationResponseListener: (handler: any) => {
     tapHandler = handler;

@@ -1,0 +1,96 @@
+/**
+ * RG1 (NPM-3a-ii, regression): allowing notifications at the onboarding
+ * Reminder step saves the Expo token to userPrivate.
+ *
+ * Before NPM-3a-ii the step fetched the token and discarded it, so a new user
+ * who allowed notifications had no expoPushToken until they opened Settings
+ * (Step 0 finding H3). Kyle's ruling II-D1 makes the always-mounted provider
+ * the one owner of registration, reached here through the grant.
+ *
+ * Driven through the rendered screen: the real NotificationProvider and the
+ * real Reminder screen are mounted together, the primary button is pressed,
+ * and the token is observed in the fake userPrivate store. The OS permission
+ * sheet itself is faked at the expo-notifications boundary.
+ */
+jest.mock('expo-notifications', () => jest.requireActual('../helpers/pushHarness').fakeNotifications);
+jest.mock('expo-device', () => jest.requireActual('../helpers/pushHarness').fakeDevice);
+jest.mock('firebase/firestore', () => jest.requireActual('../helpers/pushHarness').fakeFirestore);
+jest.mock('firebase/auth', () => jest.requireActual('../helpers/pushHarness').fakeAuth);
+jest.mock('../../config/firebase', () => jest.requireActual('../helpers/pushHarness').fakeConfigFirebase);
+jest.mock('../../context/AuthContext', () => ({
+  useAuth: () => ({ user: { uid: 'u1', emailVerified: true }, isAuthReady: true }),
+}));
+jest.mock('../../context/ToastContext', () => jest.requireActual('../helpers/pushHarness').fakeToastContext);
+jest.mock('../../services/notificationScheduler.service', () =>
+  jest.requireActual('../helpers/pushHarness').fakeNotificationScheduler
+);
+jest.mock('../../services/firebase/focusSession.service', () =>
+  jest.requireActual('../helpers/pushHarness').fakeFocusSession
+);
+jest.mock('../../services/notificationIntentJournal', () =>
+  jest.requireActual('../helpers/pushHarness').fakeIntentJournal
+);
+jest.mock('../../navigation/AppNavigator', () => jest.requireActual('../helpers/pushHarness').fakeAppNavigator);
+jest.mock('../../services/reminderScheduler.service', () => ({
+  syncAllReminders: async () => undefined,
+  cancelAllRoutineReminders: async () => undefined,
+  invalidateRoutineReminderAttempts: () => undefined,
+  isRoutineReminderId: (id: string) => id.startsWith('routine-reminder-'),
+}));
+jest.mock('../../services/firebase/notificationPreferences.service', () => ({
+  getNotificationPreferences: async () => ({}),
+  updateNotificationPreferences: async () => undefined,
+}));
+const mockNavigate = jest.fn();
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: mockNavigate, goBack: jest.fn() }),
+}));
+jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
+jest.mock('../../components/onboarding/OnboardingScaffold', () => ({
+  OnboardingScaffold: ({ onPrimary, children }: { onPrimary: () => void; children: unknown }) => {
+    const { Text, TouchableOpacity, View } = jest.requireActual('react-native');
+    const R = jest.requireActual('react');
+    return R.createElement(
+      View,
+      null,
+      R.createElement(
+        TouchableOpacity,
+        { testID: 'v3-primary', onPress: onPrimary },
+        R.createElement(Text, null, 'continue')
+      ),
+      children
+    );
+  },
+}));
+
+import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { NotificationProvider } from '../../context/NotificationContext';
+import { OnboardingV3ReminderScreen } from '../../screens/onboarding/v3/OnboardingV3ReminderScreen';
+import { OnboardingV3Provider } from '../../screens/onboarding/v3/OnboardingV3Context';
+import { EXPO_A, resetWorld, userPrivate, world } from '../helpers/pushHarness';
+
+beforeEach(() => {
+  resetWorld();
+  mockNavigate.mockClear();
+});
+
+test('RG1: Allow at the onboarding Reminder step saves the Expo token to userPrivate', async () => {
+  // Not yet asked: the sheet is shown by the press below, and says yes.
+  world.permission = 'undetermined';
+  world.requestResult = 'granted';
+
+  render(
+    <NotificationProvider>
+      <OnboardingV3Provider>
+        <OnboardingV3ReminderScreen />
+      </OnboardingV3Provider>
+    </NotificationProvider>
+  );
+
+  fireEvent.press(screen.getByTestId('v3-primary'));
+
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
+  await waitFor(() => expect(userPrivate('u1')?.expoPushToken).toBe(EXPO_A));
+  expect(world.log).toContain('requestPermission');
+});

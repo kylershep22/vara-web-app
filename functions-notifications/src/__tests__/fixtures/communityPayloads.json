@@ -1,0 +1,16 @@
+{
+  "_comment": "NPM-3a-ii. The data payload of each Community push, exactly as composePush builds it for the fixture world (src/__tests__/helpers/world.js), with the event IDs used by communityPush.test.js. The sender's tests assert composePush output equals these; the mobile router's tests read this file and assert the router accepts the same type strings and keys. Change both sides together.",
+  "direct_message": {
+    "type": "direct_message",
+    "conversationId": "conv-1",
+    "messageId": "msg-9",
+    "senderId": "uid-sender-S",
+    "recipientId": "uid-recipient-R"
+  },
+  "connection_request": {
+    "type": "connection_request",
+    "connectionId": "conn-9",
+    "requesterId": "uid-sender-S",
+    "recipientId": "uid-recipient-R"
+  }
+}

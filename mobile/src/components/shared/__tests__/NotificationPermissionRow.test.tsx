@@ -98,8 +98,12 @@ describe('L4: denied opens iOS Settings', () => {
   });
 });
 
-describe('L5: not yet asked asks the OS, and saves the push token on a grant', () => {
-  test('status, action and spoken label; a grant reads Allowed and saves the token', async () => {
+// NPM-3a-ii (Kyle's II-D1, II-D5): the row no longer saves the push token. A
+// grant reaches the one registration owner through the permission-granted
+// signal in notifications.service, pinned in src/__tests__/npm3aii. The
+// former second L5 test (a failed save stays silent) had no subject left.
+describe('L5: not yet asked asks the OS; the row saves no token itself', () => {
+  test('status, action and spoken label; a grant reads Allowed and the row does no token work', async () => {
     // Mount and focus both read the status; the OS grant is what flips it.
     mockPermission.mockResolvedValue(notAsked);
     mockRequest.mockImplementation(async () => {
@@ -119,32 +123,10 @@ describe('L5: not yet asked asks the OS, and saves the push token on a grant', (
     });
     expect(mockRequest).toHaveBeenCalled();
     await waitFor(() => expect(view.getByText('Allowed')).toBeTruthy());
-    // Mutation caught: the token save on a grant dropped (Ruling 5).
-    await waitFor(() => expect(mockSaveToken).toHaveBeenCalledWith('u1', 'ExponentPushToken[x]'));
-  });
-
-  test('a failed token save changes nothing shown and reports nothing', async () => {
-    const { Alert } = jest.requireActual('react-native');
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-    // Mount and focus both read the status; the OS grant is what flips it.
-    mockPermission.mockResolvedValue(notAsked);
-    mockRequest.mockImplementation(async () => {
-      mockPermission.mockResolvedValue(granted);
-      return true;
-    });
-    mockSaveToken.mockRejectedValue(new Error('Failed to get document because the client is offline.'));
-    const view = render(<NotificationPermissionRow />);
-    const row = await view.findByTestId('notification-permission-row');
-
-    await act(async () => {
-      fireEvent.press(row);
-    });
-    await waitFor(() => expect(mockSaveToken).toHaveBeenCalled());
+    // Mutation caught: a token fetch or save restored in the row (II-D1).
     await act(async () => {});
-
-    // Mutation caught: a token-save failure surfacing as a permission failure.
-    expect(view.getByText('Allowed')).toBeTruthy();
-    expect(alertSpy).not.toHaveBeenCalled();
+    expect(mockRegisterToken).not.toHaveBeenCalled();
+    expect(mockSaveToken).not.toHaveBeenCalled();
   });
 });
 

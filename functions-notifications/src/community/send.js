@@ -28,6 +28,12 @@ const ALREADY_EXISTS = 6;
  * Title, body and data for one Community push. Copy is Kyle's K7 and K8.
  * The direct-message push carries no message text.
  *
+ * Both carry recipientId, the UID the push was sent to (NPM-3a-ii, Kyle's
+ * II-D4), so the phone can refuse a push that is not for the account signed
+ * in on it (II-D17). The shape is pinned against
+ * src/__tests__/fixtures/communityPayloads.json, which the mobile router's
+ * tests read too.
+ *
  * @param {string} kind direct_message | connection_request
  * @param {string} eventId the triggering document's ID
  * @param {object} eligible the result of checkDeliveryEligibility
@@ -44,6 +50,7 @@ function composePush(kind, eventId, eligible) {
         conversationId: eligible.parsed.conversationId,
         messageId: eventId,
         senderId: eligible.actorId,
+        recipientId: eligible.recipientId,
       },
     };
   }
@@ -54,6 +61,7 @@ function composePush(kind, eventId, eligible) {
       type: "connection_request",
       connectionId: eventId,
       requesterId: eligible.actorId,
+      recipientId: eligible.recipientId,
     },
   };
 }

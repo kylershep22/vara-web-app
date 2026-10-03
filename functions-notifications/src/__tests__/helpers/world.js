@@ -9,7 +9,15 @@
  *   sendConnectionRequest {requesterId, addresseeId, participants, status,
  *   createdAt}
  * - userPrivate/{uid}.expoPushToken: mobile savePushTokenToUser
+ *
+ * NPM-3a-ii: the two event shapes come from fixtures/communityEventShapes.js,
+ * which the walk helper also writes with.
  */
+
+const {
+  directMessageDoc,
+  connectionRequestDoc,
+} = require("../fixtures/communityEventShapes");
 
 const SENDER = "uid-sender-S";
 const RECIPIENT = "uid-recipient-R";
@@ -47,14 +55,13 @@ function seedDeliverable(env) {
  */
 function dmEvent(env, id, overrides) {
   const messageId = id || "msg-1";
-  env.seed(`directMessages/${messageId}`, Object.assign({
+  env.seed(`directMessages/${messageId}`, Object.assign(directMessageDoc({
     conversationId: "conv-1",
     senderId: SENDER,
     receiverId: RECIPIENT,
     text: MESSAGE_TEXT,
-    read: false,
     createdAt: {seconds: 2},
-  }, overrides || {}));
+  }), overrides || {}));
   return env.event(`directMessages/${messageId}`, {messageId});
 }
 
@@ -67,13 +74,11 @@ function dmEvent(env, id, overrides) {
  */
 function requestEvent(env, id, overrides) {
   const connectionId = id || "conn-request-1";
-  env.seed(`connections/${connectionId}`, Object.assign({
+  env.seed(`connections/${connectionId}`, Object.assign(connectionRequestDoc({
     requesterId: SENDER,
     addresseeId: RECIPIENT,
-    participants: [SENDER, RECIPIENT],
-    status: "pending",
     createdAt: {seconds: 3},
-  }, overrides || {}));
+  }), overrides || {}));
   return env.event(`connections/${connectionId}`, {connectionId});
 }
 

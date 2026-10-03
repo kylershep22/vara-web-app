@@ -73,6 +73,17 @@ jest.mock('../services/firebase/analyticsEvents.service', () => ({
   logEvent: (...args: any[]) => mockLogEvent(...args),
 }));
 
+// NPM-3a-ii: logout's push token steps have their own suites
+// (src/__tests__/npm3aii, src/services/__tests__/pushRegistration.*).
+jest.mock('../services/notifications.service', () => ({
+  dismissAllDeliveredNotifications: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('../services/pushRegistration.service', () => ({
+  beginPushSessionEnd: jest.fn(() => ({ uid: null, tokens: null })),
+  clearDevicePushTokens: jest.fn().mockResolvedValue(undefined),
+  finishPushSessionEnd: jest.fn(),
+}));
+
 jest.mock('../utils/logger', () => ({
   logger: { log: jest.fn(), warn: jest.fn(), error: jest.fn() },
 }));

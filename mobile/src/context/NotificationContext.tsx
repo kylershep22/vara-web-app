@@ -1,7 +1,10 @@
 /**
  * Notification Context
- * Manages notification scheduling, foreground consolidation, FCM token registration,
+ * Manages notification scheduling, foreground consolidation, push token registration,
  * and provides notification functions to the app.
+ *
+ * It is the one owner of push token registration (NPM-3a-ii, Kyle's II-D1):
+ * see pushRegistration.service for what a pass reads and writes.
  *
  * The daily rhythm is local only in V1 (Kyle's ruling D1 and NPM-1 ruling 1):
  * whether it should exist is decided by reconcileDailyRhythm from a FRESH read of
@@ -15,10 +18,15 @@ import { useToast } from './ToastContext';
 import {
   setForegroundNotificationHandler,
   cancelAllScheduledExceptFocusComplete,
-  registerAndSaveFCMToken,
   addNotificationResponseListener,
   getLastNotificationResponse,
+  onNotificationPermissionGranted,
+  dismissAllDeliveredNotifications,
 } from '../services/notifications.service';
+import {
+  ensurePushRegistration,
+  onDeviceTokenChange,
+} from '../services/pushRegistration.service';
 import {
   getActiveFocusSession,
   clearActiveFocusSession,
@@ -35,6 +43,12 @@ import {
 import { navigationRef } from '../navigation/AppNavigator';
 import { ROUTES } from '../navigation/routes';
 import { NAV_TARGETS } from '../navigation/navTargets';
+import { communityPushTarget, isCommunityPush } from '../navigation/communityPushRoute';
+import {
+  isCurrentConversation,
+  openCommunityTarget,
+  waitForMainRoute,
+} from '../navigation/communityPushNavigation';
 import {
   reconcileDailyRhythm,
   dailyRhythmNotificationId,
@@ -96,22 +110,60 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return next;
   }, []);
 
+  // The signed-in uid as of the latest render, for the listeners below that are
+  // registered once (NPM-3a-ii: a Community push is checked against it).
+  const signedInUidRef = useRef(user?.uid);
+  signedInUidRef.current = user?.uid;
+
+  // Identifiers of Community notification responses already handled, so a tap
+  // is routed once even when both the live listener and the cold-start read
+  // see it, and never again after the user changes (NPM-3a-ii).
+  const handledResponsesRef = useRef(new Set<string>());
+
   // Register foreground notification handler → route to toast
   useEffect(() => {
-    setForegroundNotificationHandler(async (title: string, body: string, data?: Record<string, unknown>) => {
-      // Habit reminders left V1 (V1-HABITS-RETIREMENT, Kyle ruling 2 of
-      // 2026-09-29). A stale one scheduled by an earlier build shows nothing.
-      if (data?.type === 'habit-reminder') return;
-      showNotificationToast(title, body);
-    });
+    setForegroundNotificationHandler(
+      async (title: string, body: string, data?: Record<string, unknown>, identifier?: string) => {
+        // Habit reminders left V1 (V1-HABITS-RETIREMENT, Kyle ruling 2 of
+        // 2026-09-29). A stale one scheduled by an earlier build shows nothing.
+        if (data?.type === 'habit-reminder') return;
+        // Community pushes (NPM-3a-ii; R1-K13, II-D6, II-D17): nothing unless the
+        // push is provably for the signed-in user; nothing while that
+        // conversation is open; otherwise a toast whose press opens what a tap
+        // on the banner opens (II-D7).
+        if (isCommunityPush(data)) {
+          const target = communityPushTarget(data, user?.uid, identifier ?? '');
+          if (!target || (target.kind === 'chat' && isCurrentConversation(target.conversationId))) return;
+          showNotificationToast(title, body, () => openCommunityTarget(target));
+          return;
+        }
+        showNotificationToast(title, body);
+      }
+    );
   }, [showNotificationToast, user?.uid]);
 
-  // Register FCM token on login
+  // Push token registration (NPM-3a-ii, Kyle's II-D1 and II-D12). Only for a
+  // signed-in user with a verified email. Runs at sign-in and on a cold start
+  // with a restored session, when the email becomes verified (the effect
+  // re-runs on that change), after any in-app permission grant and on a token
+  // change. The return to the app is in the foreground handler below. Every
+  // pass goes through runExclusive, and a pass never prompts.
+  const registrationUid = user?.uid;
+  const emailVerified = !!user?.emailVerified;
   useEffect(() => {
-    if (!user?.uid) return;
-    // Register native push token for FCM
-    registerAndSaveFCMToken(user.uid);
-  }, [user?.uid]);
+    if (!registrationUid || !emailVerified) return;
+    const uid = registrationUid;
+    const register = () => {
+      void runExclusive(() => ensurePushRegistration(uid));
+    };
+    register();
+    const stopGrants = onNotificationPermissionGranted(register);
+    const tokenChanges = onDeviceTokenChange(register);
+    return () => {
+      stopGrants();
+      tokenChanges.remove();
+    };
+  }, [registrationUid, emailVerified, runExclusive]);
 
   // Foreground consolidation: cancel pending, reschedule future. Spares the
   // pending focus-complete notification (the OS owns it; the timer relies on it
@@ -145,11 +197,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           // bounded, so a hung read cannot hold this queue indefinitely.
           await syncAllReminders(uid);
         });
+        // Push token registration on every return to the app (II-D1), after
+        // the reminder work and on the same queue.
+        if (user.emailVerified) {
+          await runExclusive(() => ensurePushRegistration(uid));
+        }
       }
       appStateRef.current = nextState;
     });
     return () => subscription.remove();
-  }, [user?.uid, runExclusive]);
+  }, [user?.uid, user?.emailVerified, runExclusive]);
 
   // Reconcile the daily rhythm on sign-in and cold start. The reconcile reads the
   // preferences fresh and decides; nothing here consults a stored copy.
@@ -188,6 +245,17 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const data = response.notification.request.content.data;
       if (!data?.type || !navigationRef.isReady()) return;
 
+      // Community pushes (NPM-3a-ii; R1-K8, II-D5, II-D17): one router, once
+      // per notification, and only for the signed-in user.
+      if (isCommunityPush(data)) {
+        const id = response.notification.request.identifier;
+        if (handledResponsesRef.current.has(id)) return;
+        handledResponsesRef.current.add(id);
+        const target = communityPushTarget(data, signedInUidRef.current, id);
+        if (target) openCommunityTarget(target);
+        return;
+      }
+
       // Same one-cast-at-the-boundary idiom as navigateToFocusTimer above:
       // navigationRef is untyped, and casting the function once beats casting
       // every argument to `never`, which is what previously let a route name
@@ -220,6 +288,32 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     return () => subscription.remove();
   }, []);
+
+  // Cold-launch Community tap (NPM-3a-ii). The launch response is read once per
+  // signed-in user, routed only for that user, only once Main is in the root
+  // navigator (bounded wait), and never twice: its identifier is remembered
+  // before the wait, so a later sign-in that reads the same launch response
+  // routes nothing.
+  useEffect(() => {
+    if (!user?.uid) return;
+    const uid = user.uid;
+    let cancelled = false;
+    (async () => {
+      const response = await getLastNotificationResponse();
+      if (cancelled || !response) return;
+      const data = response.notification.request.content.data;
+      if (!isCommunityPush(data)) return;
+      const id = response.notification.request.identifier;
+      if (handledResponsesRef.current.has(id)) return;
+      handledResponsesRef.current.add(id);
+      const target = communityPushTarget(data, uid, id);
+      if (!target || !(await waitForMainRoute()) || cancelled) return;
+      openCommunityTarget(target);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid]);
 
   // Cold-launch deep link: the app was opened by TAPPING a focus-complete
   // notification while killed, so the warm response listener above never saw the
@@ -275,6 +369,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // user's object is replaced, and not on unmount (NPM-1 T5: replacing the
       // object used to cancel the daily rhythm too).
       if (user?.uid && currentUidRef.current !== user.uid) {
+        // Every notification already delivered goes too (Kyle's II-D15), on
+        // this and every other authoritative session-loss path. Local, never
+        // rejects. logout() has usually done it already; twice is harmless.
+        void dismissAllDeliveredNotifications();
         // The departing user's pending notification changes go with the
         // session (NPM-2): cleared from memory and made inert synchronously,
         // removed from disk after. Never applied to the next account.

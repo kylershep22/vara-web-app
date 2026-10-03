@@ -6,6 +6,7 @@ import { db } from '../config/firebase';
 import { doc, getDoc, serverTimestamp, type Timestamp } from 'firebase/firestore';
 import { setUserPrivate } from './firebase/userPrivate.service';
 import { FocusCopy } from '../constants/focusContent';
+import { logger } from '../utils/logger';
 
 // ==========================================
 // FOREGROUND NOTIFICATION GATE
@@ -14,7 +15,14 @@ import { FocusCopy } from '../constants/focusContent';
 // ==========================================
 
 let _isForeground = AppState.currentState === 'active';
-let _onForegroundNotification: ((title: string, body: string, data?: Record<string, unknown>) => void) | null = null;
+/** `identifier` is the notification request's id (NPM-3a-ii: a toast tap routes with it). */
+type ForegroundNotificationHandler = (
+  title: string,
+  body: string,
+  data?: Record<string, unknown>,
+  identifier?: string
+) => void;
+let _onForegroundNotification: ForegroundNotificationHandler | null = null;
 let _notificationHandlerReady = false;
 
 // Track foreground state — wrapped in try-catch to prevent module-load crashes
@@ -30,9 +38,7 @@ try {
  * Register a callback for notifications received while foregrounded.
  * The NotificationContext calls this to route to ToastContext.
  */
-export function setForegroundNotificationHandler(
-  handler: (title: string, body: string, data?: Record<string, unknown>) => void,
-): void {
+export function setForegroundNotificationHandler(handler: ForegroundNotificationHandler): void {
   _onForegroundNotification = handler;
 }
 
@@ -48,7 +54,7 @@ try {
         const body = notification.request.content.body || '';
         if (_onForegroundNotification && (title || body)) {
           const data = notification.request.content.data as Record<string, unknown> | undefined;
-          _onForegroundNotification(title, body, data);
+          _onForegroundNotification(title, body, data, notification.request.identifier);
         }
         return {
           shouldShowAlert: false,
@@ -70,6 +76,60 @@ try {
   _notificationHandlerReady = true;
 } catch (error) {
   console.error('Failed to set notification handler (non-fatal):', error);
+}
+
+// ==========================================
+// PERMISSION GRANTED SIGNAL (NPM-3a-ii, Kyle's II-D1)
+// Every in-app permission request goes through requestOsNotificationPermission,
+// which tells the one push-registration owner (NotificationProvider) when the
+// answer is a grant. No grant site saves a token itself.
+// ==========================================
+
+type PermissionGrantedListener = () => void;
+const _permissionGrantedListeners = new Set<PermissionGrantedListener>();
+
+/**
+ * Subscribe to in-app permission grants. Returns the unsubscribe. The
+ * NotificationProvider is the only subscriber; it runs token registration.
+ */
+export function onNotificationPermissionGranted(listener: PermissionGrantedListener): () => void {
+  _permissionGrantedListeners.add(listener);
+  return () => {
+    _permissionGrantedListeners.delete(listener);
+  };
+}
+
+/**
+ * Show the OS permission sheet (the OS shows nothing if it has already been
+ * answered) and return its response. A grant is announced to the
+ * registration owner before this returns. Throws what the OS call throws, so
+ * each caller keeps its own failure handling exactly as before.
+ */
+export async function requestOsNotificationPermission(): Promise<Notifications.NotificationPermissionsStatus> {
+  const response = await Notifications.requestPermissionsAsync();
+  if (response.status === 'granted') {
+    _permissionGrantedListeners.forEach((listener) => {
+      try {
+        listener();
+      } catch {
+        logger.warn('[notifications] permission-granted listener failed');
+      }
+    });
+  }
+  return response;
+}
+
+/**
+ * Remove every notification Vara has delivered from Notification Center
+ * (Kyle's II-D15: on every authoritative session-loss path). Local and
+ * immediate. Never rejects; a failure is logged without detail.
+ */
+export async function dismissAllDeliveredNotifications(): Promise<void> {
+  try {
+    await Notifications.dismissAllNotificationsAsync();
+  } catch {
+    logger.warn('[notifications] could not dismiss delivered notifications');
+  }
 }
 
 /**
@@ -97,7 +157,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     if (existingStatus === 'granted') return true;
 
-    const { status } = await Notifications.requestPermissionsAsync();
+    const { status } = await requestOsNotificationPermission();
     return status === 'granted';
   } catch (error) {
     console.log('Notification permission request failed (non-fatal):', error);
@@ -168,14 +228,11 @@ export async function savePushTokenToUser(userId: string, pushToken: string): Pr
     return;
   }
   try {
-    // userPrivate ONLY, from migration slice 2. A push token on users/{uid} —
-    // which every authenticated account can read — lets anyone harvest the
-    // full token list, which is the single highest-value item in the
-    // migration. There is deliberately no dual-write here: the Cloud Functions
-    // senders read through functions/src/lib/userFields.js, which checks
-    // userPrivate first and falls back to users/{uid} for anyone still on an
-    // old build, so delivery is correct in both directions without leaving a
-    // fresh token on the public document.
+    // userPrivate ONLY, from migration slice 2. A push token on users/{uid} -
+    // which every authenticated account can read - lets anyone harvest the
+    // full token list. The Community sender reads the Expo token from
+    // userPrivate only (register entry S2-5). Live registration is
+    // pushRegistration.service; this remains for NotificationOptInScreen.
     await setUserPrivate(userId, {
       expoPushToken: pushToken,
       pushTokenUpdatedAt: serverTimestamp() as unknown as Timestamp,
@@ -219,7 +276,7 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   try {
     const { status } = await Notifications.getPermissionsAsync();
     if (status === 'granted') return true;
-    const { status: requested } = await Notifications.requestPermissionsAsync();
+    const { status: requested } = await requestOsNotificationPermission();
     return requested === 'granted';
   } catch (error) {
     console.warn('Notification permission check failed (non-fatal):', error);
@@ -346,47 +403,9 @@ export async function openNotificationSettings(): Promise<void> {
 }
 
 // ==========================================
-// FCM TOKEN & FEATURE FLAG
+// FEATURE FLAG
+// (The FCM token moved to pushRegistration.service in NPM-3a-ii.)
 // ==========================================
-
-/**
- * Register for FCM push token via expo-notifications device push token.
- * Saves to user doc as `fcmToken` for server-side Cloud Functions.
- */
-export async function registerAndSaveFCMToken(userId: string): Promise<string | null> {
-  if (!Device.isDevice) return null;
-
-  try {
-    const { status } = await Notifications.getPermissionsAsync();
-    if (status !== 'granted') return null;
-
-    if (!db) {
-      console.warn('Firestore not initialized - cannot save FCM token');
-      return null;
-    }
-
-    // Expo's getDevicePushTokenAsync returns the native FCM/APNs token
-    const deviceToken = await Notifications.getDevicePushTokenAsync();
-    const fcmToken = deviceToken.data;
-
-    if (fcmToken && typeof fcmToken === 'string') {
-      // userPrivate ONLY — same reasoning as savePushTokenToUser above. This is
-      // the token the server senders actually push through (fcmSender.js takes
-      // it as `token`), so the read-through helper on the functions side is
-      // what keeps server push working across the migration.
-      await setUserPrivate(userId, {
-        fcmToken,
-        fcmTokenUpdatedAt: serverTimestamp() as unknown as Timestamp,
-      });
-      return fcmToken;
-    }
-
-    return null;
-  } catch (error) {
-    console.log('FCM token registration unavailable:', error);
-    return null;
-  }
-}
 
 /**
  * Check if server-side push is enabled via feature flag.
