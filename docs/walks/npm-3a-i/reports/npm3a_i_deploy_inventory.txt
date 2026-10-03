@@ -1,0 +1,235 @@
+NPM-3a-i DEPLOY INVENTORY (read-only)
+Run from C:\Users\kyler\wellness-app on main at 7e8750b, 2026-10-02. Nothing was edited, staged, committed, branched, installed or deployed. Nothing was written to Firestore or any remote service.
+
+HEADLINE
+H1. On the api codebase, an unscoped deploy from main changes the behaviour of ONE function: deleteAccount. Commit 2185d83 added "moments" to the account-deletion sweep. This assumes the 2026-09-06 deploy was made from a checkout that contained main as of 2026-09-04. No other api source has changed since 2026-09-04.
+H2. On the notifications codebase, the only change since early August is a3694ee (2026-08-29 11:11 EDT, the day before the 2026-08-30 deploy, so it MAY OR MAY NOT BE DEPLOYED).
+  - If it is NOT deployed, production's notifyOnDirectMessageCreated reads the Expo token from users/{uid} only. Mobile builds since a3694ee write the token to userPrivate/{uid} only. Those users would currently get no DM push from this sender.
+  - Deploying would turn DM pushes ON for them. That is a behaviour change Kyle should expect.
+H3. Kyle's list of last-deployed dates covers 9 of the 25 exported functions. For the other 16, the console dates are unknown here. Any commit to their sources after their own last deploy would also go live. Item 4 lists, per source file, the last commit date to compare against.
+H4. CAVEAT ON THE REQUESTED COMMANDS. `git log --since="YYYY-MM-DD"` with no time is read by git as that date AT THE CURRENT TIME OF DAY (the command ran at about 9:04 PM). It therefore drops earlier commits on the boundary day. The functions-notifications command returned nothing for exactly that reason, and missed a3694ee at 11:11 AM on 2026-08-29. Item 2 reports the commands verbatim and then re-runs them with an explicit 00:00.
+
+======================================================================
+1. STATE
+======================================================================
+git branch --show-current                    -> main
+git rev-parse --short HEAD                   -> 7e8750b
+git status --porcelain --untracked-files=all -> (empty, clean tree)
+This matches the expected state.
+
+======================================================================
+2. FUNCTIONS COMMITS SINCE THE DEPLOYS
+======================================================================
+As requested, verbatim output:
+
+$ git log --since="2026-09-05" --date=short --format="%h %ad %s" -- functions
+  2185d83 2026-09-18 feat(today): a good moment is one line, one tap, and nothing that counts it
+
+$ git log --since="2026-08-29" --date=short --format="%h %ad %s" -- functions-notifications
+  (no output)
+
+$ git log --since="2026-08-29" --date=short --format="%h %ad %s" -- firebase.json
+  9f2cb0f 2026-09-04 fix(functions): delete a user's Cloud Storage objects on account deletion
+
+Re-run with explicit midnight (author date = commit date for all of these):
+
+$ git log --since="2026-09-05 00:00" ... -- functions
+  2185d83 2026-09-18 10:48:23 -0400 feat(today): a good moment is one line, one tap, and nothing that counts it
+$ git log --since="2026-08-29 00:00" ... -- functions-notifications
+  a3694ee 2026-08-29 11:11:58 -0400 feat(security): userPrivate slice 2 — repoint writers and readers   <-- MAY OR MAY NOT BE DEPLOYED (the day before the 2026-08-30 deploy)
+$ git log --since="2026-08-29 00:00" ... -- firebase.json
+  9f2cb0f 2026-09-04 16:59:53 -0400 fix(functions): delete a user's Cloud Storage objects on account deletion
+
+Marks:
+  - 2185d83 (2026-09-18): after every known deploy date. NOT deployed by any deploy Kyle listed.
+  - a3694ee (2026-08-29): the day before the 2026-08-30 notifications deploy. MAY OR MAY NOT BE DEPLOYED there. It is also before the 2026-09-06 api deploy, so its api half was presumably included in that deploy, if that deploy was from main.
+  - 9f2cb0f (2026-09-04): neither on a deploy date nor the day before. Before the 2026-09-06 api deploy.
+
+For context, the functions/ commits between 2026-08-29 and 2026-09-05, all before the 2026-09-06 api deploy:
+  9f2cb0f 2026-09-04 fix(functions): delete a user's Cloud Storage objects on account deletion
+  36a8844 2026-09-04 fix(functions): sweep every per-user collection on account deletion
+  4f1a2fa 2026-09-01 feat(journey slice 1): journey state model, service, derivations and rules
+  a3694ee 2026-08-29 feat(security): userPrivate slice 2 — repoint writers and readers
+
+======================================================================
+3. EACH COMMIT FROM ITEM 2
+======================================================================
+--- 2185d83  "feat(today): a good moment is one line, one tap, and nothing that counts it"
+  git show --stat (functions, functions-notifications, firebase.json):
+     .../src/__tests__/deleteAccountCleanup.test.js     | 11 +++++
+     functions/src/__tests__/deleteAccountSweep.test.js | 55 ++++++++++++++++++++++
+     functions/src/lib/accountDeletion.js               |  6 +++
+     3 files changed, 72 insertions(+)
+  Behaviour:
+    - Adds "moments" to USERID_FIELD_COLLECTIONS (accountDeletion.js, a 6-line comment plus the entry). Account deletion then also deletes every moments document whose userId is the deleted user.
+    - The tests change only test files.
+  Exported functions affected: deleteAccount (functions/index.js:1034, which calls deleteAccountCompletely from src/lib/accountDeletion.js, required at index.js:112).
+  Nothing else imports accountDeletion.js.
+
+--- a3694ee  "feat(security): userPrivate slice 2 — repoint writers and readers"
+  git show --stat:
+     functions-notifications/index.js              |  26 ++++-
+     functions/index.js                            |  15 +++
+     functions/src/__tests__/userFields.test.js    | 140 ++++++++++++++++++++++++++
+     functions/src/auth/onUserCreate.js            |  31 ++++--
+     functions/src/events/validateEventCode.js     |  47 +++++++--
+     functions/src/lib/userFields.js               |  91 +++++++++++++++++
+     functions/src/notifications/dailyRhythm.js    |   6 +-
+     functions/src/notifications/habitReminders.js |   5 +-
+     functions/src/notifications/insights.js       |   5 +-
+     functions/src/notifications/milestones.js     |   5 +-
+     functions/src/notifications/social.js         |   7 +-
+     functions/src/webhooks/revenueCatWebhook.js   |  20 +++-
+     12 files changed, 366 insertions(+), 32 deletions(-)
+  Behaviour:
+    - functions-notifications/index.js, sendPushNotification: reads the Expo push token from userPrivate/{uid} first, then falls back to users/{uid}. Before this it read users/{uid} ONLY.
+      This affects notifyOnDirectMessageCreated, the only caller of sendPushNotification. notifyOnInviteCreated sits in the same file and is redeployed with it, but its behaviour does not change.
+    - functions/src/lib/userFields.js (new): the getFcmToken, getUserField and getMergedUser read-throughs (userPrivate first).
+    - The scheduled senders and social.js switch from reading users/{uid}.fcmToken to getFcmToken.
+      Affects: sendDailyRhythm, sendHabitReminders, sendInsights, sendMilestones, onNewDirectMessage, onNewConnection.
+    - onUserCreate.js, validateEventCode.js and revenueCatWebhook.js are repointed to read and write the migrated fields through userPrivate.
+      Affects: onUserCreate, validateEventCode, revenueCatWebhook.
+    - functions/index.js: deleteAccount also deletes userPrivate/{uid}.
+      Affects: deleteAccount.
+  Deploy status:
+    - notifications half: MAY OR MAY NOT BE DEPLOYED (committed the day before the 2026-08-30 deploy).
+    - api half: dated before the 2026-09-06 deploy of the six notification functions and deleteAccount.
+    - onUserCreate, validateEventCode and revenueCatWebhook: their deploy dates are unknown (H3).
+
+--- 9f2cb0f  "fix(functions): delete a user's Cloud Storage objects on account deletion"
+  git show --stat:
+     firebase.json                                      |   3 +
+     functions/index.js                                 |  24 ++-
+     functions/package.json                             |   2 +-
+     .../src/__tests__/deleteAccountCleanup.test.js     |  55 +++++-
+     functions/src/__tests__/deleteAccountSweep.test.js | 185 +++++++++++++++++++--
+     functions/src/lib/accountDeletion.js               | 164 +++++++++++++++++-
+     6 files changed, 411 insertions(+), 22 deletions(-)
+  Behaviour:
+    - Account deletion now also deletes the user's Cloud Storage objects under users/, avatars/, posts/ and communityPosts/{uid}/, plus groupPosts/{groupId}/{uid}/ found by enumerating the groups. Auth deletion still happens last, and only after a clean pass.
+    - firebase.json adds a Storage emulator port (9199). That is emulator-only and has no deploy effect.
+    - functions/package.json changes only the test script to start the storage emulator. No deploy effect.
+  Exported functions affected: deleteAccount.
+  Deploy status: before the 2026-09-06 deleteAccount deploy, so presumably live, if that deploy was from main.
+
+======================================================================
+4. EVERY EXPORTED FUNCTION, AND WHETHER ITS SOURCE CHANGED IN ITEM 2's COMMITS
+======================================================================
+Item 2's commits: 2185d83, a3694ee (notifications half) and 9f2cb0f.
+
+Note: functions/index.js requires all of src/ at load time (index.js:20, 29, 40, 44, 48, 106, 112). The api codebase deploys as one source bundle, so the CLI will redeploy every api function whenever any of it changes. "Changed" below means a change in BEHAVIOUR for that function.
+
+Codebase "api" (source functions/, all exported from functions/index.js):
+  Function                       Source                                         Behaviour changed by item 2's commits?   Last commit to its source (compare with the console)
+  sendDailyRhythm                src/notifications/dailyRhythm.js               No (a3694ee is before the 09-06 deploy)  a3694ee 2026-08-29; deployed 2026-09-06 (Kyle)
+  sendInsights                   src/notifications/insights.js                  No                                       a3694ee 2026-08-29; deployed 2026-09-06
+  onNewDirectMessage             src/notifications/social.js                    No                                       a3694ee 2026-08-29; deployed 2026-09-06
+  onNewConnection                src/notifications/social.js                    No                                       a3694ee 2026-08-29; deployed 2026-09-06
+  sendMilestones                 src/notifications/milestones.js                No                                       a3694ee 2026-08-29; deployed 2026-09-06
+  sendHabitReminders             src/notifications/habitReminders.js            No                                       a3694ee 2026-08-29; deployed 2026-09-06
+    (shared imports: notificationTier.js 02f0de2 2026-03-29; utils/fcmSender.js and utils/quietHours.js 22c110a 2026-02-22; lib/userFields.js a3694ee 2026-08-29)
+  deleteAccount                  index.js:1034 + src/lib/accountDeletion.js     YES: 2185d83 adds "moments" to the sweep  accountDeletion.js 2185d83 2026-09-18; index.js 9f2cb0f 2026-09-04; deployed 2026-09-06
+  onPostCreate_moderateContent   src/admin/moderation.js                        No                                       5e1347a 2026-04-22; deploy date UNKNOWN
+  onPostReport_createQueueItem   src/admin/moderation.js                        No                                       5e1347a 2026-04-22; UNKNOWN
+  onModerationAction             src/admin/moderationActions.js                 No                                       1f52116 2026-03-24; UNKNOWN
+  aggregateAnalytics             src/admin/analytics.js                         No                                       59e9693 2026-03-26; UNKNOWN
+  aggregateAnalyticsFull         src/admin/analytics.js                         No                                       59e9693 2026-03-26; UNKNOWN
+  triggerAggregation             src/admin/analytics.js                         No                                       59e9693 2026-03-26; UNKNOWN
+  cleanupExpiredSuspensions      src/admin/cleanup.js                           No                                       401f5aa 2026-03-24; UNKNOWN
+  updateModerationBlocklist      src/admin/cleanup.js                           No                                       401f5aa 2026-03-24; UNKNOWN
+  validateEventCode              src/events/validateEventCode.js                Not by 2185d83/9f2cb0f; a3694ee changed it  a3694ee 2026-08-29; UNKNOWN
+  onUserCreate                   src/auth/onUserCreate.js                       Not by 2185d83/9f2cb0f; a3694ee changed it  a3694ee 2026-08-29; UNKNOWN
+  revenueCatWebhook              src/webhooks/revenueCatWebhook.js              Not by 2185d83/9f2cb0f; a3694ee changed it  a3694ee 2026-08-29; UNKNOWN
+  generateHabitSuggestions       index.js:137 (+ src/rateLimit.js)              No                                       index.js 9f2cb0f 2026-09-04 (deleteAccount only); rateLimit.js 02782f9 2026-08-28; UNKNOWN
+  generateDailyPlan              index.js:214 (+ src/rateLimit.js)              No                                       same; UNKNOWN
+  journalPrompt                  index.js:309 (+ src/rateLimit.js)              No                                       same; UNKNOWN
+  ingestSleepAudio               index.js:419                                   No                                       index.js; UNKNOWN
+  pruneSleepAudioDoc             index.js:470                                   No                                       index.js; UNKNOWN
+  api                            index.js:496 (+ src/rateLimit.js)              No                                       same; UNKNOWN
+  (package.json 9f2cb0f 2026-09-04 test script only; package-lock.json 02782f9 2026-08-28)
+  Every api function marked UNKNOWN has a source that last changed in a3694ee (2026-08-29), 02782f9 or f94cc9d (2026-08-28), or earlier. If any of them was last deployed before those dates, the deploy changes it too. Kyle can settle this by reading their dates in the console.
+
+Codebase "notifications" (source functions-notifications/index.js):
+  notifyOnInviteCreated          index.js:192    File changed in a3694ee, but this function's behaviour did not.  a3694ee 2026-08-29; deployed 2026-08-30 (Kyle). MAY OR MAY NOT include a3694ee.
+  notifyOnDirectMessageCreated   index.js:230    a3694ee: token read becomes userPrivate-first.                  a3694ee 2026-08-29; deployed 2026-08-30 (Kyle). MAY OR MAY NOT include a3694ee.
+  (package.json and package-lock.json last changed 51641bf 2026-01-31; no SENDGRID_API_KEY per Kyle, so no email is sent either way.)
+
+What an unscoped deploy from main changes in behaviour today, before NPM-3a-i adds anything:
+  - deleteAccount: also sweeps `moments` (2185d83). Certain.
+  - notifyOnDirectMessageCreated: starts reading userPrivate/{uid}.expoPushToken, but only if the 2026-08-30 deploy predates a3694ee. If it does, DM pushes start reaching users on current builds.
+  - Any UNKNOWN-dated api function whose live version predates its source's last commit. Not determinable here.
+  - Operational side effects, not code changes: every api function is redeployed, including the four paused scheduled senders. The schedules may be recreated or resumed; re-check Cloud Scheduler after the deploy, per the NPM-3b row. sendDailyRhythm's deployed code is replaced by the repo version (item 6).
+
+======================================================================
+5. RULES
+======================================================================
+$ git log -15 --date=short --format="%h %ad %s" -- firestore.rules storage.rules firestore.indexes.json
+  2185d83 2026-09-18 feat(today): a good moment is one line, one tap, and nothing that counts it
+  b522dbd 2026-09-02 feat(journey slice 3c-i): Remove capture flow, protocol families, crisis pre-check
+  4f1a2fa 2026-09-01 feat(journey slice 1): journey state model, service, derivations and rules
+  1083c26 2026-08-28 fix(rules): close role self-grant at profile CREATE
+  6a6b972 2026-08-14 feat(tasks): TB-2a spine — CapturedTask, service, rules, no index
+  c99e78f 2026-08-13 chore: sync firestore.indexes.json with production indexes
+  106ff6e 2026-08-13 feat(blocks): TB-1a Time-Blocking spine — DayBlock model, service, rules, placement
+  226c47a 2026-08-06 fix(rules): guard absent-document gets on the weekly collections
+  0f457b9 2026-08-05 feat(rules): create-only owner-scoped analyticsEvents
+  3feaffd 2026-08-03 feat(rules): owner-only rules for weekly-loop collections
+  3dd2710 2026-08-02 feat(rules): owner-scoped rules for organizations + memberships
+  b291601 2026-08-01 feat(rules): owner-only rule for userPrivate/{uid}
+  290324a 2026-07-25 Fix Focus video Storage path: focusVideo/ -> focus-video/
+  7c9ae3a 2026-07-25 Scope Storage rules to the paths that actually exist in the bucket
+  a1c0bd2 2026-07-25 Harden Storage rules: authenticated read, owner-scoped writes, deny-by-default
+  storage.rules last changed 2026-07-25. The five most recent commits touch firestore.rules, and 4f1a2fa also touches firestore.indexes.json.
+
+The five most recent, in plain English:
+  - 2185d83 (2026-09-18, firestore.rules +37). Adds a rule block for a new `moments` collection.
+    - A signed-in user may create a moment only with userId set to themselves, and may get, list, update or delete only their own.
+    - A get on a moment that does not exist is allowed (the absent-document pattern used by its siblings).
+    - Until this is published, every moment write from the app is DENIED, because the collection has no rule.
+  - b522dbd (2026-09-02, firestore.rules +30/-1). Tightens journeyStates/{uid} writes. Five new OPTIONAL fields are allowed and validated when present:
+    - removeFamily: one of behavioral, mental or interpersonal;
+    - removeTiming: one of morning, day, evening or varies;
+    - removeTargetChip: a string of at most 64 characters;
+    - removeTargetText: a string of at most 200 characters;
+    - removeCapturedAt: a timestamp.
+    A write carrying any of these with a bad value is denied. Documents without them are unaffected. Until this is published, live rules do NOT validate these fields; the journeyStates rule from 4f1a2fa, if published, would accept them because it validates only the core fields.
+  - 4f1a2fa (2026-09-01, firestore.rules +45, firestore.indexes.json +15). Adds a rule block for a new `journeyStates/{userId}` collection.
+    - Owner-only read.
+    - Create and update only by the owner, and only when destination is one of focus, calm, routines or energy; phaseKey is one of remove, recover, rewire or refocus; enteredAt is a timestamp; history and skipped are lists; and userId equals the document ID.
+    - Delete is denied.
+    - It also adds a composite index on dailyLogs (userId ascending, date ascending). Indexes deploy with `firebase deploy --only firestore:indexes` or a full firestore deploy, not with rules alone.
+  - 1083c26 (2026-08-28, firestore.rules +16). Closes privilege escalation at signup. Creating your own users/{uid} document is DENIED if it includes role, moderationStatus, suspendedUntil, subscription, eventData, subscriptionType or hasActiveSubscription. Before this, a new account could set role:'admin' on itself at creation.
+  - 6a6b972 (2026-08-14, firestore.rules +43). Adds a rule block for a new `capturedTasks` collection. Owner-only get, list, create, update and delete via a userId field, with the absent-document get allowed. The roadmap records capturedTasks rules as already deployed (TB-2b was walked against production), so this one is almost certainly live.
+
+======================================================================
+6. THE sendDailyRhythm DISCREPANCY
+======================================================================
+Roadmap text recording the 96 runs (docs/Vara_Journey_Architecture_Roadmap_v3.md:5231-5232). It sits inside the §13 entry headed at line 5210, "### 2026-10-01 - NPM-1 DAILY-RHYTHM-RELIABILITY: a new user's first daily reminder survives a leave-and-return ...", in its Step 0 findings list:
+  "- **One console reading does not match the repo.** `sendDailyRhythm` logs on every run in the
+    repo's source, so 96 runs with no logs suggests the deployed version may differ. Kyle's to check."
+  Date: 2026-10-01. The text does not state the window the 96 runs cover; 96 runs at every 15 minutes is 24 hours. This is the only occurrence of "96" in that sense in the roadmap; line 411 is an unrelated hit.
+
+$ git log -5 --date=short --format="%h %ad %s" -- functions/src/notifications/dailyRhythm.js
+  a3694ee 2026-08-29 feat(security): userPrivate slice 2 — repoint writers and readers
+  fefa762 2026-03-29 feat: add notification tier de-escalation to all scheduled Cloud Functions
+  22c110a 2026-02-22 Restyle community UI with design token system and shared components
+  (Only three commits in the file's history.)
+
+The version at the last commit before 2026-09-06 (a3694ee):
+  - YES, it writes a log line on every run, at INFO level, before the feature-flag check:
+        logger.info(`Daily rhythm check: ${currentHour}:${currentMinute} – ${currentHour}:${windowEnd}`);
+    (line 57 of the file at a3694ee; `logger` is firebase-functions/logger.)
+  - With the flag missing, it then writes a second INFO line, "Server push disabled via feature flag", and returns.
+  - Every version in the file's history has the per-run INFO line: a3694ee, fefa762 and 22c110a each contain exactly one.
+
+Explanations that fit the facts (not choosing):
+  E1. The log view was filtered to exclude INFO, for example a severity filter of Warning or above, or an "errors only" view. The repo version logs only at INFO on this path, so it would show nothing.
+  E2. The logs viewed were for a different resource or window than the runs counted. For example: the Functions page's log panel versus Logs Explorer with a Cloud Run revision resource (2nd-gen functions log as cloud_run_revision); a different time range; or the wrong region or function.
+  E3. The runs counted were Cloud Scheduler job attempts, not function executions, and the invocations never reached the code (for example, failed at the platform level with an authentication, permission or invoker error). Scheduler shows the attempts; the function writes no application logs. A platform-level error would normally appear as an error log entry, or as a Scheduler failure status.
+  E4. Log ingestion was excluded or not retained: an exclusion filter on the _Default sink, or a routing change, dropped these entries.
+  E5. The deployed code is not from this repo's history. For example, it was deployed from another checkout, a local edit or a different branch with the line removed. The 2026-09-06 deploy date postdates the last repo change (2026-08-29), and every repo version logs on every run, so this would require a source outside main's history.
+  E6. The function was crashing at module load, before the handler. That fits "no application log" but would normally produce error entries, so it fits only together with E1 or E2.
+  E7. The "96 runs" and "no logs" readings came from different days or windows. For example, the runs were counted before a period in which nothing was logged, or the reading was taken around the 5:50 PM 2026-10-01 pause.
+  A redeploy from main replaces whatever is live with the repo version, which DOES log every run. Under E1 to E4 and E6 to E7 nothing changes in that respect. Under E5 the unknown live code is overwritten.
+
+STOP. Inventory only; nothing built or deployed.

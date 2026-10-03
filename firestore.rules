@@ -623,16 +623,18 @@ service cloud.firestore {
         request.auth.uid in resource.data.participants
       );
 
-      // Create: if user is one of the participants
-      // Note: isActiveUser() removed — connection requests should work even for
-      // users without a fully populated profile document
-      allow create: if isAuthenticated() && (
-        request.auth.uid == request.resource.data.a ||
-        request.auth.uid == request.resource.data.b ||
-        request.auth.uid == request.resource.data.requesterId ||
-        request.auth.uid == request.resource.data.requester ||
-        request.auth.uid in request.resource.data.participants
-      );
+      // Create (NPM-3a-i, K12): a request in the shape the mobile app writes,
+      // made by the requester themselves, as pending, by an active user.
+      // isActiveUser() is back: it already returns true for a user with no
+      // profile document, which is the case its removal was guarding.
+      // The legacy shapes (a, b, requester) are refused at create; the
+      // dormant web app wrote them, and its Community writes may break
+      // (accepted under K12). Update and delete are unchanged here; they
+      // belong to COMMUNITY-RULES-INTEGRITY.
+      allow create: if isAuthenticated() && isActiveUser() &&
+        request.resource.data.requesterId == request.auth.uid &&
+        request.resource.data.status == 'pending' &&
+        !request.resource.data.keys().hasAny(['a', 'b', 'requester']);
 
       // Update: if user is one of the two people in the connection
       allow update: if isAuthenticated() && (
@@ -660,8 +662,13 @@ service cloud.firestore {
       // Read: if document doesn't exist (checking before create) OR user is a participant
       allow read: if isAuthenticated() && (resource == null || request.auth.uid in resource.data.participants);
 
-      // Create: if user is one of the participants
-      allow create: if isAuthenticated() && isActiveUser() && request.auth.uid in request.resource.data.participants;
+      // Create: if user is one of the participants, and (NPM-3a-i, K12) the
+      // conversation is between exactly two distinct people.
+      allow create: if isAuthenticated() && isActiveUser() &&
+        request.resource.data.participants is list &&
+        request.resource.data.participants.size() == 2 &&
+        request.resource.data.participants[0] != request.resource.data.participants[1] &&
+        request.auth.uid in request.resource.data.participants;
 
       // Update: if user is a participant (for lastMessage update)
       allow update: if isAuthenticated() && request.auth.uid in resource.data.participants;
@@ -678,10 +685,18 @@ service cloud.firestore {
         request.auth.uid in get(/databases/$(database)/documents/conversations/$(resource.data.conversationId)).data.participants
       );
 
-      // Create: if user is the sender AND a participant in the conversation
+      // Create: if user is the sender AND a participant in the conversation.
+      // NPM-3a-i (K12): the receiver must be the OTHER participant of that
+      // conversation, and the text a string of at most 1000 characters, the
+      // composer's limit (ChatScreen maxLength, Kyle's ruling 2).
       allow create: if isAuthenticated() && isActiveUser() &&
         request.auth.uid == request.resource.data.senderId &&
-        request.auth.uid in get(/databases/$(database)/documents/conversations/$(request.resource.data.conversationId)).data.participants;
+        request.auth.uid in get(/databases/$(database)/documents/conversations/$(request.resource.data.conversationId)).data.participants &&
+        request.resource.data.receiverId is string &&
+        request.resource.data.receiverId != request.resource.data.senderId &&
+        request.resource.data.receiverId in get(/databases/$(database)/documents/conversations/$(request.resource.data.conversationId)).data.participants &&
+        request.resource.data.text is string &&
+        request.resource.data.text.size() <= 1000;
 
       // Update/Delete: messages are immutable
       allow update, delete: if false;

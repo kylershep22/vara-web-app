@@ -1,0 +1,463 @@
+NPM-3a COMMUNITY-NOTIFICATION-CORRECTNESS: STEP 0 ADDENDUM 1 (read-only)
+Read-only. Nothing was edited, staged, committed, branched, installed or deployed. Nothing was written to Firestore or any remote service.
+
+CORRECTION TO THE STEP 0 REPORT
+Step 0 item 1 said @sendgrid/mail "is not in package.json". That is wrong. functions-notifications/package.json:17 declares "@sendgrid/mail": "^8.1.5", and it is installed in functions-notifications/node_modules/@sendgrid. The rest of A1 is written on that basis.
+
+NEW FINDINGS SURFACED BY THIS ADDENDUM
+N1. Deleting an account does not remove its bell documents. The notifications codebase writes them with a recipientId field, but deleteAccount sweeps the "notifications" collection on the userId field only. Every DM bell document addressed to a deleted user survives. (A2, A3.)
+N2. Signing out with unregisterForNotificationsAsync (Step 0's X2) is undone at the next app launch. expo-notifications' auto-registration side effect re-registers with APNs on every launch once getExpoPushTokenAsync has ever been called. (A6.)
+N3. Messaging is gated on an accepted connection in the UI only. Every UI entry point to a conversation requires one; the security rules require none. (A4.)
+
+======================================================================
+A0. STATE
+======================================================================
+git branch --show-current                  -> main
+git rev-parse --short HEAD                 -> 7e8750b
+git status --porcelain --untracked-files=all -> (empty, clean tree)
+This matches the expected state.
+
+======================================================================
+A1. EMAIL FROM THE COMMUNITY SENDERS (functions-notifications/)
+======================================================================
+The shared helper (functions-notifications/index.js:166-185):
+    async function sendEmailIfConfigured(toUid, subject, text) {
+      // Only attempt if the secret is available at runtime
+      const apiKey = process.env.SENDGRID_API_KEY;
+      if (!apiKey) return;
+
+      const to = await getUserEmail(toUid);
+      if (!to) return;
+      ...
+      const sgMail = require("@sendgrid/mail");
+      sgMail.setApiKey(apiKey);
+
+      const from = process.env.MAIL_FROM || "no-reply@vara.app";
+      try {
+        await sgMail.send({to, from, subject, text});
+      } catch (e) {
+        console.error("sendEmailIfConfigured error", e);
+      }
+    }
+
+When notifyOnDirectMessageCreated emails:
+  - It reaches line 269 only if the document has receiverId and senderId (line 240: `if (!toUid || !fromUid) return;`), and only after the bell write (248) and the push attempt (257) have run without throwing.
+  - It then emails when process.env.SENDGRID_API_KEY is truthy (line 169) and the recipient has an Auth email (line 172).
+  - No preference is checked, and neither is the sender/recipient relationship.
+
+When notifyOnInviteCreated emails:
+  - It reaches line 217 only if `toUid && fromUid && status === "pending"` (line 201: `if (!toUid || !fromUid || status !== "pending") return;`), and after the bell write (208).
+  - It then applies the same two conditions in the helper.
+
+Provider, sender and recipient:
+  - Provider: SendGrid, via @sendgrid/mail (line 176).
+  - From address: process.env.MAIL_FROM, falling back to "no-reply@vara.app" (line 179).
+  - Recipient address: getUserEmail(uid) (lines 52-60), which calls admin.auth().getUser(uid).email, the Firebase Auth record. Firestore is not read.
+
+How SENDGRID_API_KEY could be set, from the repo:
+  - Neither function declares a `secrets` option. Both are bare onDocumentCreated(path, handler) calls at lines 192 and 230, and setGlobalOptions at line 18 sets only maxInstances.
+  - With firebase-functions v2, a Secret Manager secret reaches process.env only if it is declared in `secrets`. So `firebase functions:secrets:set SENDGRID_API_KEY`, which the comment at lines 153-158 suggests, would NOT by itself reach this code.
+  - It would have to arrive as a plain environment variable: a functions-notifications/.env file at deploy time (none exists in the repo; `ls -a` shows no .env) or one set directly on the deployed service.
+  - So from repo source, a deploy produces a function with no key, and no email is sent.
+  - Whether the CURRENTLY deployed functions carry such a variable is deploy state that cannot be inferred from the repo. Kyle's check: Cloud console > Cloud Run (or Cloud Functions) > notifyOnDirectMessageCreated / notifyOnInviteCreated > Variables & Secrets.
+
+Preferences and visible controls:
+  - No stored preference controls these emails. Neither function reads notificationPreferences, and the helper reads only env and Auth.
+  - mobile/ has no email-notification control. A search of mobile/src for "email" in notification settings code turned up nothing, and the NPM-2 Settings copy (mobile/src/screens/notificationSettings.copy.ts) has General, the daily time, device notifications, Direct Messages and Connection Requests only.
+
+Can a mobile-only user meet the condition?
+  - As a DM recipient, yes, if the key were present at runtime. The condition is server configuration plus an email on the Auth record, and every email/password signup has one (mobile/src/context/AuthContext.tsx signup path). They become a recipient whenever another user creates a directMessages document addressed to them (mobile writes these at messaging.service.ts:193-202).
+  - For invite email, no. Mobile never writes connectionInvites (the only writer is web src/pages/Profile/ProfilePage.jsx:143), so a mobile-only user can receive one only if a web user sends one.
+
+Templates, verbatim:
+  DM (lines 269-273):
+    subject: "You have a new message"
+    text:    `${fromName} sent: ${text}`     (full message text, untruncated; fromName = users/{senderId}.displayName || "Someone", lines 34-45)
+  Invite (lines 205-206, 217-221):
+    subject: "You have a new connection request"
+    text:    `${fromName} sent you a connection request.`
+  These are plain text only. There is no HTML, no unsubscribe link and no footer.
+
+======================================================================
+A2. IN-APP BELL DOCUMENTS
+======================================================================
+What the notifications codebase writes (functions-notifications/index.js:72-83, createBellNotification), to the collection "notifications", one auto-ID document per event:
+    recipientId (string), type ("message" | "invite"), title (string), body (string),
+    link (string; "/community?tab=messages" or "/community"), read (false),
+    createdAt (serverTimestamp)
+  Calls: DM at line 248 (title "New message", body `${fromName}: ${text.slice(0,120)}`); invite at line 208.
+
+Does the mobile app read it? No.
+  - No mobile source names the collection. The only 'notifications' string literal in mobile/src or mobile/App.tsx is doc(db, 'config', 'notifications') (mobile/src/services/notifications.service.ts:398), a different path.
+  - At the symbol level: there is no collection-name constant (no NOTIFICATIONS_COLLECTION or similar in mobile/src), no mobile import of the web module src/services/db/notifications.service.js, and no recipientId query anywhere in mobile/src.
+  - No mobile service builds collection names dynamically for this path. The firebase service barrel (mobile/src/services/firebase/index.ts) exports no notifications-collection reader.
+  - Because nothing reads it, the two reachability gates do not apply on mobile.
+
+Other readers in the repo:
+  - Web app (dormant):
+    - src/services/db/notifications.service.js:136-137 and :162-163 query collection(db,'notifications') where recipientId == userId.
+    - They are used by src/components/notifications/NotificationBell.jsx and NotificationDropdown.jsx, and by src/pages/Notifications.jsx.
+    - NotificationBell is mounted in src/components/layout/SidebarLayout.jsx:148 and :212.
+    - Whether a production web user can reach that layout behind the web "coming soon" gate (PR #16) was not re-verified here.
+  - Other writer in functions:
+    - functions/src/admin/moderationActions.js:172-180 writes notifications docs.
+    - Those use a userId field rather than recipientId, with type "moderation".
+    - It writes; it does not read.
+  - Rules: firestore.rules:693-714 allow read, update and delete when request.auth.uid equals resource.data.userId OR resource.data.recipientId, and forbid client create.
+  - Deletion: functions/src/lib/accountDeletion.js:81 lists "notifications" in USERID_FIELD_COLLECTIONS. That list is swept by where("userId","==",uid) (lines 373 and 387). The bell documents carry recipientId, not userId, so they are NOT swept when the recipient deletes their account (N1). The moderation documents, keyed by userId, are swept.
+
+======================================================================
+A3. NEW FIRESTORE PATHS AND THE deleteAccount MANIFEST
+======================================================================
+notificationLog today:
+  - It exists as a path; whether data is present is deploy and data state.
+  - Writers, all in the api codebase and all scheduled senders that are paused and gated behind serverPushEnabled:
+    - functions/src/notifications/dailyRhythm.js:107 and :148, notificationLog/{uid}/dailyRhythm/{YYYY-MM-DD}
+    - habitReminders.js:73, notificationLog/{uid}/habitReminder/...
+    - milestones.js:87, notificationLog/{uid}/milestones/{key}
+    - insights.js does not write it.
+  - Readers:
+    - dailyRhythm.js:108 reads its own marker.
+    - notificationTier.js:85-87, 110 and 134 read the dailyRhythm, habitReminder, insights and milestones subcollections to count sends.
+  - Rules (firestore.rules:1113-1117):
+        // Notification Log (Cloud Functions dedup tracking, no client access)
+        match /notificationLog/{userId}/{document=**} {
+          // Admin SDK only (Cloud Functions) — no client access
+          allow read, write: if false;
+        }
+  - Manifest entry (functions/src/lib/accountDeletion.js:170-187):
+        * Documents whose ID is the uid, deleted along with everything beneath them.
+        ...
+        * Every entry is a RECURSIVE delete because every one of them either has
+        * subcollections today (users/{uid}/moods, /goals, /moderationHistory;
+        * rateLimits/{uid}/requests; notificationLog/{uid}/{category}) or is one
+        * feature away from having them, and a plain document delete strands those.
+        const UID_KEYED_DOC_TREES = [
+          "userPrivate",
+          "sleepRoutines",
+          "notificationPreferences",
+          "rateLimits",
+          "notificationLog",
+          "users",
+        ];
+  - So a marker at notificationLog/{recipientUid}/community/{eventId} would be inside an existing manifest entry and an existing deny-all rule. It is deleted with the RECIPIENT's account.
+  - A marker keyed by event id, but stored under the recipient, is not removed when the SENDER deletes their account. It carries no sender content if only {sentAt} is stored.
+
+pushTokens:
+  - Yes, it would be a new collection. Nothing in firestore.rules, mobile/src or functions/ references it.
+  - Per the repo rule ("A new collection needs rules before its first write"), it needs:
+    (a) a rule block;
+    (b) rules tests;
+    (c) a manifest entry, chosen by shape:
+        - If the doc ID is a token hash with an owner field `uid`, it belongs in OWNER_FIELD_COLLECTIONS as {collection: "pushTokens", field: "uid"}. That list is swept by where(field,"==",uid) (accountDeletion.js:392-396).
+        - If it instead carries a `userId` field, it belongs in USERID_FIELD_COLLECTIONS.
+        - Either needs an index only if a composite query is used; a single-field equality query needs none.
+    (d) the sweep tests: functions/src/__tests__/deleteAccountCleanup.test.js:73 pins the USERID list, and deleteAccountSweep.test.js exercises the sweep. Both would need the new entry or they would pin a stale list.
+
+Alternative duplicate guard: a sent marker as a field on the event document, set in a transaction.
+  The design would be: in a transaction, read directMessages/{id} (or connections/{id}); if pushSentAt exists, stop; otherwise update {pushSentAt: serverTimestamp()}; then send.
+
+  Could the update retrigger either function? No.
+  - Every Community function is onDocumentCreated: functions/src/notifications/social.js:17 and :70, functions-notifications/index.js:192 and :230.
+  - onDocumentCreated fires on create only.
+  - No onDocumentUpdated or onDocumentWritten function exists on these paths (grep of functions/ and functions-notifications/ for onDocumentUpdated/onDocumentWritten on directMessages or connections: none).
+
+  Effects on the phone (mobile):
+  - directMessages:
+    - subscribeToMessages (messaging.service.ts:261-285) and fetchConversationMessages (:232-256) map docs as {id, ...doc.data()} cast to DirectMessage. An extra field is carried along and is not rendered, since no consumer enumerates fields.
+    - The query is where('conversationId','==') + orderBy('createdAt'). An extra field does not change the result set, but the server update WILL fire one more snapshot to an open chat listener (a re-render with identical visible content).
+    - markMessageAsRead (:290-301) updates directMessages, but the rules forbid every client update (firestore.rules:687), and the function has no caller (only re-exported at services/firebase/index.ts:96).
+  - connections:
+    - community.service.ts listeners and queries (lines 573-722) and connections.service.ts:48-150 filter on participants/requesterId/addresseeId/a/b/status. An extra field affects none of them.
+    - acceptConnection and declineConnection (community.service.ts:535-560) updateDoc only status and updatedAt, and a server field survives them.
+    - Listeners on pending requests get one extra snapshot.
+
+  Security rules:
+  - directMessages update is `if false` for clients (firestore.rules:687). The Admin SDK bypasses it, so the field cannot be forged or cleared by a client.
+  - connections update (firestore.rules:638-644) has NO key restriction, so either participant can overwrite or delete a server-written field on their connection doc. Because the function never retriggers on update, clearing it cannot cause a resend. It would only matter if something later trusted the field as an audit record.
+  - The rules tests for connections do not assert key sets, so nothing breaks.
+
+  Web app:
+  - src/services/messagingService.js, src/services/db/connections.service.js, src/pages/Profile/*.jsx and src/pages/Community/PeopleSearchPage.jsx read these collections.
+  - No field-enumerating UI was found in that search. The web is dormant.
+
+  Deletion:
+  - directMessages are swept by senderId (accountDeletion.js:135). connections are swept by every shape (147-150, 156).
+  - The marker field dies with its event document, so no manifest change is needed.
+
+  Edge:
+  - If the event document is deleted before the transaction (for example, a connection request cancelled within milliseconds), the transaction finds no document. The function must treat that as "do not send".
+  - This guard costs one read and one write on the event document per event, against one create on a separate marker document.
+
+======================================================================
+A4. WHO CAN MESSAGE WHOM TODAY
+======================================================================
+Rule for creating a conversation (firestore.rules:658-671, in full):
+    // Conversations
+    match /conversations/{conversationId} {
+      // Read: if document doesn't exist (checking before create) OR user is a participant
+      allow read: if isAuthenticated() && (resource == null || request.auth.uid in resource.data.participants);
+
+      // Create: if user is one of the participants
+      allow create: if isAuthenticated() && isActiveUser() && request.auth.uid in request.resource.data.participants;
+
+      // Update: if user is a participant (for lastMessage update)
+      allow update: if isAuthenticated() && request.auth.uid in resource.data.participants;
+
+      // Delete: not allowed (use Cloud Function if needed)
+      allow delete: if false;
+    }
+Rule for creating a directMessages document (firestore.rules:673-688, in full):
+    // Direct Messages
+    match /directMessages/{messageId} {
+      // Read: if user is a participant in the conversation
+      allow read: if isAuthenticated() && (
+        resource == null ||
+        request.auth.uid in get(/databases/$(database)/documents/conversations/$(resource.data.conversationId)).data.participants
+      );
+
+      // Create: if user is the sender AND a participant in the conversation
+      allow create: if isAuthenticated() && isActiveUser() &&
+        request.auth.uid == request.resource.data.senderId &&
+        request.auth.uid in get(/databases/$(database)/documents/conversations/$(request.resource.data.conversationId)).data.participants;
+
+      // Update/Delete: messages are immutable
+      allow update, delete: if false;
+    }
+  Neither rule refers to connections. A conversation's participants array is unconstrained apart from containing the caller: its size, the other members and duplicates are all unchecked.
+
+Every mobile UI entry point to a conversation (all go through useStartConversation, mobile/src/hooks/useConversations.ts:149-172, then createOrGetConversation in messaging.service.ts:61-100):
+  1. Messages > New message sheet (MessagesScreen.tsx:64-73, list built at :32-57 from useConnections().getConnectionIds()).
+     Requires an accepted connection? Yes, in the UI only. The picker lists only getConnectionIds() (useConnections.ts:100), and isConnected (useConnections.ts:117-118) is defined on that same list.
+  2. Messages > existing conversation row (MessagesScreen.tsx:100-107).
+     Opens an already-existing conversation, with no connection check. If the two users are no longer connected, the user can still open the conversation and send.
+  3. People > Connections tab, message icon (PeopleScreen.tsx:434-440, handleMessage :192-200).
+     Requires an accepted connection? Yes, by list membership: the row is rendered only when filter === 'connections' (:406).
+  4. People > Discover / Requests tabs (PersonCard, PeopleScreen.tsx:443-457).
+     onMessage is passed, but PersonCard renders the Message control only in mode 'connection' (components/community/PersonCard.tsx:191-195), and PeopleScreen passes 'request' or 'discover' (:445-449). No message entry here.
+  5. UserProfile screen, Message button (UserProfileScreen.tsx:239-244, handleMessage :157-164).
+     Requires an accepted connection? Yes: it is rendered only when `connected` (:69, isConnected(userId)).
+  6. Chat screen itself (ChatScreen.tsx), when reached with a conversationId (route params). It sends via useConversations.ts:129.
+     It performs no connection check (no isConnected in ChatScreen.tsx).
+  Summary:
+  - Every UI path that STARTS a conversation requires an accepted connection.
+  - Continuing an existing conversation does not.
+  - The rules require none (N3), so a modified client or a direct SDK call can start a conversation with, and message, anyone.
+
+Report or block:
+  - Block: none. No block collection in the rules and no block call in mobile/src/services. That is unchanged from Step 0.
+  - Report: posts only.
+    - "Report this post" (components/community/PostOverflowSheet.tsx:93) navigates to ReportReason with {postId, reportedUserId} (hooks/useCommunityFeed.ts:162, hooks/useGroupDetail.ts:417).
+    - Reports go to collection postReports (services/firebase/moderation.service.ts:28; rule firestore.rules:396).
+    - There is no report entry point for a user profile, a conversation or a message. A search of mobile/src for reportUser/reportMessage/messageReports/userReports found nothing.
+  - Mute: muteUser/unmuteUser exist (hooks/useCommunityFeed.ts:18-19, 190-206; collection mutedUsers, rule firestore.rules:436). They are used by the feed only. Neither DM sender, nor any messaging code, reads mutedUsers.
+
+Rate limits on DMs and connection requests: none.
+  - What functions/src/rateLimit.js covers:
+    - The file header (lines 3-4, 43): "Rate limiting for the paid AI surface ... Every key here fronts a paid OpenAI call".
+    - It is called only from functions/index.js:158 (fn:generateHabitSuggestions), :237 (fn:generateDailyPlan), :371 (fn:journalPrompt) and :573 (the /api router's ROUTED_PATHS).
+    - It is a server-side check inside callable and HTTP functions, keyed by uid in rateLimits/{uid}/requests.
+  - What it does not cover:
+    - Any Firestore client write. directMessages, conversations and connections are written directly by the client SDK, so no function sits in front of them.
+    - The rules have no counters or timestamps for these paths.
+    - Neither Community trigger counts sends.
+  - So one user can create unbounded directMessages, conversations and connections documents. Each DM produces one bell document and, if the recipient has an Expo token, one push.
+
+Display name:
+  - Who can set it: the owner.
+    - At signup: Auth profile via updateProfile (AuthContext.tsx:185); the users doc is created by the owner (rule firestore.rules:85-90).
+    - Later: ProfileScreen.handleSaveProfile, updateDoc(users/{uid}, {displayName: profile.displayName, ...}) (ProfileScreen.tsx:265-279).
+    - Admins cannot set it through the rules' admin branch, which is limited to role/moderationStatus/suspendedUntil/updatedAt (:101-102).
+  - Server-side limits: none. The users create rule is a denylist of keys (:86-90) and the update rule is a denylist of affected keys (:95-100). displayName has no type, length or character constraint.
+  - Client-side limits:
+    - Signup only: validateDisplayName (mobile/src/utils/validation.ts:71-85) requires a value, at least 2 trimmed characters and no more than 50 trimmed characters. It has no character-set restriction.
+    - Profile edit: ProfileHeader's TextInput (components/profile/ProfileHeader.tsx:90-98) has no maxLength, and handleSaveProfile performs no validation and no trim. A user can set it to empty, to any length up to the Firestore document limit, or to any Unicode, including "Vara" or emoji, through the app's own Profile edit.
+  - The senders read users/{uid}.displayName (Firestore), not the Auth profile: functions-notifications/index.js:36-39 and social.js:40/95.
+
+======================================================================
+A5. DEPLOY FACTS
+======================================================================
+The four scheduled senders: each reads the flag, and what runs before that check.
+
+  sendDailyRhythm (functions/src/notifications/dailyRhythm.js):
+    50:     const db = admin.firestore();
+    51:     const now = new Date();
+    52:     const currentHour = now.getHours();
+    53:     const currentMinute = now.getMinutes();
+    55:     const windowEnd = currentMinute + 14;
+    57:     logger.info(`Daily rhythm check: ${currentHour}:${currentMinute} – ${currentHour}:${windowEnd}`);
+    59:     // Check feature flag
+    60:     try {
+    61:       const configSnap = await db.doc("config/notifications").get();
+    62:       const config = configSnap.exists ? configSnap.data() : {};
+    63:       if (!config.serverPushEnabled) {
+    64:         logger.info("Server push disabled via feature flag");
+    65:         return;
+    66:       }
+    67:     } catch (err) {
+    68:       logger.warn("Could not read feature flag, skipping:", err);
+    69:       return;
+    70:     }
+    Before the check: clock reads and one log line. No user data is read and nothing is sent.
+
+  sendInsights (insights.js):
+    68:     const db = admin.firestore();
+    70:     // Check feature flag
+    71:     try {
+    72:       const configSnap = await db.doc("config/notifications").get();
+    73:       const config = configSnap.exists ? configSnap.data() : {};
+    74:       if (!config.serverPushEnabled) {
+    75:         logger.info("Server push disabled via feature flag");
+    76:         return;
+    77:       }
+    78:     } catch (err) {
+    79:       logger.warn("Could not read feature flag, skipping:", err);
+    80:       return;
+    81:     }
+    Before the check: nothing. No user data is read and nothing is sent.
+
+  sendMilestones (milestones.js):
+    28:     const db = admin.firestore();
+    30:     // Check feature flag
+    31:     try {
+    32:       const configSnap = await db.doc("config/notifications").get();
+    33:       const config = configSnap.exists ? configSnap.data() : {};
+    34:       if (!config.serverPushEnabled) {
+    35:         logger.info("Server push disabled via feature flag");
+    36:         return;
+    37:       }
+    38:     } catch (err) {
+    39:       logger.warn("Could not read feature flag, skipping:", err);
+    40:       return;
+    41:     }
+    Before the check: nothing. No user data is read and nothing is sent.
+
+  sendHabitReminders (habitReminders.js):
+    22:       const db = admin.firestore();
+    23:       const now = new Date();
+    24:       const currentHour = now.getHours();
+    25:       const currentMinute = now.getMinutes();
+    26:       const windowEnd = currentMinute + 14;
+    27:       const todayISO = now.toISOString().split("T")[0];
+    29:       logger.info(`Habit reminder check: ${currentHour}:${currentMinute}`);
+    31:       // Check feature flag
+    32:       try {
+    33:         const configSnap = await db.doc("config/notifications").get();
+    34:         const config = configSnap.exists ? configSnap.data() : {};
+    35:         if (!config.serverPushEnabled) {
+    36:           logger.info("Server push disabled via feature flag");
+    37:           return;
+    38:         }
+    39:       } catch (err) {
+    40:         logger.warn("Could not read feature flag, skipping:", err);
+    41:         return;
+    42:       }
+    Before the check: clock reads and one log line. No user data is read and nothing is sent.
+
+  Note: the repo's sendDailyRhythm and sendHabitReminders log on EVERY run, before the flag check (dailyRhythm.js:57, habitReminders.js:29). The repo version would therefore leave one log line per 15-minute run even with the flag missing. This is the basis of Step 0's observation that "96 runs with no logs" implies the deployed sendDailyRhythm differs from the repo.
+
+git log -30 --date=short --format="%h %ad %s" -- functions functions-notifications (run from the repo root):
+  2185d83 2026-09-18 feat(today): a good moment is one line, one tap, and nothing that counts it
+  9f2cb0f 2026-09-04 fix(functions): delete a user's Cloud Storage objects on account deletion
+  36a8844 2026-09-04 fix(functions): sweep every per-user collection on account deletion
+  4f1a2fa 2026-09-01 feat(journey slice 1): journey state model, service, derivations and rules
+  a3694ee 2026-08-29 feat(security): userPrivate slice 2 — repoint writers and readers
+  02782f9 2026-08-28 feat(security): userPrivate slice 1 — extend store, extract limiter, wire tests
+  f94cc9d 2026-08-28 fix(functions): fail-closed AI rate limiting + email_verified gate
+  77045bd 2026-05-29 fix(auth): remove fake 7-day trial bootstrap from onUserCreate
+  33d2b4b 2026-05-20 feat(subscriptions): RevenueCat webhook handler — server-side paid subscription writes
+  7686e78 2026-05-20 test: add security hardening verification script
+  748beac 2026-05-19 feat(security): firestore rules lockdown + onUserCreate trial trigger
+  005341a 2026-04-24 feat(ai): gate AI features behind user consent
+  425cd94 2026-04-22 chore(functions): requests is never reassigned, use const
+  f8f0bc1 2026-04-22 feat(ai): surface reset time in AI chat rate-limit errors
+  5e1347a 2026-04-22 feat(ai): cap OpenAI output tokens and add per-day rate limits
+  cc3be29 2026-03-31 fix: production readiness — security, performance, and stability
+  4ff8d7e 2026-03-31 feat: update AI coach prompt, fix web CORS/rate-limit, mobile fixes
+  32527e4 2026-03-29 feat: add validateEventCode Cloud Function for event code redemption
+  fefa762 2026-03-29 feat: add notification tier de-escalation to all scheduled Cloud Functions
+  02f0de2 2026-03-29 feat: add notification de-escalation tier utility
+  2f48ae1 2026-03-29 fix: replace red-flag habit reminder copy with brand-aligned language
+  874b718 2026-03-29 fix: sanitize endpoint path for Firestore doc ID in rate limiter
+  c547df5 2026-03-29 feat: sync functions/index.js with BRAIN framework prompt, enhanced context, and formatting rules
+  59e9693 2026-03-26 feat: add manual analytics aggregation trigger for admin dashboard
+  ecd464c 2026-03-25 fix(security): add input sanitization to all Cloud Functions API handlers (H6)
+  b709a7a 2026-03-25 fix(security): replace cors: true with explicit origins on unified API (H7)
+  4a1859b 2026-03-25 fix(security): add auth checks to generateHabitSuggestions and generateDailyPlan (C3)
+  ccea708 2026-03-25 style: fix lint indentation and line length in habitReminders.js
+  b4a4ee0 2026-03-25 feat: add habitReminders Cloud Function for push notifications
+  e461a0f 2026-03-24 feat: wire up all admin Cloud Functions exports
+  (functions-notifications/ last changed at a3694ee, 2026-08-29; its earlier history is 51641bf and e87863b, which fall outside these 30.)
+  For comparison: if the console shows a function deployed before 2026-08-29, the deployed version predates the userPrivate token repoint (a3694ee) and reads tokens from users/{uid} only. If it shows sendDailyRhythm deployed before 2026-03-29 (fefa762), it predates the tier logic.
+
+Predeploy hooks (firebase.json):
+  api (source "functions"):
+      "npm --prefix \"$RESOURCE_DIR\" ci || npm --prefix \"$RESOURCE_DIR\" install",
+      "npm --prefix \"$RESOURCE_DIR\" run lint || echo 'lint warnings ignored'"
+    This is a clean install from the lockfile (falling back to install), then lint ("eslint ./index.js || echo lint ignored" per functions/package.json:5), with failures ignored twice over.
+  notifications (source "functions-notifications"):
+      "npm --prefix \"$RESOURCE_DIR\" run lint"
+    That runs "eslint ." (functions-notifications/package.json:36). There is NO `|| echo`, so a lint error aborts the deploy. There is no install step, so it deploys with whatever lockfile and dependencies the Cloud build installs.
+  An unscoped `firebase deploy --only functions` (or `firebase deploy`) deploys every codebase in the "functions" array, so it runs BOTH predeploy hooks. No test command is in either hook, which is why the NPM-3a row asks for `npm test` in functions/ first, by hand.
+
+What an unscoped deploy would prompt to delete, if onNewDirectMessage and onNewConnection were removed from source:
+  - From the repo, those two: onNewDirectMessage and onNewConnection (us-central1, codebase api).
+  - The CLI compares the DEPLOYED functions labelled with each codebase against that codebase's source, so the prompt would also list any function currently deployed under "api" or "notifications" that is not exported in the repo today.
+  - The repo cannot show whether any such function exists. For example, a function deployed before an export was removed, or deployed from a different checkout, would appear there.
+  - Functions deployed with no codebase label (a "default" codebase) are not in either list. The CLI leaves them alone when the source names only "api" and "notifications", but they also never get updated.
+  - Kyle's rule for the prompt: answer Yes only if the listed names are exactly onNewDirectMessage and onNewConnection (plus notifyOnInviteCreated, if it is ruled for removal). Otherwise answer No and stop.
+  - This prompt behaviour is my understanding of the Firebase CLI; it was not exercised here. The prompt's own list is the check.
+
+======================================================================
+A6. LOCAL UNREGISTRATION ON SIGN-OUT (installed package read directly)
+======================================================================
+Installed version: expo-notifications 0.32.16 (mobile/node_modules/expo-notifications/package.json).
+
+What unregisterForNotificationsAsync does on iOS in this version:
+  JS (build/unregisterForNotificationsAsync.js):
+    // @docsMissing
+    export default async function unregisterForNotificationsAsync() {
+        if (!PushTokenManager.unregisterForNotificationsAsync) {
+            throw new UnavailabilityError('ExpoNotifications', 'unregisterForNotificationsAsync');
+        }
+        return PushTokenManager.unregisterForNotificationsAsync();
+    }
+  Native (ios/EXNotifications/PushToken/PushTokenModule.swift:44-47):
+    AsyncFunction("unregisterForNotificationsAsync") { () in
+      UIApplication.shared.unregisterForRemoteNotifications()
+    }
+    .runOnQueue(.main)
+  It does exactly one thing: UIApplication.shared.unregisterForRemoteNotifications(). It does not clear the Expo server registration flag (see below), does not notify Expo's servers, and does not touch any token stored in Firestore.
+
+Does it affect locally scheduled notifications?
+  - The package source does not touch them. Local scheduling in this package goes through the UNUserNotificationCenter-based scheduler modules, which are separate from PushTokenModule, and unregisterForRemoteNotifications is a UIApplication remote-notification (APNs) API.
+  - The package source does NOT settle iOS's runtime behaviour. Apple's API concerns APNs registration, not the local notification center or the user's authorization, but this was not verified from the package or on a device.
+  - Verifying it is a device check: schedule a local notification, call the API, and confirm it still fires.
+
+Does getExpoPushTokenAsync register the device again on the next call?
+  Yes, by source:
+  - getExpoPushTokenAsync (build/getExpoPushTokenAsync.js:45-46) calls getDevicePushTokenAsync() unless a devicePushToken is passed in.
+  - That calls the native getDevicePushTokenAsync (PushTokenModule.swift:25-41), which calls UIApplication.shared.registerForRemoteNotifications() (line 40) and resolves on didRegister (lines 50-53).
+  - The app's own T1 path (registerAndSaveFCMToken, which calls getDevicePushTokenAsync at mobile/src/services/notifications.service.ts:369) also re-registers on every sign-in.
+
+  IMPORTANT, from source: re-registration also happens automatically at every app launch (N2).
+  - getExpoPushTokenAsync calls setAutoServerRegistrationEnabledAsync(true) after a successful fetch (getExpoPushTokenAsync.js:92-98). That persists registration info {isEnabled:true} natively (DevicePushTokenAutoRegistration.fx.js:21-29).
+  - At module load, DevicePushTokenAutoRegistration.fx.js:57-85 reads that persisted info. If it is enabled, it calls getDevicePushTokenAsync() (line 50), and that native call registers for remote notifications. It then uploads the token to Expo's server (line 51).
+  - It also installs a global addPushTokenListener that is never cleared (lines 60-80).
+  - The fx module is loaded whenever expo-notifications is imported, because build/index.js:35 re-exports from it.
+  - Consequence: an app that ever called getExpoPushTokenAsync (this one does) re-registers with APNs on the next cold launch, signed in or not, undoing an unregister done at sign-out.
+  - Keeping a signed-out device unregistered across launches would also require setAutoServerRegistrationEnabledAsync(false) (exported at build/index.js:35; it clears the persisted info at line 28).
+
+Is the Expo token the same or different afterwards? The package source does NOT settle this.
+  - The token string is minted by Expo's server (POST https://exp.host/--/api/v2/push/getExpoPushToken, getExpoPushTokenAsync.js:7, 62-79) and returned as data.expoPushToken (:121-131). The package only relays it.
+  - The request body is {type:'apns', deviceId, development, appId, deviceToken, projectId} (:63-70).
+  - deviceId is an installation ID kept in the iOS Keychain (ios/EXNotifications/ServerRegistration/ServerRegistrationModule.swift:26-46), with accessibility kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly (:82). It is stable across an unregister and re-register.
+  - Whether Expo's server returns the same token for the same deviceId/projectId, and whether APNs issues the same device token after unregister and re-register, are both outside this package. Neither is settled here.
+  - Relevant to the dev-client vs standalone question: `development` comes from Application.getIosPushNotificationServiceEnvironmentAsync() (:151-164), so the dev client and a production build send different `development` values, and the dev client's APNs token is a sandbox token.
+
+======================================================================
+A7. DELIVERY
+======================================================================
+This file, written in UTF-8.
+
+STOP. Addendum 1 only; the build has not been started.

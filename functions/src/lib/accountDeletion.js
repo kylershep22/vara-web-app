@@ -148,6 +148,11 @@ const OWNER_FIELD_COLLECTIONS = [
   {collection: "connections", field: "addresseeId"},
   {collection: "connections", field: "a"},
   {collection: "connections", field: "b"},
+  // In-app bell documents carry two owner shapes: moderation notices are
+  // keyed by userId (swept above), and the notifications codebase's bells by
+  // recipientId. Sweeping userId alone left every bell addressed to a deleted
+  // account standing (NPM-3a-i, Kyle's K4).
+  {collection: "notifications", field: "recipientId"},
 ];
 
 /** Collections where membership in an array IS ownership of the document. */

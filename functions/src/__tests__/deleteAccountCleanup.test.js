@@ -121,6 +121,17 @@ describe("deleteAccount cleanup manifest", () => {
     expect(postFields).toContain("authorId");
   });
 
+  it("sweeps notifications by recipientId as well as userId", () => {
+    // Moderation notices are keyed by userId; the notifications codebase's
+    // bell documents by recipientId. The weaker half of RG8 (NPM-3a-i): the
+    // removal itself is asserted in deleteAccountNotificationsRecipient.
+    expect(USERID_FIELD_COLLECTIONS).toContain("notifications");
+    const fields = OWNER_FIELD_COLLECTIONS
+        .filter((e) => e.collection === "notifications")
+        .map((e) => e.field);
+    expect(fields).toEqual(["recipientId"]);
+  });
+
   it("sweeps both sides of every invite pair", () => {
     // A pending invite names an inviter and an invitee; the deleted account
     // may be either, and only sweeping one side strands half the rows.

@@ -1,0 +1,451 @@
+COMMUNITY-SAFETY-AND-MODERATION: STEP 0 REPORT (read-only)
+On main at 7e8750b, 2026-10-02. Nothing was edited, staged, committed, branched, installed or deployed, and nothing was written to Firestore or any remote service. One read-only fetch of the public web page https://www.varawellness.co/terms-of-service was made (item 8). Baselines were not re-measured, as instructed.
+
+HEADLINE FINDINGS
+S1. Admin removals and auto-hides do nothing on mobile. Both the auto-moderation trigger and an admin "remove" set posts/{id}.hidden = true (functions/src/admin/moderation.js:214, 245, 286; moderationActions.js:112-115, 129-132). The mobile feed and group feed never read `hidden`. They filter only on deleted, per-user hiddenPosts and muted authors (mobile/src/hooks/useFeed.ts:161-169; useGroupDetail.ts:393-400). The rules do not block reads of hidden posts either (firestore.rules:348-358).
+S2. Any signed-in user can rewrite any post's comments and likes. The posts update rule lets ANY authenticated, active user change the keys likes/comments/likesCount/commentsCount/updatedAt on any post (firestore.rules:377-380). Comments are an array inside the post (community.service.ts:418-430). Anyone can therefore delete other people's comments, forge comments under another user's userId and authorName, and inflate likes.
+S3. Image moderation never runs on mobile posts. onPostCreate_moderateContent checks post.imageUrl (moderation.js:225). Mobile writes media[] and images[] and never imageUrl (community.service.ts:303-304). Comments, edits, DMs, profiles, group and challenge text, and avatars are never moderated at all. The keyword blocklist reads config/moderationBlocklist, and Kyle reported on 2026-10-01 that no config collection exists (roadmap line 2548). If that still holds, the blocklist is empty.
+S4. Kyle would not find out about a report. A report writes postReports. If the admin functions are deployed, a trigger copies it into moderationQueue (moderation.js:320-371). Nothing alerts anyone: no email, no push, no log-based alert. The only viewer is the web admin dashboard, and the production web build is gated off.
+S5. The repo's Terms promise blocking, and the app has none. mobile/TERMS_OF_SERVICE.md:111-113 says "Connection requests can be accepted, declined, or blocked" and "Blocked users cannot contact you or see your profile". There is no blocking anywhere in the code. The published web Terms (the URL the app links to) differ: they say 16+, contain no blocking promise, and give support@varawellness.co. The repo copy says 13+ (16 in Europe) and support@varawellness.com (line 311).
+S6. Suspension is partial. isActiveUser() gates creating posts, groups, challenges, conversations and messages, but not connection requests (rules:627-635), invites, comments-by-update... (see item 2). A suspended user is never told; their writes simply fail.
+S7. Accepted connections are permanent in the mobile app. There is no remove-connection or disconnect action anywhere in mobile/src. The rules allow delete (firestore.rules:647-653), but nothing calls it. A helper for a deterministic connection ID exists, getConnectionId (community.service.ts:450), but nothing uses it.
+
+======================================================================
+0. BOARD
+======================================================================
+git branch --show-current -> main; git rev-parse --short HEAD -> 7e8750b; git status --porcelain --untracked-files=all -> (empty). This matches the expected state.
+
+Roadmap rows and ledger entries (docs/Vara_Journey_Architecture_Roadmap_v3.md):
+  I searched every table row for moderation, block, report-a-post/user/message, mute, suspension, safety, UGC and objectionable. Only one row is about safety in the relevant sense. The other matches are the colour name "mutedSageGray", a "ROLLOVER-SAFETY" row, and "SAFETY" in sequencing columns that refer to the row below.
+  - Line 340, SAFETY (verbatim):
+    | SAFETY | **[PRE-LAUNCH BLOCKER, scope TBD]** Safety pre-check: semantic classification before free text enters normal routing *(row added 2026-09-12 at Jen's instruction)* | **RE-CLASSIFIED FROM A REVISIT ITEM TO A BLOCKER BY JEN, 2026-09-12**, and it is rowed here rather than left in the content pack's §safety-precheck so the board carries it. Her position, unchanged since the Sept 5 pack: literal keyword matching will always have gaps - *"I don't feel safe at home right now"* is her example - so the phrase list may remain a guardrail but must not be the primary safety model. Before launch she would use (1) a small set of obvious local patterns as the immediate fast path, (2) a **semantic safety classification** before free text can enter normal routing, and (3) the existing safety screen when that classification fires. **SCOPE IS GENUINELY TBD** and is pending a mechanism question Kyle is asking separately; the row exists now so the blocker is visible on the board while its scope is open, which is the opposite of the usual rule that a row waits for its scope. **It does not sit in the numbered sequence** because it does not queue behind 7c or 8: it gates LAUNCH, not the next slice. | Mechanism decision, then scope | Yes |
+    This row is the user's own free text and self-harm safety. It is not Community UGC moderation, but the two may share a classifier (decision CS-D14).
+  - Ledger prose, the account-deletion entry (lines 3846-3853, 3915-3917): it names `mutedUsers.muterId`, `postReports.reporterId` and `/moderationHistory` as swept, and records as "left by design": "other-party rows naming the deleted uid are left by design (`directMessages` sent TO them, `postReports.reportedUserId`, `mutedUsers.mutedUserId`, moderation records)".
+  - No row exists for blocking, reporting users or messages, muting, suspension handling, or Community moderation.
+
+The App Store pre-submission checklist:
+  - Primary: mobile/PRE_SUBMISSION_CHECKLIST.md (349 lines, last changed at f516f78 on 2026-10-02 by NPM-2's additions). It has a "Privacy & Legal" section at line 63, and App Store Connect fields at lines 203-205 ("Privacy Policy URL ⚠️ **REQUIRED**", "Terms of Service URL (if applicable)", "Support URL"). It has no item on UGC, moderation or the age rating.
+  - Other candidates, not checklists of record: mobile/DEPLOYMENT_GUIDE.md, DEPLOYMENT_PLAN.md (repo root), docs/Vara_Implementation_Plan.md, and archived files in mobile/docs/archive/ (APP_STORE_REJECTION_3_FIXES.md, TESTFLIGHT_TESTING_GUIDE.md, BUILD_1.0.15_TESTING_STRATEGY.md).
+
+======================================================================
+1. THE UGC SURFACE
+======================================================================
+Reachability: the Community tab is mounted (AppNavigator.tsx:511 and :885). Its stack mounts CommunityMain=CommunityScreen (332-333), Groups (339), GroupDetail (346), Challenges (353), ChallengeDetail (360), People (367), Conversations (374), Chat (381), UserProfile (388), and ReportReason, ReportDetail and ReportConfirmation (395-406). CommunityFeedHeader's quick buttons navigate to Groups, People, Challenges and Conversations (components/community/CommunityFeedHeader.tsx:68-71, wired at CommunityScreen.tsx:163). Every surface below can be authored by one account and seen by another with ordinary data, so both gates pass for each one marked REACHABLE.
+
+A. Posts (feed and group posts)
+  - Path: posts/{auto}. Writer: createPost (community.service.ts:285-339), called from useCommunityFeed.ts:118, useFeed.ts:305, useGroupDetail.ts:301 and challenges.service.ts:464 (a challenge check-in note becomes a post). Edit: updatePostContent (moderation.service.ts:245-258) from EditPostModal.tsx:56. Soft delete: softDeletePost (moderation.service.ts:228-240).
+  - Fields: authorId, userId, content, groupId, likes[], comments[], media[{url,type}], images[], postType, timestamp, createdAt, plus challengeId and challengeName when present.
+  - Rules (firestore.rules:346-391):
+      read: isAuthenticated() && (groupId null or absent || group public || caller in group.members)
+      create: isAuthenticated() && isActiveUser() && (uid == userId || uid == authorId) && (no group || caller is a member)
+      update: isAuthenticated() && isActiveUser() && (author || affectedKeys().hasOnly(['likes','comments','likesCount','commentsCount','updatedAt']))
+      delete: isAuthenticated() && isActiveUser() && (author || group owner)
+  - Rule-enforced limits: none on type or size of content, media or anything else, apart from Firestore's 1 MiB document limit.
+  - App-only limits: none found on post text (CreatePostModal.tsx has no maxLength). Media goes through storage, below.
+  - Who can see: non-group posts can be read by ANY signed-in user. The author's privacy setting (public/connections/private) is applied only in the client (useFeed.ts:171+, reading author privacy). Group posts are visible to public-group readers or members.
+  - REACHABLE.
+
+B. Comments
+  - Path: an array inside posts/{id}.comments; there is no separate collection. Writer: addCommentToPost (community.service.ts:394-441), called from useFeed.ts:381 and useGroupDetail.ts:352. Entry shape: {userId, content, authorName, likes:[], createdAt}. The whole array is rewritten from the client.
+  - Rules: the posts update rule above. Any active signed-in user may rewrite the whole comments array of any post they can update (S2). Nothing ties an entry's userId to the caller.
+  - Limits: none in the rules. App: CommentModal maxLength 500 (components/community/CommentModal.tsx:38 and :195).
+  - Who can see: anyone who can read the post.
+  - REACHABLE.
+
+C. Likes and reactions
+  - posts/{id}.likes (an array of uids), written by togglePostLike (community.service.ts:367-387). The same rule applies, so any user can set any array. REACHABLE. Comment likes exist in the shape (`likes: []`); I did not trace a writer.
+
+D. Profile fields
+  - Path: users/{uid}. Writers: signup (AuthContext.tsx, with displayName also set on the Auth profile at :185); ProfileScreen.handleSaveProfile writes displayName, bio, location, privacy, searchable, interests and goals (ProfileScreen.tsx:265-279); avatar and banner write avatarUrl/bannerUrl (ProfileScreen.tsx:314-332).
+  - Rules (firestore.rules:61-105): read by any authenticated user (:64). Create and update by the owner, with a denylist of role, moderationStatus, suspendedUntil and the subscription keys (:85-100). Delete is false.
+  - Rule-enforced limits: none on any profile field.
+  - App-only limits: the display name is checked at signup only, 2 to 50 characters (utils/validation.ts:71-85). Profile edit has no limits (ProfileHeader.tsx:90-98 has no maxLength, and the save does not validate).
+  - Who can see: every signed-in user, through rules. Privacy and searchable are app-level filters only.
+  - REACHABLE (UserProfileScreen, People, feed author names).
+
+E. Profile images and post media (Cloud Storage)
+  - users/{uid}/{file}: avatar and banner (ProfileScreen.tsx:314-315). Rule (storage.rules:160-163): read if signed in; write if owner && image/* && < 5 MB.
+  - posts/{uid}/{file}: post images and video via uploadPostMedia (storage.service.ts:49-142), from useCommunityFeed.ts:111 and useGroupDetail.ts:294. Rule (storage.rules:177-183): read if signed in; write if owner && ((image && < 5 MB) || (video && < 25 MB)).
+  - Legacy paths: avatars/ (:168-171), communityPosts/ (:186-189) and groupPosts/ (:193-196), all web-written.
+  - Storage rules never check suspension.
+  - No moderation of images on these paths (S3).
+  - REACHABLE.
+
+F. Direct messages and conversations
+  - Covered in the NPM-3a Step 0 and Addendum 1.
+  - Writes: directMessages {conversationId, senderId, receiverId, text, read, createdAt} (messaging.service.ts:193-202), and conversations (61-100; plus lastMessage and unreadCount at :211-219).
+  - Rules: firestore.rules:659-688, quoted in Addendum 1 A4.
+  - Limits: none in the rules. App: ChatScreen maxLength 1000 (ChatScreen.tsx:297).
+  - Who can see: conversation participants.
+  - REACHABLE.
+  - [NPM-3a will change this: receiverId bound to the other participant, text a size-capped string, exactly two distinct participants. The non-connection gap remains; see item 5.]
+
+G. Connection requests
+  - connections {requesterId, addresseeId, participants, status:'pending', createdAt} (community.service.ts:507-522). Rule: firestore.rules:614-654, with no isActiveUser.
+  - No authored text: the content is the requester's identity (name, photo).
+  - REACHABLE (People and UserProfile).
+  - [NPM-3a will pin create to requester == caller, status 'pending'.]
+
+H. Groups: name, description, category
+  - groups/{auto}, from createGroup (community.service.ts:206-234), called at GroupsScreen.tsx:183.
+  - Rule (firestore.rules:294-343): create by an active owner; read if public or a member.
+  - Limits: none in the rules; no maxLength in the app (GroupsScreen.tsx:472 has none).
+  - Visible to all users when public.
+  - REACHABLE.
+
+I. Group prompts
+  - groupPrompts/{auto}, from createGroupPrompt (community.service.ts:841), called at SetPromptModal.tsx:43.
+  - Rule (:519-523): read by any authenticated user; create, update and delete by the group owner. No limits.
+  - Weekly prompt posts: ensureWeeklyPromptPost (community.service.ts:885).
+  - REACHABLE for group owners.
+
+J. Challenges: name and description
+  - challenges/{auto}, from createChallenge (challenges.service.ts:62-98; name and description at :74-75), called at ChallengesScreen.tsx:286 and createChallengeFromGroup (invites.service.ts:653).
+  - Rule (:457-483): create by an active user (non-global); read if public, global or a member. No limits.
+  - Check-ins: challengeCheckIns, with an optional note (challenges.service.ts:417-447). Rule (:504-514): read by ANY authenticated user; create by self, with NO isActiveUser. A note also creates a post (:460-466).
+  - REACHABLE.
+
+K. Group and challenge invites
+  - groupInvites and challengeInvites (invites.service.ts:105-450). They carry a denormalised group or challenge name (:118). Rules (:536-582): create if inviterId == caller (no isActiveUser; the group-permission check is client-side only, per the comment at :543-544).
+  - REACHABLE (PendingInvitesSection).
+
+L. Legacy and web-only: connectionInvites (web ProfilePage.jsx:143), the notifications bell docs (server-written), and socialConnections (personal data, rule :1239). Not mobile UGC.
+
+======================================================================
+2. WHAT VARA ALREADY HAS
+======================================================================
+2a. Report a post, end to end
+  - Entry: PostOverflowSheet shows "Report this post" on other people's posts (components/community/PostOverflowSheet.tsx:56, 74 and 93-95). It navigates to ReportReason {postId, reportedUserId} (useCommunityFeed.ts:162, useGroupDetail.ts:417).
+  - Screens, all mounted (AppNavigator.tsx:395-406):
+    - ReportReason lists REPORT_REASONS (types/moderation.ts:21-27):
+        spam "Spam or misleading content" / "Promotional, repetitive, or deceptive"
+        harmful_language "Unkind or harmful language" / "Hurtful, shaming, or aggressive tone"
+        inappropriate "Inappropriate or off-topic" / "Doesn't belong in this community"
+        unsafe "Feels unsafe or threatening" / "Concerning behavior or language"
+        other "Something else" / "Doesn't fit the categories above"
+    - ReportDetail takes optional text, maxLength 500 (ReportDetailScreen.tsx:31 and :127), helper copy "This is optional. Any detail helps us review thoughtfully." (:118), and calls submitReport (:64-69).
+    - ReportConfirmation says "We'll review this thoughtfully. Thank you for helping keep the community safe." (ReportConfirmationScreen.tsx:66).
+  - Write: submitReport (moderation.service.ts:62-93). It first runs a client duplicate check (40-57, throwing DUPLICATE_REPORT), then addDoc postReports {postId, reporterId, reportedUserId, reason, detail|null, status:'pending', createdAt}.
+  - Rule (firestore.rules:396-414): get and list only by the reporter. Create if reporterId == caller and postId, reportedUserId and reason are strings and reporterId != reportedUserId. Update and delete are false.
+    - postId must be a string, so the collection cannot carry a user or message report as it stands.
+    - Nothing checks that reportedUserId is the post's author, that the reason is in the list, or the size of detail. There is no isActiveUser.
+  - Reactions:
+    - The only reader or reactor is onPostReport_createQueueItem (functions/src/admin/moderation.js:320-371, exported at functions/index.js:31). It reads posts/{postId} and adds moderationQueue {postId, userId, content, imageUrl, source:'user_report', severity:'medium', reason, reportId, reportedBy, status:'pending', createdAt}.
+    - BUG: it destructures `reportedBy` (:333), but the client writes `reporterId`, so queue.reportedBy is always null.
+    - It reads post.userId and post.imageUrl; mobile posts have no imageUrl.
+    - No email, no push, nothing else. Whether this function is deployed is deploy state; the repo cannot show it.
+  - Mobile itself never reads postReports again, except the duplicate check.
+
+2b. Moderation functions (functions/src/admin/)
+  - onPostCreate_moderateContent (moderation.js:168-314), trigger posts/{id} create, with secret OPENAI_API_KEY. Three steps:
+    (1) Keyword blocklist from config/moderationBlocklist (31-42; empty if the doc is missing). An exact match flags as high and auto-hides; a pattern match flags as medium.
+    (2) Image moderation on post.imageUrl only (225), via OpenAI omni-moderation. High severity auto-hides.
+    (3) GPT-4o-mini text review against COMMUNITY_STANDARDS (14-16: "Be respectful. No hate speech, harassment, threats, or explicit content. No spam or self-promotion. No sharing of private information."). It queues when confidence > 0.5 and auto-hides when > 0.8 and severity is high.
+    It then sets moderationReviewed (307). Each step queues to moderationQueue. API errors queue as 'moderation_error'. It runs on create only, so edits (updatePostContent) and comments (post updates) are never reviewed.
+  - onModerationAction (moderationActions.js:46-223), trigger moderationActions/{id} create. Fields read: adminId, targetUserId, action, reason, duration, queueItemId. Actions:
+      suspend   -> users/{target}.moderationStatus='suspended', suspendedUntil = now + duration (default 7 days)
+      ban       -> moderationStatus='banned'; then Auth disabled and refresh tokens revoked (191-201)
+      unsuspend / unban -> moderationStatus='active', suspendedUntil=null (unban also re-enables Auth, 204-213)
+      remove_post / remove_warn -> posts/{queue.postId}.hidden=true, hiddenReason 'admin_removed' (105-137)
+      warn, dismiss -> no state change
+    Every action writes users/{target}/moderationHistory (158-165). warn, suspend, ban and remove_warn also write a notifications doc {userId, type:'moderation', title, body} (170-181), using the titles and bodies at 18-38 (for example "Account Suspended" / "Your account has been suspended for N days. Reason: …").
+    Who can invoke: anyone who can CREATE moderationActions. The rule (firestore.rules:1344-1348) is create if isAdmin(), where isAdmin() means users/{caller}.role == 'admin' (:26-29), or the Firebase console or Admin SDK. Clients write it through the web admin dashboard (src/services/db/adminModeration.service.js:50-94).
+  - cleanupExpiredSuspensions (cleanup.js:17-48): daily at 04:00 (no timeZone, so UTC), resets expired suspensions. updateModerationBlocklist (cleanup.js:54-80): a callable, admin-role only, that merges config/moderationBlocklist.
+  - What the affected user sees on mobile: nothing.
+    - Mobile never reads the notifications collection (Addendum 1 A2) and never reads moderationStatus (only a type comment at types/models.ts:217-225).
+    - A suspended user's gated writes fail with generic error alerts, for example "Failed to start conversation".
+    - A banned user is signed out when their ID token expires and fails to refresh, within about an hour; revocation blocks the refresh.
+    - Removed and auto-hidden posts stay visible on mobile (S1).
+
+2c. Suspension (isActiveUser, firestore.rules:46-57)
+  - It returns true if: there is no users doc, OR moderationStatus is absent, null or 'active', OR status 'suspended' with suspendedUntil earlier than request.time. 'banned' returns false.
+  - Used at (firestore.rules): groups create 307, update-as-owner 316 and delete 338; posts create 361, update 373 and delete 384; challenges create 467 and update 472; conversations create 664; directMessages create 682. Line 627 is a comment recording that it was removed from connections.
+  - Community writes a suspended (or banned, until Auth catches up) user can still make:
+    - connection requests (connections create, :629-635), and accept or decline (:638-644)
+    - conversations update (lastMessage and unreadCount, :667)
+    - joining or leaving groups as a member or public joiner (:322-333)
+    - challengeParticipants (:491-500) and challengeCheckIns (:509-510); the check-in's post write would fail
+    - groupInvites, challengeInvites and connectionInvites create (:545, :569, :596)
+    - groupPrompts as a group owner (:521-522)
+    - postReports, hiddenPosts and mutedUsers (:405, :425, :444)
+    - profile edits, including displayName, bio and photo URLs (users update, :94-100)
+    - all Storage uploads (storage.rules does not consult Firestore)
+  - Note on the posts update rule: likes and comments edits by a suspended user ARE blocked, because the whole update rule requires isActiveUser().
+
+2d. Mute
+  - muteUser writes mutedUsers/{muterId}_{mutedUserId} {muterId, mutedUserId, createdAt} (moderation.service.ts:166-182). unmute deletes it (187-199). Rule (firestore.rules:436-453): owner-only get, list and delete; create if muterId == caller && mutedUserId is a string && it is not self.
+  - Entry: PostOverflowSheet's mute on another user's post (handlers at useCommunityFeed.ts:190-211 and useGroupDetail.ts:444-465), with the toast "Posts from this person are now hidden." plus Undo.
+  - Read and enforced only in the client feed filters: useFeed.ts:62-70, 167 and 360-365; useGroupDetail.ts:221-226 and 398.
+  - Not enforced in comments (CommentModal has no filter), profiles, People or Discover, search, messaging, connection requests, or any rule or function. There is no list of muted users and no unmute outside the toast's Undo.
+
+2e. Objectionable-content filtering, surface by surface
+  - Posts, text at create: keyword blocklist (empty if the config doc is absent) and GPT text review. Both apply only if the function is deployed and OPENAI_API_KEY is bound.
+  - Posts, images: NONE on mobile (S3).
+  - Post edits: NONE.
+  - Comments: NONE.
+  - DMs: NONE.
+  - Profile text and images: NONE.
+  - Group names, descriptions and prompts: NONE.
+  - Challenge text and check-in notes: NONE as text. A note's post goes through post moderation if deployed.
+  - Connection requests: n/a (no text).
+  - Manual: the admin queue (2f), fed only by post moderation and post reports.
+
+2f. Admin tooling
+  - Web admin dashboard: src/pages/Admin/{AdminDashboard, ModerationTab, UsersTab, OverviewTab, AnalyticsTab, ChallengesTab}.jsx at route /admin (src/App.js:357-362), guarded by AdminRoute (src/components/AdminRoute.jsx: admin role via useAdmin, users/{uid}.role == 'admin').
+    - ModerationTab lists moderationQueue by status and source (adminModeration.service.js:18-47, needing the composite index at firestore.indexes.json:701+). Its actions are dismiss, warn, remove_warn, suspend and ban (ModerationTab.jsx:30-45), applied through takeQueueModerationAction (:50-75).
+    - UsersTab offers direct suspend, unsuspend, ban and unban (UsersTab.jsx:250-282).
+  - Production web is GATED: src/index.js:22-34 renders only WebComingSoon when REACT_APP_WEB_GATED === 'true' at build time. Today the dashboard works only from a local `npm start` with the flag unset, against the live Firebase project, signed in as a user whose users/{uid}.role is 'admin'. Whether any account has role 'admin' is data state.
+  - Against today's data model, the dashboard reads moderationQueue and writes moderationActions, which match the functions. Its "remove" sets posts.hidden, which mobile ignores (S1). Report items show reportedBy as null (2a bug). It cannot show user or message reports because none exist.
+  - The Firebase console is a working fallback. Creating a moderationActions document by hand triggers onModerationAction, if that function is deployed.
+
+======================================================================
+3. BLOCK USER
+======================================================================
+Confirmed: no blocking exists. firestore.rules has no blocks collection (match list: lines 61-1348). mobile/src has no block service or UI; the "block" hits are time-blocking. No server code exists either. The only mention is the repo Terms promise (S5).
+
+Where a block must be enforced, and where it can be enforced:
+  - Feed (posts by the other user): APP ONLY. A per-document block check in the posts read rule would make every feed query fail, because rules are not filters. Extend the existing mute filter (useFeed.ts:161-169, useGroupDetail.ts:393-400), applied in both directions.
+  - Comments inside posts: APP ONLY (CommentModal filter).
+  - Profile viewing (users/{uid}): RULES are possible for single-document get only, by splitting get and list on users. But users docs are read for author names everywhere, so a rule denial would break rendering of shared group content. Recommend APP: UserProfileScreen shows an unavailable state.
+  - Discover, People, search and suggestions: APP ONLY (list queries). connections.service.ts suggestions and searchUsers (community.service.ts:790).
+  - Creating a connection request: RULES. After NPM-3a pins requesterId/addresseeId: !exists(block A->B) && !exists(B->A). Blocking should also remove or decline any pending or accepted connection between the two (client or server).
+  - Creating a conversation: RULES. After NPM-3a's exactly-two-participants rule: block exists() checks on participants[0] and [1].
+  - Writing a message: RULES. After NPM-3a binds receiverId: block exists() checks on senderId/receiverId. That is two exists() calls added to the existing conversation get(). The 10-lookup limit allows it.
+  - Existing conversation: the same message rule stops new messages. Reading history is a product choice (CS-D3). The APP hides the conversation from the blocker's list.
+  - Community push sender (functions-notifications, after NPM-3a): SERVER. Read both block docs before sending. This is defence in depth, since the rules would already stop the write.
+  - Group membership and shared groups: APP ONLY (filter content). Joining a group the other user is in cannot sensibly be blocked.
+  - Invites (group and challenge): RULES are possible on create (exists checks on inviter and invitee).
+Data-model options (Kyle rules):
+  BK1 (recommended): users/{blockerUid}/blockedUsers/{blockedUid} {createdAt}, owner-only read and write.
+    - Rules check exists(/databases/$(database)/documents/users/$(a)/blockedUsers/$(b)) in both directions.
+    - Rules can read documents regardless of read rules, so the blocked user cannot see that they are blocked.
+    - Deleted automatically with the blocker's users/{uid} recursive delete (accountDeletion.js:180-187).
+    - A blocked list in Settings is a simple owner query.
+  BK2: top-level blocks/{blocker}_{blocked} {blockerId, blockedId}. The same deterministic exists() checks. Needs a new manifest entry (OWNER_FIELD_COLLECTIONS blockerId) and a new rule block. Mirrors mutedUsers' shape.
+  BK3: an array on userPrivate/{uid}.blockedUids. Rules can get() it, but array size limits apply and one doc is contended. Not recommended.
+  BK4: fold into mutedUsers with a level field. It mixes a soft feed preference with a safety boundary. Not recommended.
+Recommended enforcement: rules for connection, conversation, message and invite creation; server check in the push sender; app filters for feed, comments, people, search, profile and the conversation list; blocking also removes the connection.
+
+======================================================================
+4. REPORT USER AND REPORT MESSAGE
+======================================================================
+Today: neither exists. There is no report entry on UserProfileScreen, ChatScreen, Conversations or comments (searched; only PostOverflowSheet has one).
+Can the post-report path carry them?
+  - Screens: ReportReason, ReportDetail and ReportConfirmation take {postId, reportedUserId} params and pass postId to submitReport. They are generic in copy, apart from "Report this post" in the sheet. Changing them means a {targetType, targetId} parameter.
+  - Reasons: the five reasons fit users and messages. A user report may want "Pretending to be someone else" (impersonation; Terms line 58) and possibly "Underage user". That is copy decision CS-D7.
+  - Collection and rules: the rule requires `postId is string` (firestore.rules:407). It needs a targetType in ['post','user','message','comment'] with the matching id field. reportedUserId must still differ from the reporter.
+  - For message reports, the rule should require that the reporter is a participant (get the conversation) and that reportedUserId is the message's sender (get the message). Both are possible in rules with 2 lookups.
+  - Trigger: onPostReport_createQueueItem assumes posts (moderation.js:335-342). It must branch by targetType: copy message text for a message, profile fields for a user. It also needs the reporterId field fix (2a bug).
+  - Queue and dashboard: moderationQueue items key on postId. ModerationTab renders content and imageUrl, so it needs targetType display. remove_post and remove_warn act on posts only; a "remove message" action would need a message-deletion path (the rules forbid client delete, but the Admin SDK can).
+  - Duplicate check: the client query on (reporterId, postId) needs generalising.
+Options (Kyle rules):
+  RP1 (recommended): generalise postReports in place. Add targetType and targetId, keep postId for posts, and keep the collection name to avoid manifest and rule churn. The trigger branches by type. Screens get params. Entry points: UserProfile overflow ("Report", "Block"), a long-press on a message in Chat ("Report message"), and the conversation header menu ("Report", "Block").
+  RP2: a new top-level `reports` collection for user and message reports, leaving postReports alone. It is cleaner naming but duplicates the rule, trigger, manifest and dashboard query.
+  RP3: user and message reports by mailto to support (no data model). This is the cheapest path, but there is no queue, no linkage to evidence, and it is weak for review.
+Report should also offer "Block this person" on its confirmation (CS-D6).
+
+======================================================================
+5. THE NON-CONNECTION MESSAGE-WRITE GAP
+======================================================================
+Today: the conversation create rule (firestore.rules:664) and the message create rule (:682-684) never refer to connections. The UI gates starting a conversation on an accepted connection (Addendum 1 A4), but a direct SDK call does not. Connection docs have auto IDs (community.service.ts:522), and a deterministic-ID helper exists but is unused (:450). Mobile has no way to disconnect (S7). Accepted connections can only end through account deletion or a direct SDK delete.
+Options:
+  G1: a deterministic connection ID, connections/{sortedA}_{sortedB}. Rules then use get() directly.
+      Cost: migrate every existing auto-ID connection (an admin script with a re-key); change every writer and reader (mobile community.service.ts, connections.service.ts, useConnections; web, which is dormant); handle the historical shapes (a/b, requesterId, participants). The rules also need the create to use that ID. This is the largest change and touches a lot of tested code.
+  G2: a server-maintained index, connectionIndex/{sortedA_sortedB} {status}, written by an onDocumentWritten trigger on connections. Rules check that the index exists with status 'accepted'.
+      Cost: one new function and its deploy, a one-time backfill script, and eventual consistency: messaging right after accepting may fail for about a second. The client is unchanged. Rules depend on a function being deployed and healthy.
+  G3 (recommended): the conversation carries connectionId.
+      - Conversation create requires get(connections/$(connectionId)) to have status 'accepted', and its participants array to contain both conversation participants.
+      - Message create gets the conversation (it already does), then the connection, and requires it to still be accepted.
+      Cost: createOrGetConversation (messaging.service.ts:61-100) must look up and pass the connection ID. useConnections already holds the connection docs. Existing conversations have no connectionId, so they need a backfill (an admin script matching on participants) or they become read-only. Rules lookups per message are conversation + connection + 2 block checks = 4. No new function.
+      It is synchronous and fully rule-enforced, and later disconnect or block works naturally.
+  G4: move conversation and message creation behind a callable with server checks. The largest rewrite, adds latency, and breaks the client's offline queueing. Not recommended.
+  G5: status quo (app-only gate). It does not close the gap.
+After disconnect (a product decision; disconnect does not exist today, S7):
+  - (a) the conversation becomes read-only for both. Recommended; it follows naturally from G3.
+  - (b) the conversation is hidden for both.
+  - (c) messaging continues as before.
+  If a disconnect action is added, it should be the same action as, or adjacent to, Block (CS-D4).
+
+======================================================================
+6. ABUSE AND RATE LIMITS
+======================================================================
+Today: nothing limits DMs, conversations, connection requests, posts, comments, reports or invites (Addendum 1 A4). The existing rateLimit covers the AI endpoints only.
+Options:
+  RL1, rules-only minimum interval. Batch each create with an update to a per-user rate doc, for example userPrivate/{uid}.lastMessageAt or a dedicated rateWrites/{uid}. Rules use getAfter()/get() to require request.time >= previous + N seconds, and require the rate doc to be updated in the same batch.
+    - Enforceable WITHOUT a server function.
+    - Per-window counters (for example ≤ 50 per hour) are possible with count and windowStart fields, at the cost of complex rules.
+    - Cost: every writer becomes a batch, and the rules get more complex.
+  RL2, a server trigger with auto-suspend. Writes stay client-side. onDocumentCreated on directMessages, connections and posts increments a per-user counter. Past a threshold it sets moderationStatus 'suspended' for a short window and queues a 'rate_limit' item.
+    - Needs a function, but writes are not moved behind it.
+    - Enforcement is through isActiveUser, so isActiveUser must be added to connections create (and the others in 2c).
+    - Reactive: the threshold-crossing burst lands.
+  RL3: move the writes behind a callable using checkRateLimit. The heaviest option; not recommended.
+  RL4: Firebase App Check. It stops scripted non-app clients but is not a per-user limit. A complement at most.
+Recommendation:
+  - RL1 for connection requests (low volume; a minimum interval and a per-day cap).
+  - RL2 for messages and posts, with conservative thresholds.
+  - Add isActiveUser to connections, invites and conversation update.
+  - Both RL1 and RL1-style caps are enforceable without moving writes behind a function. RL2 needs a function but keeps writes client-side.
+
+======================================================================
+7. OPERATIONAL HANDLING OF REPORTS
+======================================================================
+Today, when a user files a report:
+  - It lands in postReports.
+  - IF onPostReport_createQueueItem is deployed, it is copied to moderationQueue as pending/medium with reportedBy null.
+  - Kyle is not notified in any way.
+  - To see it, he must open the Firestore console at postReports or moderationQueue, or run the web app locally with the gate flag unset and an admin-role account, then open /admin > Moderation.
+  - Honest answer: he would not find out unless he goes looking.
+  - What he can do with existing tooling:
+    - dismiss, warn, suspend or ban, from the dashboard or by creating a moderationActions doc in the console. These work through onModerationAction if it is deployed.
+    - "remove" hides the post only on the web; on mobile the post stays visible (S1). To remove a post from mobile today he would set deleted: true on the post in the console, which mobile does filter (useFeed.ts:164).
+    - There is no action for comments, messages or profiles, beyond a manual console edit.
+Smallest option for a solo founder (recommended OP1):
+  OP1: an email to Kyle on every new report and every high-severity auto-flag.
+    - Sent from a trigger, either the existing report trigger or one in functions-notifications, where @sendgrid/mail is already a dependency. The key must be declared in `secrets` this time (Addendum 1 A1).
+    - The email carries the report reason and detail, a text snapshot of the reported content, and the IDs.
+    - Fix mobile to honour post.hidden, and add a moderator "remove message" that deletes or tombstones a directMessages doc through the action trigger.
+    - Kyle acts through console moderationActions documents, with a one-page runbook. The local admin dashboard is optional.
+  OP2: no email. Kyle checks the console daily, with the runbook. This costs nothing to build but fails silently on a busy or away day.
+  OP3: a mobile admin screen. Not recommended for launch.
+  Also recommended: a stated response target in the confirmation copy or the guidelines, for example "We review reports within 24 hours" (CS-D9), and a documented runbook in the repo.
+
+======================================================================
+8. PUBLISHED SUPPORT AND CONTACT INFORMATION
+======================================================================
+Every place the mobile app shows a way to contact Vara or get support:
+  - Help & Support screen (HelpSupportScreen.tsx; mounted at AppNavigator.tsx:1082; reached from Settings at SettingsScreen.tsx:737):
+    - "CONTACT US" > "Email Support" / "support@varawellness.co" (:78-90), opening mailto:support@varawellness.co?subject=Vara App Support (:49).
+    - An FAQ answer: "Yes, your data is encrypted and stored securely. We never share your personal information with third parties. See our Privacy Policy for details." (:40).
+    - "RESOURCES": "Privacy Policy" -> https://www.varawellness.co/privacy-policy (:132-136), and "Terms of Service" -> https://www.varawellness.co/terms-of-service (:142-146).
+  - Settings: Privacy Policy and Terms rows to the same URLs (SettingsScreen.tsx:498, :507). The data export copy: "To request an export of your data, please contact support@varawellness.co and we'll send you a copy." (:521).
+  - Paywall: mailto:support@varawellness.co?subject=Vara App Support (PaywallScreen.tsx:166). Fallback alert: "Could not open your mail app. Please email support@varawellness.co." (:167).
+  - Account deletion failure: "Something went wrong. Please try again or contact support@varawellness.co for help." (useAccountActions.ts:90).
+  - Signup: "I agree to the Terms of Service and Privacy Policy", a checkbox with links (SignupScreen.tsx:394-400, URLs at :115 and :122). Errors: "You must agree to the Terms of Service and Privacy Policy" / "Please agree to the Terms of Service and Privacy Policy" (:216-217).
+  - Constants exist but appear unused by these screens: constants/legal.ts:12-13 (PRIVACY_POLICY_URL, TERMS_OF_USE_URL, the same URLs).
+  - There is no in-app way to contact Vara about a safety issue, other than the generic support email and post reports.
+Terms text in the repo:
+  - mobile/TERMS_OF_SERVICE.md (345 lines, "Last Updated: March 2026", last changed at db3c9bd on 2026-05-19) and a different root TERMS_OF_SERVICE.md (487 lines).
+  - The app links to the WEBSITE, not to either file. Conduct language from mobile/TERMS_OF_SERVICE.md:
+      :25 "You must be at least 13 years old (16 in Europe)"
+      :37-40 "We reserve the right to suspend or terminate accounts that: - Violate these Terms - Engage in harmful, abusive, or illegal behavior ..."
+      :53-63 "You Agree NOT To: - Harass, bully, or threaten other users - Post illegal, harmful, or offensive content - Spam or send unsolicited messages - Impersonate others or create fake accounts ... - Share graphic, violent, or sexually explicit content - Promote self-harm or dangerous activities"
+      :74-81 Content Standards ("... Promote hate speech or discrimination")
+      :83-88 "Content Moderation: We reserve the right to: - Remove content that violates these Terms - Suspend users who repeatedly violate content standards - Report illegal content to authorities"
+      :100 "Group owners can moderate content and members". No group-owner moderation UI exists; the rules let an owner delete group posts (firestore.rules:387-389), and no UI does it.
+      :105-107 "Messages are private between sender and recipient - We don't monitor messages except when reported - Harassment via messages violates these Terms". There is no way to report a message.
+      :111-113 "Connection requests can be accepted, declined, or blocked - Blocked users cannot contact you or see your profile". Blocking does not exist.
+      :311 "**Email:** support@varawellness.com". This domain differs from the app's .co.
+  - Published web Terms (fetched read-only; quotes as returned by the fetch summariser, so verify on the page): "Effective Date: July 2026 | Version 1.3"; "You must be at least 16 years old to use Vara."; conduct: "Harass, bully, or threaten other users" and "Post or transmit content that is harmful, illegal, defamatory, or offensive."; blocking: absent; message monitoring or reporting: absent; contact "support@varawellness.co". The repo copy is therefore stale against what users see.
+  - The web Terms have no explicit "no tolerance for objectionable content or abusive users" statement (per the summary). Kyle should confirm on the page; see CS-D10.
+Community guidelines: none in the app. No screen, link or copy (searched "community guidelines" and "community standards" in mobile/src). The only standards text is the server prompt constant COMMUNITY_STANDARDS (moderation.js:14-16), which users never see.
+
+======================================================================
+9. AGE
+======================================================================
+- Signup has no age gate, no date-of-birth field and no minimum-age statement. SignupScreen.tsx asks for name, email, password and confirmation, and the Terms and Privacy checkbox (:394-400). A search for "at least 13/16/18", "years old", "date of birth" and similar in mobile/src found nothing.
+- The age statements exist only in the Terms: the repo says 13+ (16 in Europe, mobile/TERMS_OF_SERVICE.md:25); the published page says 16+.
+
+Proposed pre-submission checklist item (text only; the checklist is not edited):
+  - [ ] **App Store age rating: answer the social-media capability questions (REQUIRED BEFORE SUBMISSION; added with COMMUNITY-SAFETY-AND-MODERATION).** In App Store Connect > App Information > Age Rating, answer the current questionnaire as the build actually behaves. Declare user-generated content (posts, comments, groups, challenges, profiles with photos), user-to-user messaging (direct messages between connections), and that users can find and connect with other users (People, Discover, search). Confirm what the questionnaire asks about blocking, reporting, moderation and age assurance, and that each answer matches a shipped feature: Block and Report for posts, users and messages; report review by Vara; published support contact; Terms and community guidelines reachable in-app. Record the resulting rating and the minimum age in the Terms (currently 16+ on the published page) and confirm they agree. Re-answer if Community scope changes before submission.
+  (The exact current questionnaire wording was not available offline. Apple's review guideline 1.2 on user-generated content, as I recall it, expects a way to filter objectionable material, a way to report content with timely responses, a way to block abusive users, and published contact information. Kyle should verify against the live guideline text.)
+
+======================================================================
+10. ACCOUNT DELETION AND PRIVACY (functions/src/lib/accountDeletion.js)
+======================================================================
+  - postReports: swept by reporter: `{collection: "postReports", field: "reporterId"},` (:137). Reports ABOUT the deleted user (reportedUserId) are left by design (roadmap :3916).
+  - mutedUsers: `{collection: "mutedUsers", field: "muterId"},` (:136). Rows muting the deleted user are left by design.
+  - hiddenPosts: in USERID_FIELD_COLLECTIONS: `"hiddenPosts",` (:117), swept on userId.
+  - posts: `{collection: "posts", field: "userId"},` `{collection: "posts", field: "authorId"},` (:133-134). Storage `"posts"` prefix (:207), plus users/avatars/communityPosts (:205-208) and groupPosts (:227).
+  - users/{uid}/moderationHistory: deleted by the recursive `"users"` entry in UID_KEYED_DOC_TREES (:186; comment :176-177 names /moderationHistory).
+  - notifications: `"notifications",` in USERID_FIELD_COLLECTIONS (:81), on userId. That catches moderation notices (userId) but not the Community bell docs (recipientId; Addendum 1 N1).
+  - connections: (:147-150, :156). conversations: participants (:155). directMessages: senderId (:135). groups and challenges: membership arrays, uid removed (:166-167). challengeParticipants and challengeCheckIns: (:81). groupInvites, challengeInvites and connectionInvites: both sides (:138-143).
+  - NOT on the manifest:
+    - moderationQueue: holds a copy of the reported or flagged user's post content and userId.
+    - moderationActions: the audit trail, with targetUserId.
+    - config/moderationBlocklist: not personal.
+    - groupPrompts: owner-authored text, keyed by groupId.
+  - Retaining moderation records after deletion may be legitimate for safety, but it is a policy decision and should be stated in the privacy policy (CS-D12).
+  - NOT removed: the deleted user's comments and likes inside OTHER users' posts (array entries in documents the sweep does not delete).
+  - New data:
+    - BK1 (users/{uid}/blockedUsers) is covered by the recursive users delete for the blocker's own blocks. Blocks naming the deleted user under other users would remain, which is harmless, or they can be swept with a collection-group query on a blockedUid field, which needs a field and possibly an index.
+    - BK2 needs `{collection: "blocks", field: "blockerId"}` (and blockedId, if swept) added to OWNER_FIELD_COLLECTIONS, plus the deleteAccountCleanup and deleteAccountSweep tests.
+    - Reports under RP1 need no manifest change (reporterId is already swept). RP2 needs a new entry.
+    - RL1 rate docs on userPrivate are covered; a new rateWrites/{uid} would need a UID_KEYED_DOC_TREES entry.
+
+======================================================================
+11. PROPOSAL
+======================================================================
+Smallest set covering every item in K17, built on what exists:
+  1. Block user: BK1. Rules enforcement on connection, conversation, message and invite create; the push-sender check; app filters on feed, comments, People, search, profile and the conversation list; blocking removes the connection. Settings > Blocked people, with unblock.
+  2. Report user and report message: RP1. Generalise postReports, the trigger (and fix reporterId), the screens' params, and the entry points on UserProfile and Chat. Comments get Report through the same path (targetType 'comment').
+  3. Enforcement: covered by 1, plus isActiveUser added to connections create, invites, conversation update and comments.
+  4. Non-connection message gap: G3 (conversation.connectionId), with a backfill script for existing conversations (run by Kyle; CC never writes to production).
+  5. Abuse and rate limits: RL1 for connection requests; RL2 for messages and posts.
+  6. Existing filtering coverage:
+     - Fix S1: mobile honours post.hidden. Optionally the rules deny reads of hidden posts to non-authors, but that would break list queries, so recommend app filtering plus moderator delete.
+     - Fix S3: moderation reads media[] and images[].
+     - Fix S2: comments and likes. The rule restricts non-authors to arrayUnion-style changes. Rules cannot express "append only my own entry" on arrays, so this needs comments moved to a subcollection posts/{id}/comments/{cid} with per-doc rules (recommended), or an onUpdate validator.
+     - Extend text moderation to comments, edits and profile text, either as a trigger that queues and does not block, or deferred by ruling CS-D13.
+  7. Operational handling: OP1 email alert, the runbook, and a moderator delete-message action.
+  8. Support and contact: a Community Guidelines screen or link, reachable from Community and Report. Reconcile the repo Terms with the published Terms (blocking promise, age, email). Add a "Report a safety concern" contact line on Help & Support.
+  9. App Store checklist item: the item 9 text.
+One slice or several (Kyle rules). Recommended split, in order:
+  CSM-a "Safety rules and server": BK1 rules, G3 rules plus backfill script, isActiveUser gaps, the report generalisation (rules and trigger), OP1 email, the RL2 trigger, the moderation media and imageUrl fix, and the push-sender block check (coordinated with NPM-3a). One functions deploy and one rules deploy.
+  CSM-b "Safety UI": Block and Report entry points, the blocked list, app filters, honouring post.hidden, a suspended-user message, the guidelines screen, the Help & Support safety line.
+  CSM-c "Comments integrity": move comments to a subcollection (rules, writers, readers, deletion manifest, migration of existing array comments). Separate, because it is a data migration.
+  CSM-d "Docs and ops": Terms reconciliation (copy, not code), the runbook, the checklist item, and the roadmap rows.
+  A single slice would be very large (rules, two codebases, a migration and UI) and would need one long walk. Splitting keeps each deploy reviewable.
+Files (predicted):
+  - Rules: firestore.rules (users/{uid}/blockedUsers, connections, conversations, directMessages, postReports, invites, posts and comments) and firestore.rules.test.js.
+  - functions/: src/admin/moderation.js (report trigger branches, reporterId, media), src/admin/moderationActions.js (remove_message, remove_comment), a new rate trigger (or in moderation.js), src/lib/accountDeletion.js (only if BK2 or rate docs), and tests in src/__tests__.
+  - functions-notifications/index.js: the block check, and the report email if it lives there.
+  - mobile:
+    - services: services/firebase/moderation.service.ts (block, unblock, fetchBlocked, a generalised submitReport), community.service.ts (block removes the connection, comments if CSM-c), messaging.service.ts (connectionId on create).
+    - hooks: useFeed.ts, useGroupDetail.ts, useCommunityFeed.ts, useConnections.ts, useConversations.ts.
+    - screens and components: ReportReason, Detail and Confirmation screens; UserProfileScreen.tsx; ChatScreen.tsx; PeopleScreen.tsx; ConversationsScreen/MessagesScreen; CommentModal.tsx; SettingsScreen.tsx (Blocked people); HelpSupportScreen.tsx; a new CommunityGuidelinesScreen and BlockedUsersScreen; AppNavigator.tsx registrations; types/moderation.ts.
+  - scripts/: a conversation connectionId backfill (dry-run by default).
+  - docs: the roadmap rows; mobile/PRE_SUBMISSION_CHECKLIST.md (later docs commit).
+Predicted baselines (from 7e8750b as measured today: jest 4242/279, tsc 136, lint 885/1242, sentinel 156; functions 55/4; rules last recorded 201+2, not re-measured):
+  - CSM-a: rules plus roughly 30 to 40 tests; functions plus roughly 15 to 25 (moderation and rate trigger tests are new; functions-notifications has no harness, per NPM-3a). Mobile unchanged.
+  - CSM-b: jest plus roughly 40 to 60 tests in 6 to 9 suites. tsc 136 (diff the sorted list). Lint flat or down. The sentinel RISES by the number of new drafted strings (guidelines, block and report copy) unless Kyle signs them off in the same commit. The guidelines text alone is many strings.
+  - CSM-c: rules plus roughly 8; jest plus roughly 10; functions plus 2 (manifest).
+Device walk (one iPhone plus the second account, common cases only):
+  W1. Report a post, then report a user from their profile; Kyle receives the email (OP1) within a minute.
+  W2. Report a message from Chat; the queue item and email show the message text.
+  W3. Block the second account from their profile. That account cannot send a message (an error state) or a connection request. Their posts disappear from the feed. The conversation leaves the list. No push arrives.
+  W4. Unblock from Settings > Blocked people; posts return. Messaging returns only per CS-D5.
+  W5. Moderator "remove" from the console: the post disappears on the phone.
+  W6. Community Guidelines and Help & Support safety line are reachable; the links open.
+  Tests only: rules abuse (forged participants, receiverId, a non-connection conversation, a suspended user on each path); rate thresholds; the backfill script against the emulator; comment forgery; deleted-account sweeps; block in both directions on every rule path; push-sender block skip; image moderation on media[].
+Dependencies on NPM-3a:
+  - NPM-3a's rule tightening (two distinct participants, receiverId bound, connection create pinned) is a PREREQUISITE for the block and connection rules on conversations, messages and connections. CSM-a should land after NPM-3a's rules, or carry them if NPM-3a slips.
+  - NPM-3a's push sender will check for an accepted connection. To do that, the server must find the connection: an Admin query on participants, or, under G3, conversation.connectionId. Recommend NPM-3a reads conversation.connectionId when present and falls back to a participants query, so CSM does not rewrite it. Recommend NPM-3a also leaves a single `isDeliveryAllowed(sender, recipient)` helper that CSM extends with the block check.
+  - NPM-3a should NOT add its own duplicate-guard field to directMessages that CSM's moderator "remove message" would conflict with. The notificationLog marker (Addendum 1 A3) avoids that.
+  - The report email (OP1) and NPM-3a both touch functions-notifications and SendGrid binding. Agree one secrets binding.
+
+======================================================================
+12. DECISIONS FOR KYLE (options; recommendation first)
+======================================================================
+CS-D1 Block data model: BK1 users/{uid}/blockedUsers (recommended) / BK2 top-level blocks / BK3 array.
+CS-D2 What a block does:
+  - (a, recommended) both directions: no messages, no connection requests or invites; each hides the other's posts, comments and profile in lists; the existing connection is removed; the blocked user is not told.
+  - (b) a one-way mute-plus (only the blocker stops seeing).
+CS-D3 Existing conversation after a block: (a, recommended) hidden from the blocker, read-only for both / (b) deleted for the blocker / (c) left visible.
+CS-D4 Disconnect: (a, recommended) not adding a separate "remove connection" for launch; Block covers safety / (b) add "Remove connection" with read-only conversations.
+CS-D5 After unblock: (a, recommended) the connection is not restored; they must reconnect / (b) restored.
+CS-D6 Report entry points: (a, recommended) post, comment, user profile, message long-press, and the conversation header; each confirmation offers "Block this person" / (b) post, user and message only.
+CS-D7 Report reasons for users and messages: keep the five, plus "Pretending to be someone else" (recommended), plus optionally "May be under 16". Copy owner: Kyle (UI strings).
+CS-D8 Non-connection gap: G3 conversation.connectionId plus backfill (recommended) / G2 index trigger / G1 deterministic IDs.
+CS-D9 Report response promise: (a, recommended) state "We review reports within 24 hours" in the guidelines and the confirmation, if Kyle can meet it / (b) no time stated.
+CS-D10 Terms: (a, recommended) treat the published web Terms as canonical, replace the stale repo copies with the published text (or delete them), and add an explicit "no tolerance for objectionable content or abusive users" clause plus Block and Report language that matches what ships / (b) leave as is.
+CS-D11 Community guidelines: (a, recommended) a short in-app Community Guidelines screen (respect, no harassment, hate, sexual content, spam or impersonation; how to report and block; what happens on violation), linked from Community and the Report flow, and agreed to on first Community use / (b) a web page link only.
+CS-D12 Retention of moderation records after account deletion: (a, recommended) keep moderationQueue and moderationActions for a fixed period (for example 1 year), stated in the privacy policy / (b) delete with the account.
+CS-D13 Automated filtering scope for launch: (a, recommended) keep post text review, fix post images, add a non-blocking review of comments and profile text into the queue; DMs only on report / (b) posts only, as today / (c) also scan DMs automatically (a privacy and Terms conflict: "We don't monitor messages except when reported").
+CS-D14 Relationship to the SAFETY row: (a, recommended) separate. Community moderation and the self-harm safety pre-check share no launch dependency, but a self-harm signal found in a reported post or comment is routed to the safety copy in the review runbook / (b) one classifier for both.
+CS-D15 Rate limits: thresholds. Recommended starting points: connection requests 1 per 10 s and 30 per day; messages flagged above 60 per 10 minutes; posts above 20 per hour, with a 24 h auto-suspend plus a queue item.
+CS-D16 Age: (a, recommended) add a simple age confirmation at signup ("I confirm I'm 16 or older", matching the published Terms) / (b) Terms only / (c) a date of birth.
+CS-D17 Suspended users: (a, recommended) on a failed Community write, show "Your account is temporarily restricted from Community. Contact support@varawellness.co." / (b) silent, as today.
+CS-D18 Support contact: confirm support@varawellness.co as the single published address (the repo Terms say .com), and whether to add a "Report a safety concern" line on Help & Support that opens the same mailto with a different subject.
+
+STOP. Step 0 only; no build has been started.

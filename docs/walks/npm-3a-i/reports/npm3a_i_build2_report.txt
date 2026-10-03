@@ -1,0 +1,266 @@
+NPM-3a-i COMMUNITY PUSH SERVER: BUILD PROMPT 2 REPORT (rules, Expo access token, deploy inventory)
+Branch journey/npm-3a-i-community-push-server. Five commits on main (7e8750b). Not merged, not pushed, not deployed.
+Untouched: mobile/, storage.rules, firestore.indexes.json, the scheduled senders and docs.
+No secret value was read, printed or logged; the tests use an obviously fake token.
+
+ONE THING TO KNOW FIRST: AN UNINTENDED NETWORK CALL TO EXPO
+While I was building the Step 3 header test, my first version of the test harness let the REAL expo-server-sdk reach Expo's servers.
+  - Why: fakeEnv loaded the real SDK, through jest.requireActual, before the node-fetch stand-in was registered.
+  - What was sent: 4 HTTP POSTs to Expo's push API (https://exp.host/--/api/v2/push/send). That was 3 in one failing test run and 1 in a debug run.
+  - What they carried: the obviously fake bearer token "fake-expo-access-token-for-tests-only" and a fake recipient token "ExponentPushToken[recipient-R-token]".
+  - Result: Expo rejected all of them with AUTHENTICATION_ERROR. Nothing could be delivered and nothing was written to Firebase. No real secret was involved.
+  The fix is in commit a7a8ec9:
+  - The harness now replaces node-fetch in EVERY suite, with a stand-in that throws unless a test supplies its own.
+  - Real-SDK mode refuses to start without a stand-in.
+  - The harness no longer loads the real SDK for token checks.
+  - Two tests pin these guards.
+
+======================================================================
+STEP 1. BOARD
+======================================================================
+  - branch journey/npm-3a-i-community-push-server
+  - HEAD 688d277
+  - clean tree
+  - main..HEAD = 688d277, 1f66c71, 08b0859
+  All as expected.
+
+======================================================================
+STEP 2. CHECKS ON PROMPT 1's WORK
+======================================================================
+2a. git show --stat for each commit:
+  - 08b0859: docs/walks/npm-3a-i/before/ (5 files) and functions-notifications/ (.eslintrc.js, package.json, package-lock.json, src/__tests__/helpers/fakeEnv.js, helpers/world.js, inviteCharacterization.test.js). Nothing else.
+  - 1f66c71: ONLY functions-notifications/ (index.js; src/__tests__/communityPush.test.js, regression.connectionRequest.test.js, regression.directMessage.test.js; src/community/eligibility.js, log.js, send.js, triggers.js; src/legacy/inviteCreated.js). Confirmed.
+  - 688d277: ONLY functions/ (index.js, src/__tests__/deleteAccountCleanup.test.js, deleteAccountNotificationsRecipient.test.js, notificationExports.test.js, src/lib/accountDeletion.js, src/notifications/index.js, and the deleted src/notifications/social.js). Confirmed.
+  Neither commit touches anything outside its codebase.
+
+2b. Lockfile, functions-notifications/package-lock.json, 7e8750b against now. I used scratchpad\lockdiff.js, which reads the old file with git show and checks nothing out.
+  - lockfileVersion before 3, after 3.
+  - Packages not marked dev: 251 before, 251 after.
+  - Resolved version changed: 0. Removed: 0. Added: 0. Packages that switched between dev and non-dev: 0.
+  - Result: no production package's resolved version changed. The rewrite only added jest and its dev tree, plus formatting.
+
+2c. Exported functions.
+  api codebase (functions/):
+    - Second generation (v2):
+      - Scheduled: sendDailyRhythm, sendInsights, sendMilestones, sendHabitReminders, aggregateAnalytics, aggregateAnalyticsFull, cleanupExpiredSuspensions.
+      - Callable (onCall): triggerAggregation, updateModerationBlocklist, validateEventCode, generateHabitSuggestions, generateDailyPlan, deleteAccount.
+      - HTTPS (onRequest): revenueCatWebhook, journalPrompt, api.
+      - Firestore create triggers: onPostCreate_moderateContent (posts/{postId}), onPostReport_createQueueItem (postReports/{reportId}), onModerationAction (moderationActions/{actionId}).
+      - Storage triggers: ingestSleepAudio (object finalized), pruneSleepAudioDoc (object deleted), both on bucket [Firebase project ID].firebasestorage.app.
+    - First generation (v1): onUserCreate, an Auth user-create trigger (src/auth/onUserCreate.js, firebase-functions/v1).
+  notifications codebase (functions-notifications/), all v2 Firestore create triggers:
+    - notifyOnDirectMessageCreated (directMessages/{messageId})
+    - notifyOnConnectionRequestCreated (connections/{connectionId}), new on this branch
+    - notifyOnInviteCreated (connectionInvites/{inviteId})
+  Compared with the 25 Cloud Run services Kyle listed:
+    - Exported but NOT in the list:
+      - onUserCreate, which is first generation and so is not shown on that page. Its last-deploy date is not known from that list.
+      - notifyOnConnectionRequestCreated, new on this branch.
+    - In the list but NO LONGER exported: onnewdirectmessage and onnewconnection, removed by 688d277.
+    - Every other listed name matches an export. Cloud Run lowercases names and turns underscores into hyphens, so onpostcreate-moderatecontent is onPostCreate_moderateContent and onpostreport-createqueueitem is onPostReport_createQueueItem.
+
+======================================================================
+COMMITS ON THE BRANCH (git branch --show-current was the branch before each new commit)
+======================================================================
+  08b0859  test(npm-3a-i): before-state evidence for the Community push server   [prompt 1]
+  1f66c71  feat(notifications): one Community push sender, through Expo, at most once   [prompt 1]
+  688d277  feat(functions): retire the FCM Community senders; sweep bells by recipient   [prompt 1]
+  a7a8ec9  feat(notifications): every Expo request carries the Expo access token   [this prompt]
+    - functions-notifications/index.js: the secret is bound to the two Community triggers only.
+    - New src/community/secrets.js: defineSecret("EXPO_ACCESS_TOKEN") and readExpoAccessToken(), which returns null for unset, empty, whitespace or a failed read.
+    - send.js:
+      - with no token, nothing is sent and expo_access_token_missing is logged at error level;
+      - this check runs after eligibility and before the marker;
+      - the Expo client is constructed per send with {accessToken}.
+    - triggers.js passes the token.
+    - Tests: expoAccessToken.test.js (11 tests). fakeEnv.js gains the fake token, recording of the Expo client's options, and the network guard.
+    - functions-notifications: 73 tests in 5 suites, lint clean.
+  4ea5113  feat(rules): K12 create rules for messages, conversations and requests   [this prompt]
+    - firestore.rules: the three create rules (Step 4).
+    - firestore.rules.test.js: a new K12 suite (18 tests) and serverTimestamp added to the import.
+    - The existing "users can create connection requests" test now creates the mobile shape instead of the legacy a/b shape.
+    - Rules: 220 passed, 2 skipped.
+
+======================================================================
+STEP 3. EXPO ACCESS TOKEN
+======================================================================
+3a. EXPO_ACCESS_TOKEN is bound to notifyOnDirectMessageCreated and notifyOnConnectionRequestCreated only. notifyOnInviteCreated is unchanged and unbound. A test reads each function's __endpoint.secretEnvironmentVariables.
+3b. Every request carries "Authorization: Bearer <token>". The SDK sets this when the client has an accessToken (expo-server-sdk 4.0.0 build/ExpoClient.js, requestAsync). This is asserted against the REAL SDK, with node-fetch replaced by a stand-in that records the request.
+3c. An unavailable or empty token means no send, an error log with reason expo_access_token_missing, and NO marker. A test shows the same event sends once the token is back.
+3d. The token never appears in a log, error or fixture. Tests use "fake-expo-access-token-for-tests-only", and a test asserts it is absent from every log on every path.
+3e. An unauthorized answer from Expo (HTTP 401 with code UNAUTHORIZED) is logged as expo_send_failed with code UNAUTHORIZED, and fetch is called exactly once. That 401 body contains the fake token in its message, and the test asserts the token is not logged.
+
+======================================================================
+STEP 4. RULES
+======================================================================
+4a. The app's three writes, quoted. All three pass the new rules, checked before editing and asserted by tests.
+  Conversation (mobile/src/services/firebase/messaging.service.ts:67, 82-95, createOrGetConversation):
+      const participants = [uidA, uidB].sort();
+      ...
+      const conversationData = {
+        participants,
+        unreadCount: {
+          [uidA]: 0,
+          [uidB]: 0,
+        },
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      const docRef = await addDoc(collection(db, CONVERSATIONS_COLLECTION), conversationData);
+  Direct message (messaging.service.ts:193-202, sendDirectMessage; the composer is limited to maxLength 1000 at ChatScreen.tsx:297, and handleSend sends newMessage.trim() to otherUserId at ChatScreen.tsx:200-207):
+      const messageData = {
+        conversationId,
+        senderId,
+        receiverId,
+        text,
+        read: false,
+        createdAt: serverTimestamp(),
+      };
+      const docRef = await addDoc(collection(db, MESSAGES_COLLECTION), messageData);
+  Connection request (mobile/src/services/firebase/community.service.ts:507-522, sendConnectionRequest):
+      const connectionData = {
+        requesterId: requesterId,
+        addresseeId: addresseeId,
+        participants: [requesterId, addresseeId],
+        status: 'pending' as const,
+        createdAt: serverTimestamp(),
+      };
+      const docRef = await addDoc(connectionsRef, connectionData);
+4b. directMessages create: every existing condition is kept, and these are added:
+      receiverId is string && receiverId != senderId && receiverId in conversation.participants && text is string && text.size() <= 1000.
+4c. conversations create: every existing condition is kept, and these are added:
+      participants is list && participants.size() == 2 && participants[0] != participants[1].
+4d. connections create is now:
+      isAuthenticated() && isActiveUser() && requesterId == request.auth.uid && status == 'pending' && !keys().hasAny(['a', 'b', 'requester']).
+    Update and delete are unchanged.
+4e. Rules tests, all passing:
+    - the three app writes are allowed;
+    - a receiver outside the conversation is rejected;
+    - a message to yourself is rejected;
+    - a non-string receiver is rejected;
+    - non-string text (a number, a list) is rejected;
+    - 1000 characters are allowed and 1001 rejected;
+    - 500 emoji, the composer's longest emoji message, are allowed;
+    - one, three and duplicate participants are rejected;
+    - a requester who is not the caller is rejected;
+    - a request created as accepted is rejected;
+    - a request carrying a, b or requester is rejected (one test each);
+    - a suspended user cannot create a request;
+    - a user whose suspension has expired can.
+
+======================================================================
+BASELINES (after the last change, at 4ea5113)
+======================================================================
+                                   expected                 measured
+  mobile jest                      4242 / 279               4242 / 279, no failures
+  mobile tsc                       136                      136; sorted list IDENTICAL to Step A4 of prompt 1
+  mobile lint                      885 / 1242               885 / 1242
+  sentinel                         156                      156 (copyDraftSentinel.test.ts:819)
+  functions npm test               60 / 6                   60 / 6
+  functions-notifications test     above 62 / 4             73 / 5 (+11 tests, +1 suite: expoAccessToken)
+  functions-notifications lint     clean                    clean (exit 0)
+  rules (npm run test:rules)       above 201 + 2 skipped    220 passed + 2 skipped (+19 tests)
+  Sorted tsc list: scratchpad\p2\tsc_sorted.txt.
+  Every commit is green:
+    - a7a8ec9 changes only functions-notifications, which measured 73/5 at that commit.
+    - 4ea5113 changes only firestore.rules and its tests, which measured 220 + 2 skipped.
+
+======================================================================
+MUTATION TABLE (backup to scratchpad, mutate, run, restore from backup, SHA-256 match; never git)
+======================================================================
+Runner: scratchpad\mutate2.js. 23 mutations; 22 killed, 1 equivalent survivor. Every file restored with its SHA matching. A whole-file SHA check of firestore.rules and the community sources before and after the run also passed.
+  ID   file                    mutation                                    result     killed by
+  T1   send.js                 Expo client built without the token         KILLED     every request carries Authorization: Bearer; fake client handed the token
+  T2   send.js                 missing-token check removed                 KILLED     missing token: unset, empty
+  T3   send.js                 token check moved after the marker          KILLED     missing token writes no marker
+  T4   secrets.js              empty or whitespace token treated as set    KILLED     missing token: whitespace
+  T5   index.js                secret not bound to the DM trigger          KILLED     binds to the two Community triggers only
+  T6   index.js                secret also bound to the invite trigger     KILLED     same
+  T7   send.js                 a failed Expo send is retried               KILLED     unauthorized not retried; thrown send not retried
+  T8   send.js                 Expo error message logged instead of code   KILLED     unauthorized logged by code only
+  T9   log.js                  access token added to every log entry       KILLED     token never in logs; unauthorized test
+  R1   firestore.rules         drop "receiverId in participants"           KILLED     receiver outside the conversation
+  R2   firestore.rules         drop "receiverId != senderId"               KILLED     message to yourself
+  R3   firestore.rules         drop "receiverId is string"                 SURVIVED   equivalent; see below
+  R4   firestore.rules         drop "text is string"                       KILLED     non-string text
+  R5   firestore.rules         cap 1001                                    KILLED     1001 rejected
+  R6   firestore.rules         cap 999                                     KILLED     1000 allowed; 500 emoji allowed
+  R7   firestore.rules         drop "size() == 2"                          KILLED     three participants
+  R8   firestore.rules         drop the distinct-participants check        KILLED     duplicate participants
+  R9   firestore.rules         requester == caller replaced by "caller in participants"   KILLED     requester not the caller
+  R10  firestore.rules         drop "status == pending"                    KILLED     created as accepted
+  R11  firestore.rules         allow legacy a                              KILLED     carrying a
+  R12  firestore.rules         allow legacy b                              KILLED     carrying b
+  R13  firestore.rules         allow legacy requester                      KILLED     carrying requester
+  R14  firestore.rules         drop isActiveUser() on connections          KILLED     suspended user cannot create
+R3 is equivalent, and no test can kill it.
+  - Without "receiverId is string", a non-string receiver still fails "receiverId in conversation.participants", because participants holds only uid strings and no list or number can equal one.
+  - A missing receiverId makes the expression error, and that denies.
+  - So the clause does not change what the rule allows. It is kept because 4b asks for it, and it states the intent.
+Prompt 1's 43 mutations are not re-run here. This prompt changed send.js, triggers.js and index.js but did not touch eligibility.js, and the full prompt 1 suite still passes (73/5).
+
+======================================================================
+MANIFEST STATEMENT (updated)
+======================================================================
+Unchanged from prompt 1. There is no new Firestore collection and no new field. The only new write path is the marker notificationLog/{recipientUid}/community/{eventId} {kind, sentAt}. It is under the existing recursive "notificationLog" entry in UID_KEYED_DOC_TREES (functions/src/lib/accountDeletion.js:185-192):
+    const UID_KEYED_DOC_TREES = [
+      "userPrivate",
+      "sleepRoutines",
+      "notificationPreferences",
+      "rateLimits",
+      "notificationLog",
+      "users",
+    ];
+  The deletion sweep also covers notifications by recipientId.
+  This prompt adds one deploy-time binding, the EXPO_ACCESS_TOKEN secret. That is configuration, not data. Rules changes restrict writes and add no collection.
+  New locally stored key on the device: none.
+
+======================================================================
+STEP 6. DEPLOY INVENTORY (Kyle runs an unscoped functions deploy and a rules deploy from this branch)
+======================================================================
+6a. Every function the unscoped deploy will update:
+  notifications codebase
+    - notifyOnDirectMessageCreated: behaviour changed by this branch. It is the new eligibility-gated, at-most-once sender, using the Expo token and access token, with the K7 copy and no bell or email.
+    - notifyOnConnectionRequestCreated: CREATED by this branch (new).
+    - notifyOnInviteCreated: no behaviour change. It is redeployed because the codebase is, and it is moved but unchanged.
+  api codebase
+    - deleteAccount: behaviour changed by this branch, which sweeps notifications by recipientId. It is ALSO changed by commit 2185d83 (account deletion also removes moments), which Kyle is reviewing separately.
+    - onNewDirectMessage, onNewConnection: DELETED by this branch (see 6d).
+    - No behaviour change; these are only redeployed because the codebase is one bundle:
+        sendDailyRhythm, sendInsights, sendMilestones, sendHabitReminders,
+        onPostCreate_moderateContent, onPostReport_createQueueItem, onModerationAction,
+        aggregateAnalytics, aggregateAnalyticsFull, triggerAggregation,
+        cleanupExpiredSuspensions, updateModerationBlocklist, validateEventCode,
+        revenueCatWebhook, generateHabitSuggestions, generateDailyPlan, journalPrompt,
+        ingestSleepAudio, pruneSleepAudioDoc, api,
+        onUserCreate (first generation)
+      This assumes the live versions match main as of 2026-09-04. The four scheduled senders are redeployed, so Cloud Scheduler must still show all four Paused after the deploy (NPM-3b).
+      onUserCreate's live date is not known, because first-generation functions are not on the Cloud Run page. Its source last changed in a3694ee on 2026-08-29.
+6b. Commits after the relevant deploy date, other than 2185d83 and this branch's own:
+  - functions/ or firebase.json after the 2026-09-06 api deploy: only 2185d83 (2026-09-18 10:48 EDT), which is excluded. NONE UNREVIEWED.
+  - functions-notifications/ after the 2026-08-30 deploy: none on main. The last commit before it is a3694ee, 2026-08-29 11:11 EDT, the day before, which prompt 1 reviewed. NONE UNREVIEWED.
+  - Caveat: onUserCreate (first generation) has no known deploy date. If it was last deployed before 2026-08-29, then a3694ee's repoint of onUserCreate to userPrivate would go live with this deploy. That commit was reviewed in the prior deploy inventory, but its effect on onUserCreate specifically depends on the live date.
+6c. firestore.rules commits after the 2026-09-18 12:37 PM Eastern publish, other than this branch's: NONE.
+  - 2185d83 (the moments rule) was committed at 2026-09-18 10:48:23 -0400. Author and committer times are identical. That is 1 hour 49 minutes BEFORE the publish, so it could NOT have been committed after it.
+  - It COULD have been in that publish, if the publish ran from a checkout that contained it. The repo cannot show which checkout was published.
+  - This branch's only rules commit is 4ea5113.
+6d. What the Firebase CLI should do:
+  - OFFER TO DELETE: onNewDirectMessage and onNewConnection (api codebase, us-central1). Nothing else. Answer Yes only if the list is exactly those two. If it lists anything else, answer No and stop.
+  - CREATE: notifyOnConnectionRequestCreated (notifications codebase, v2, Firestore document-created trigger on connections/{connectionId}, default region us-central1, maxInstances 10).
+  - BIND SECRET: EXPO_ACCESS_TOKEN to notifyOnDirectMessageCreated (updated) and notifyOnConnectionRequestCreated (created). Nothing else gets this secret. The CLI resolves the secret's latest version at deploy and grants the functions' runtime service account access to it.
+    The api codebase keeps the secret bindings it already declares: OPENAI_API_KEY on the AI and moderation functions, and the RevenueCat webhook secret. This branch changes none of them.
+  - UPDATE: every other function listed in 6a.
+  - Rules deploy: firestore.rules only. Indexes and storage rules are unchanged.
+  - Before the walk (Kyle's ruling): switch on Expo's enhanced push security AFTER the deploy. Before the deploy, Expo would reject nothing; after it, the old live sender's unauthenticated requests would be refused, and the new sender carries the token.
+
+======================================================================
+COULD NOT DO AS WRITTEN, OR DEVIATIONS
+======================================================================
+D1. The unintended calls to Expo described at the top. They are prevented now, and pinned by tests.
+D2. One existing rules test changed its fixture, not its intent. "users can create connection requests" created the legacy {a, b} shape, which K12 now refuses, so it now creates the mobile shape. The other tests that seed legacy a/b connections do so through the admin path, which bypasses the rules, and they are unchanged.
+D3. R3 survives as an equivalent mutant (above).
+D4. The connections create rule does not constrain addresseeId (type, difference from the requester) or participants. 4d did not ask for it, and K12 lists only the four conditions. Today a request with a bad addressee is ignored by the push sender's shape check. Tightening it belongs to COMMUNITY-RULES-INTEGRITY.
+D5. The 1000-character cap counts what the rules engine's string size() counts. The emulator accepted 500 emoji (1000 UTF-16 units). So the composer's longest possible message passes, whatever the unit.
+D6. The "users can create connection requests" change and the K12 suite add 19 rules tests. The before count 201 includes the old version of that test.
+
+STOP. No docs, no walk script, no deploy.

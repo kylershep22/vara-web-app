@@ -12,7 +12,7 @@ const {
   assertSucceeds,
   assertFails,
 } = require('@firebase/rules-unit-testing');
-const { setDoc, getDoc, doc, updateDoc, deleteDoc, collection, addDoc, query, where, orderBy, getDocs } = require('firebase/firestore');
+const { setDoc, getDoc, doc, updateDoc, deleteDoc, collection, addDoc, query, where, orderBy, getDocs, serverTimestamp } = require('firebase/firestore');
 const fs = require('fs');
 
 let testEnv;
@@ -587,14 +587,18 @@ describe('Posts (Group Forum)', () => {
 
 describe('Connections', () => {
   test('users can create connection requests', async () => {
+    // NPM-3a-i (K12): this test used to create the legacy {a, b} shape,
+    // which the create rule now refuses. It now creates the shape the mobile
+    // app writes (community.service.ts sendConnectionRequest).
     const context = getAuthContext(ALICE_UID);
     const db = context.firestore();
-    const pairId = [ALICE_UID, BOB_UID].sort().join('_');
 
-    await assertSucceeds(setDoc(doc(db, 'connections', pairId), {
-      a: [ALICE_UID, BOB_UID].sort()[0],
-      b: [ALICE_UID, BOB_UID].sort()[1],
+    await assertSucceeds(addDoc(collection(db, 'connections'), {
+      requesterId: ALICE_UID,
+      addresseeId: BOB_UID,
+      participants: [ALICE_UID, BOB_UID],
       status: 'pending',
+      createdAt: serverTimestamp(),
     }));
   });
 
@@ -791,6 +795,192 @@ describe('Messaging', () => {
     const db = context.firestore();
 
     await assertFails(deleteDoc(doc(db, 'directMessages', msgRef.id)));
+  });
+});
+
+// ============================================
+// TEST SUITE: NPM-3a-i COMMUNITY CREATE RULES (K12)
+// ============================================
+//
+// Every assertFails below has an assertSucceeds on the app's own write
+// against the same kind of fixture, so a denial can only come from the
+// condition under test, never from a missing fixture.
+
+describe('NPM-3a-i community create rules (K12)', () => {
+  /** The conversation createOrGetConversation writes (messaging.service.ts). */
+  function appConversation(uidA, uidB) {
+    return {
+      participants: [uidA, uidB].sort(),
+      unreadCount: { [uidA]: 0, [uidB]: 0 },
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+  }
+
+  /** The message sendDirectMessage writes (messaging.service.ts). */
+  function appMessage(conversationId, senderId, receiverId, text) {
+    return {
+      conversationId,
+      senderId,
+      receiverId,
+      text,
+      read: false,
+      createdAt: serverTimestamp(),
+    };
+  }
+
+  /** The request sendConnectionRequest writes (community.service.ts). */
+  function appRequest(requesterId, addresseeId, extra = {}) {
+    return {
+      requesterId,
+      addresseeId,
+      participants: [requesterId, addresseeId],
+      status: 'pending',
+      createdAt: serverTimestamp(),
+      ...extra,
+    };
+  }
+
+  describe('the app writes are allowed', () => {
+    test('creating a conversation', async () => {
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertSucceeds(addDoc(collection(db, 'conversations'),
+          appConversation(ALICE_UID, BOB_UID)));
+    });
+
+    test('sending a direct message', async () => {
+      await setupConversation('k12-conv', [ALICE_UID, BOB_UID].sort());
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertSucceeds(addDoc(collection(db, 'directMessages'),
+          appMessage('k12-conv', ALICE_UID, BOB_UID, 'Hello!')));
+    });
+
+    test('sending a connection request', async () => {
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertSucceeds(addDoc(collection(db, 'connections'),
+          appRequest(ALICE_UID, BOB_UID)));
+    });
+  });
+
+  describe('directMessages create', () => {
+    beforeEach(async () => {
+      await setupConversation('k12-dm', [ALICE_UID, BOB_UID].sort());
+    });
+
+    // Mutation: drop "receiverId in participants".
+    test('a receiver outside the conversation is rejected', async () => {
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertFails(addDoc(collection(db, 'directMessages'),
+          appMessage('k12-dm', ALICE_UID, CHARLIE_UID, 'Hello!')));
+    });
+
+    // Mutation: drop "receiverId != senderId".
+    test('a message to yourself is rejected', async () => {
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertFails(addDoc(collection(db, 'directMessages'),
+          appMessage('k12-dm', ALICE_UID, ALICE_UID, 'Hello!')));
+    });
+
+    // Mutation: drop "receiverId is string".
+    test('a non-string receiver is rejected', async () => {
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertFails(addDoc(collection(db, 'directMessages'),
+          appMessage('k12-dm', ALICE_UID, [BOB_UID], 'Hello!')));
+    });
+
+    // Mutation: drop "text is string".
+    test('non-string text is rejected', async () => {
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertFails(addDoc(collection(db, 'directMessages'),
+          appMessage('k12-dm', ALICE_UID, BOB_UID, 12345)));
+      await assertFails(addDoc(collection(db, 'directMessages'),
+          appMessage('k12-dm', ALICE_UID, BOB_UID, ['Hello!'])));
+    });
+
+    // Mutation: change the cap (999 fails the first, 1001 passes the second).
+    test('1000 characters are allowed and 1001 are rejected', async () => {
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertSucceeds(addDoc(collection(db, 'directMessages'),
+          appMessage('k12-dm', ALICE_UID, BOB_UID, 'x'.repeat(1000))));
+      await assertFails(addDoc(collection(db, 'directMessages'),
+          appMessage('k12-dm', ALICE_UID, BOB_UID, 'x'.repeat(1001))));
+    });
+
+    // The composer's maxLength counts UTF-16 units, so the longest emoji
+    // message it can send is 500 emoji. The rule must accept it.
+    test('the longest emoji message the composer allows is accepted', async () => {
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertSucceeds(addDoc(collection(db, 'directMessages'),
+          appMessage('k12-dm', ALICE_UID, BOB_UID, '\u{1F600}'.repeat(500))));
+    });
+  });
+
+  describe('conversations create', () => {
+    // Mutation: drop the size() == 2 check.
+    test('one participant is rejected', async () => {
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertFails(addDoc(collection(db, 'conversations'),
+          { participants: [ALICE_UID], createdAt: serverTimestamp() }));
+    });
+
+    test('three participants are rejected', async () => {
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertFails(addDoc(collection(db, 'conversations'),
+          { participants: [ALICE_UID, BOB_UID, CHARLIE_UID], createdAt: serverTimestamp() }));
+    });
+
+    // Mutation: drop the participants[0] != participants[1] check.
+    test('duplicate participants are rejected', async () => {
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertFails(addDoc(collection(db, 'conversations'),
+          { participants: [ALICE_UID, ALICE_UID], createdAt: serverTimestamp() }));
+    });
+  });
+
+  describe('connections create', () => {
+    // Mutation: drop "requesterId == request.auth.uid".
+    test('a request whose requester is not the caller is rejected', async () => {
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertFails(addDoc(collection(db, 'connections'),
+          appRequest(BOB_UID, ALICE_UID)));
+      await assertFails(addDoc(collection(db, 'connections'),
+          appRequest(BOB_UID, CHARLIE_UID, { participants: [BOB_UID, CHARLIE_UID, ALICE_UID] })));
+    });
+
+    // Mutation: drop "status == 'pending'".
+    test('a request created as accepted is rejected', async () => {
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertFails(addDoc(collection(db, 'connections'),
+          appRequest(ALICE_UID, BOB_UID, { status: 'accepted' })));
+    });
+
+    // Mutation: drop any one key from the hasAny list.
+    test.each(['a', 'b', 'requester'])('a request carrying %s is rejected', async (field) => {
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertFails(addDoc(collection(db, 'connections'),
+          appRequest(ALICE_UID, BOB_UID, { [field]: ALICE_UID })));
+    });
+
+    // Mutation: drop isActiveUser() from the create rule.
+    test('a suspended user cannot create a request', async () => {
+      await setupUserProfile(ALICE_UID, {
+        moderationStatus: 'suspended',
+        suspendedUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      });
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertFails(addDoc(collection(db, 'connections'),
+          appRequest(ALICE_UID, BOB_UID)));
+    });
+
+    test('a user whose suspension has expired can create a request', async () => {
+      await setupUserProfile(ALICE_UID, {
+        moderationStatus: 'suspended',
+        suspendedUntil: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      });
+      const db = getAuthContext(ALICE_UID).firestore();
+      await assertSucceeds(addDoc(collection(db, 'connections'),
+          appRequest(ALICE_UID, BOB_UID)));
+    });
   });
 });
 
