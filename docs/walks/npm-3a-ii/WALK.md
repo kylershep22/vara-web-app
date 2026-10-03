@@ -231,3 +231,85 @@ Kyle states both gate keys in his own words before any merge command is issued: 
 green, and the walk passed.
 
 ## Results (Kyle's words only)
+
+Times are as shown in the Logs Explorer on 2026-10-03. Accounts are A, B and C as defined above.
+
+### Part 1: deploy
+
+**Recorded facts, from the terminal output Kyle pasted:**
+
+- Branch journey/npm-3a-ii-community-push-phone at 467e924, clean tree, and no change to
+  functions code since 67e6112.
+- functions: 60 tests passed in 6 suites.
+- functions-notifications: 125 tests passed in 8 suites.
+- firebase deploy --only functions completed, every function was updated, and no deletion prompt
+  appeared.
+
+**Not reported:** the Cloud Scheduler state before or after this deploy.
+
+### Part 2: helper setup
+
+**Recorded facts:**
+
+- CC wrote the local allowlist at Kyle's request, after Kyle's own file was not valid JSON, and
+  deleted a stray copy of the example from the repo root.
+- Two dry runs passed and wrote nothing. They showed an accepted connection and an existing
+  conversation between A and B, and no connection document between A and C.
+
+### Part 3: steps
+
+**Kyle's words, in the order he gave them:**
+
+> I ran both before opening the app itself. I got a push notification for both on my device. When I logged in and tried to run them again I did not see a toast. Was I only able to run these once for them to work?
+
+> I was logged into the wrong account.. tried it again and I did get the toast as expected - passed
+
+> Everything passed but I am not sure where the "notification center" is in the app.
+
+Asked whether the cold-start tap opened the conversation:
+
+> 1. Yes, the conversation
+
+Asked whether he checked Firestore for A's token fields while signed out:
+
+> 2. No - skipped
+
+Asked whether he checked the log for W8 and W9:
+
+> 3. No - skipped
+
+Asked whether he created a new account for W1:
+
+> 4. no - skipped
+
+After being shown where the iOS Notification Center is and running W7:
+
+> W7 passes as well
+
+**Recorded fact, from the log entry Kyle then pasted:** on notifyondirectmessagecreated at
+2026-10-03 15:26:18.496, a direct_message event sent by account B to account A had outcome
+ineligible with reason token_missing.
+
+### Reviewer notes, not Kyle's words
+
+- The first two pushes arrived while Kyle was signed out because that sign-out happened on the
+  earlier code, which never removed the token.
+- While Kyle was signed in as an account other than A, a push addressed to A showed no toast. The
+  reviewer reads that as ruling II-D6 working. The second request command would have been refused
+  because the first run had created a request.
+- The token_missing entry is the server evidence for the signed-out steps. Kyle pasted one entry;
+  it was not established whether it belongs to W8 or to the first half of W9.
+
+### NOT RUN
+
+- W1 (a grant in onboarding saves the token). The regression test that presses the real button
+  (RG1) is the evidence.
+- The Firestore check of A's token fields in W8.
+- Per-step log and marker checks for W2 to W6.
+- The two end-of-walk screenshots.
+
+### Gate keys
+
+**Kyle's attestation, verbatim:**
+
+> Suites green: functions 60 tests passed in 6 suites, functions-notifications 125 tests passed in 8 suites. Walk passed as run.
