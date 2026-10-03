@@ -53,8 +53,11 @@ afterEach(() => {
 
 /** @return {Array<object>} structured community_push log payloads */
 function pushLogs() {
+  // The outcome line of each invocation (src/community/log.js). The
+  // received lines are pinned in evidenceLogs.test.js.
   return env.logs
-      .filter((l) => l.args[0] === "community_push")
+      .filter((l) => l.args[0] === "community_push" &&
+        l.args[1] && l.args[1].stage === "outcome")
       .map((l) => Object.assign({level: l.level}, l.args[1]));
 }
 

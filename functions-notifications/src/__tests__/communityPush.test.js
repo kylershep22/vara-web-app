@@ -49,8 +49,11 @@ function runRequest(overrides, id) {
 
 /** @return {Array<object>} the structured community_push log payloads */
 function pushLogs() {
+  // The outcome line of each invocation (src/community/log.js). The
+  // received lines are pinned in evidenceLogs.test.js.
   return env.logs
-      .filter((l) => l.args[0] === "community_push")
+      .filter((l) => l.args[0] === "community_push" &&
+        l.args[1] && l.args[1].stage === "outcome")
       .map((l) => Object.assign({level: l.level}, l.args[1]));
 }
 
@@ -526,12 +529,15 @@ describe("logs", () => {
     expect(text).not.toContain("ExponentPushToken");
   });
 
-  it("carry only the event ID, user IDs and a reason code", async () => {
+  it("carry only fixed keys: IDs, a reason code and an error code", async () => {
+    env.store.delete(`userPrivate/${world.RECIPIENT}`);
     await runDm(undefined, "m-keys");
-    for (const entry of pushLogs()) {
+    const entries = pushLogs();
+    expect(entries).toHaveLength(1);
+    for (const entry of entries) {
       expect(Object.keys(entry).sort()).toEqual(
-          ["actorId", "code", "eventId", "kind", "level", "reason",
-            "recipientId"]);
+          ["actorId", "code", "eventId", "kind", "level", "outcome", "reason",
+            "recipientId", "stage"]);
     }
   });
 });

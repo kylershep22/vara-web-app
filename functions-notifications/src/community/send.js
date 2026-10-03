@@ -20,7 +20,6 @@
 
 const admin = require("firebase-admin");
 const {Expo} = require("expo-server-sdk");
-const {logCommunity} = require("./log");
 
 /** Firestore's ALREADY_EXISTS, as the Admin SDK reports it. */
 const ALREADY_EXISTS = 6;
@@ -60,27 +59,24 @@ function composePush(kind, eventId, eligible) {
 }
 
 /**
- * Write the marker, then send. Logs every outcome.
+ * Write the marker, then send. Returns the invocation's outcome; the caller
+ * writes the one outcome log line (src/community/log.js).
  *
  * @param {object} db
  * @param {string} kind
  * @param {string} eventId
  * @param {object} eligible
  * @param {string|null} accessToken the Expo access token, or null
- * @return {Promise<boolean>} whether a push was handed to Expo
+ * @return {Promise<object>} {outcome, level, reason, code, actorId,
+ *   recipientId, ticketId}
  */
 async function markAndSend(db, kind, eventId, eligible, accessToken) {
-  const base = {
-    kind,
-    eventId,
-    actorId: eligible.actorId,
-    recipientId: eligible.recipientId,
-  };
+  const ids = {actorId: eligible.actorId, recipientId: eligible.recipientId};
+  const result = (fields) => Object.assign({}, ids, fields);
 
   if (!accessToken) {
-    logCommunity("error", Object.assign(
-        {reason: "expo_access_token_missing"}, base));
-    return false;
+    return result({outcome: "config_missing", level: "error",
+      reason: "expo_access_token_missing"});
   }
 
   try {
@@ -92,12 +88,11 @@ async function markAndSend(db, kind, eventId, eligible, accessToken) {
     });
   } catch (err) {
     if (err && err.code === ALREADY_EXISTS) {
-      logCommunity("info", Object.assign({reason: "duplicate_event"}, base));
-    } else {
-      logCommunity("error", Object.assign(
-          {reason: "marker_failed", code: err && err.code}, base));
+      return result({outcome: "duplicate", level: "info",
+        reason: "duplicate_event"});
     }
-    return false;
+    return result({outcome: "send_failed", level: "error",
+      reason: "marker_failed", code: err && err.code});
   }
 
   const push = composePush(kind, eventId, eligible);
@@ -116,9 +111,8 @@ async function markAndSend(db, kind, eventId, eligible, accessToken) {
   try {
     tickets = await expo.sendPushNotificationsAsync([message]);
   } catch (err) {
-    logCommunity("error", Object.assign(
-        {reason: "expo_send_failed", code: err && err.code}, base));
-    return true;
+    return result({outcome: "send_failed", level: "error",
+      reason: "expo_send_failed", code: err && err.code});
   }
 
   const ticket = Array.isArray(tickets) ? tickets[0] : undefined;
@@ -128,13 +122,13 @@ async function markAndSend(db, kind, eventId, eligible, accessToken) {
     // logged.
     const code = ticket && ticket.details && ticket.details.error ?
       ticket.details.error : "unknown";
-    logCommunity("error", Object.assign(
-        {reason: "expo_ticket_error", code}, base));
-    return true;
+    return result({outcome: "send_failed", level: "error",
+      reason: "expo_ticket_error", code});
   }
 
-  logCommunity("info", Object.assign({reason: "sent"}, base));
-  return true;
+  // Expo accepted the push request: only now is the outcome "sent".
+  return result({outcome: "sent", level: "info", reason: "sent",
+    ticketId: ticket.id});
 }
 
 module.exports = {composePush, markAndSend};
