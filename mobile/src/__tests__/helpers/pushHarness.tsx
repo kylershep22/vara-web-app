@@ -40,6 +40,8 @@ interface World {
   tokenListeners: Listener[];
   removedTokenListeners: number;
   transactionMode: 'normal' | 'hang' | 'reject';
+  /** Runs inside a transaction before its body, to change state mid-transaction. */
+  onTransactionStart: (() => void) | null;
 }
 
 export const world: World = {
@@ -54,6 +56,7 @@ export const world: World = {
   tokenListeners: [],
   removedTokenListeners: 0,
   transactionMode: 'normal',
+  onTransactionStart: null,
 };
 
 export function resetWorld(): void {
@@ -68,6 +71,7 @@ export function resetWorld(): void {
   world.tokenListeners = [];
   world.removedTokenListeners = 0;
   world.transactionMode = 'normal';
+  world.onTransactionStart = null;
 }
 
 /** The stored userPrivate document for a uid, or undefined. */
@@ -229,6 +233,7 @@ export const fakeFirestore = {
         code: 'unavailable',
       });
     }
+    world.onTransactionStart?.();
     const queued: { ref: Ref; data: Data; merge: boolean }[] = [];
     const result = await body({
       get: async (ref: Ref) => {
