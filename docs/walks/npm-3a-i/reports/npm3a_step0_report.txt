@@ -1,0 +1,445 @@
+NPM-3a COMMUNITY-NOTIFICATION-CORRECTNESS: STEP 0 REPORT (read-only)
+Measured 2026-10-02 on main at 7e8750b. Nothing was edited, staged, committed, branched, installed or deployed. Nothing was written to Firestore or any remote service.
+
+HEADLINE FINDINGS
+H1. On an iPhone, only one of the two DM senders can deliver. functions-notifications/notifyOnDirectMessageCreated sends through the Expo push service to userPrivate.expoPushToken. functions/onNewDirectMessage sends through FCM (admin.messaging) to userPrivate.fcmToken. On iOS that field holds a raw APNs device token, because the app has no Firebase Messaging native SDK. FCM rejects a raw APNs token, so that path cannot deliver on iOS. This is derived from the code plus the libraries' documented behaviour and has NOT been checked on a device. Item 12 gives a read-only console check that settles it.
+H2. The only path that delivers on iOS ignores every preference. Direct Messages OFF, General OFF and Quiet Hours do nothing on an iPhone today.
+H3. Most new users never get an Expo token saved. Onboarding fetches the token and throws it away. The token is saved only when the user opens Settings (useNotifications on mount) or grants through NPM-2's permission row. A user who grants permission during onboarding and never opens Settings receives no DM pushes on iPhone.
+H4. Connection requests produce no push for anyone. The app writes requesterId/addresseeId. onNewConnection reads a/b and returns early. notifyOnInviteCreated listens on connectionInvites, which only the dormant web app writes, and it sends no push in any case.
+H5. Security: any signed-in, non-suspended user can push arbitrary text to any user. The directMessages create rule never checks receiverId, and the conversations create rule lets a user open a conversation with any uid. The push body is "<sender displayName>: <text>", and displayName is user-controlled. The connections create rule lets a user write a: <anyone>, b: <victim> with themselves as requesterId, so once onNewConnection reads the right fields it can send a request that appears to come from a third person. There is no blocking model anywhere.
+H6. Nothing removes a token at sign-out, forced sign-out or account switch. A signed-out or switched iPhone keeps receiving the previous account's DM pushes, including message text, on the lock screen. Only account deletion removes the tokens, and it does so on the server.
+
+======================================================================
+0. BOARD AND MERGE EVIDENCE
+======================================================================
+git branch --show-current            -> main                                       (expected main) OK
+git rev-parse HEAD                    -> 7e8750b666830c1cb424c6f60f4d88724d7b231b   (expected 7e8750b) OK
+git rev-parse origin/main             -> 7e8750b666830c1cb424c6f60f4d88724d7b231b   (expected 7e8750b) OK; Kyle has pushed
+git rev-parse origin/journey/npm-2-notification-settings-truthfulness
+                                      -> 0973b5c953d7db08e1d6752ce4195b8c7ac6694b   (expected 0973b5c) OK
+git status --porcelain --untracked-files=all -> (empty)                            clean tree OK
+git ls-remote origin main             -> 7e8750b666830c1cb424c6f60f4d88724d7b231b refs/heads/main
+git log -1 --format=%H%n%P%n%s 7e8750b ->
+  7e8750b666830c1cb424c6f60f4d88724d7b231b
+  b8c4c67a6c080a64f25b71dc5390d03f5b97f340 0973b5c953d7db08e1d6752ce4195b8c7ac6694b
+  journey/npm-2-notification-settings-truthfulness: notification settings tell the truth, changes apply at once and survive a restart
+  (A two-parent merge: first parent b8c4c67, second parent 0973b5c.)
+
+Baselines, measured now from mobile/:
+  jest     4242 tests / 279 suites, all passed, no failures. Expected 4242/279. MATCH.
+  tsc      136 "error TS" lines (exit 2). Expected 136. MATCH.
+           Sorted list with file positions stripped:
+           C:\Users\kyler\AppData\Local\Temp\claude\C--Users-kyler-wellness-app\d7c08c95-6294-4ded-858f-c3e019b72e1d\scratchpad\tsc_sorted_npm3a_step0.txt
+  lint     885 errors / 1242 warnings (eslint src/ App.tsx --ext .ts,.tsx). Expected 885/1242. MATCH.
+  sentinel EXPECTED_SENTINELS = 156 (src/__tests__/copyDraftSentinel.test.ts:819); the suite PASSed in the jest run. Expected 156. MATCH.
+
+Functions tests:
+  functions/ npm test (firebase emulators:exec ... jest): 55 passed / 4 suites (deleteAccountSweep, rateLimit, deleteAccountCleanup, userFields). The emulator started, so dependencies were present.
+  functions-notifications/: package.json has no "test" script and no test files. No tests to run. Its node_modules is present.
+
+Roadmap quotes (docs/Vara_Journey_Architecture_Roadmap_v3.md):
+
+NPM-2 marker (line 429, opening):
+  | NPM-2 NOTIFICATION-SETTINGS-TRUTHFULNESS | **[Next]** **[BUILT AND WALKED at f516f78, AWAITING MERGE. LAUNCH-BLOCKING. WALK STEPS 9, 11, 12 AND 13 NOT RUN BY KYLE'S DECISION; TESTS ARE THE EVIDENCE.]** **[NPM-2 HIDES QUIET HOURS (Kyle's Ruling 9, 2026-10-02). NOTIFICATION BEHAVIOUR IS NOT LAUNCH-READY UNTIL NPM-3a REMOVES SERVER ENFORCEMENT OF STORED QUIET HOURS.]** Was: **[Next]** **[BUILT, WALK PENDING on journey/npm-2-notification-settings-truthfulness. LAUNCH-BLOCKING.]** ... (the rest of the row follows the "Was:" chain, then:) | **OWNS KYLE'S RULINGS D4, D6, D7, D8, AND D9'S REACHABLE REMOVAL** ... | NPM-1 merged. | Yes, Kyle's device walk. |
+
+NPM-3a row, in full (line 430):
+  | NPM-3a COMMUNITY-NOTIFICATION-CORRECTNESS | **[READY. LAUNCH-BLOCKING.]** **LAUNCH DEPENDENCY (Kyle's Ruling 9, 2026-10-02): NPM-3a MUST REMOVE SERVER ENFORCEMENT OF STORED QUIET HOURS** (`functions/src/notifications/social.js` lines 36 and 91, and every other `isWithinQuietHours` caller under `functions/src/notifications/`) **before notification behaviour is launch-ready. NPM-2 has hidden the control; the stored default is enabled, 21:00 to 08:00.** ALSO: Kyle's Ruling 7 confirms that NPM-3a removes the `allNotificationsEnabled` check from the DM and connection-request senders (`social.js` lines 35 and 90): Community notification preferences are independent of General. *(Added 2026-10-02 at NPM-2's build docs.)* **[NOT AN R-SERIES ROW. OWN SLICE. Row added 2026-10-01, split from NOTIFICATION-PREFERENCES-MODEL.]** One correct push per Community event *(row added 2026-10-01)* | **KYLE'S RULING, VERBATIM (D5 and ruling 6, as revised):** "Community is part of V1, including its current Messages, People and Connect functionality. Do not create a retirement slice for those entry points. The DM and connection issues belong to a separate launch-blocking NPM-3a COMMUNITY-NOTIFICATION-CORRECTNESS row. It must resolve the duplicate DM sender architecture, the connection-request field mismatch, preference enforcement, and prove one correct push per relevant event. Do not widen NPM-1 with that server work." **ALSO OWNS** push-token registration for Community pushes, and what the server does with stored Quiet Hours once NPM-2 hides that control. **INHERITS** SOCIAL-PUSH-FLAG-BYPASS and NOTIFICATIONS-CODEBASE-IGNORES-PREFS (whose `notifyOnInviteCreated` sends no push, and triggers on `connectionInvites`, which mobile never writes; see NPM-1's §13 entry). **NEEDS A FUNCTIONS DEPLOY, with `npm test` in `functions/` first.** | None. | Yes, Kyle's walk with two accounts after the deploy. |
+
+NPM3A-NOTIFICATION-FINDINGS (line 390):
+  | NPM3A-NOTIFICATION-FINDINGS | **[RECORDED, LEDGER. Row added 2026-10-02 at NPM-2's build docs. FINDINGS, NOT RULINGS. FOR NPM-3a.]** What NPM-2 found in the push paths it did not own *(row added 2026-10-02)* | **FINDING 1:** the two direct-message senders push through different tokens: `functions/src/notifications/social.js` sends through `fcmToken` (read through `functions/src/lib/userFields.js`), and `functions-notifications/index.js` through `expoPushToken`. **FINDING 2:** `functions-notifications/index.js` (`notifyOnDirectMessageCreated`) sends a direct-message push with no preference check at all. **FINDING 3:** tap routing for daily-rhythm and Community pushes (`category` `daily_rhythm` and `social_connection`) lives in `mobile/src/hooks/useNotifications.ts`, which is mounted only on SettingsScreen; `NotificationContext`'s response listener routes only habit, routine and focus taps. **FINDING 4:** a failed push-token save was being logged as a permission failure: `useNotifications.checkPermissions` catches the rethrow from `savePushTokenToUser` (which reads `userPrivate/{uid}` before writing) and logs "Error checking notification permissions". NPM-2's new device-permission row never reports a token-save failure as a permission failure; `useNotifications` still logs it that way on SettingsScreen's mount. | None. | None until NPM-3a. |
+
+JOURNAL-OPTIN-TOKEN-SAVE-REMOVED (line 385):
+  | JOURNAL-OPTIN-TOKEN-SAVE-REMOVED | **[RECORDED, LEDGER. Row added 2026-10-02 at NPM-2's build docs. OWNED BY NPM-3a.]** One of the paths that saved the Expo push token is gone *(row added 2026-10-02)* | NPM-2 removed the reachable Journal notification opt-in (D9). That screen (`NotificationOptInScreen`) was one of three paths that saved `userPrivate.expoPushToken`. What remains: SettingsScreen's save on mount through `useNotifications` (kept mounted, Kyle's Ruling 5) and the new device-permission row's save after a grant. The FCM token path (`registerAndSaveFCMToken` in `NotificationContext`) is unaffected. Kyle's Ruling 5: "Do not choose the future Community token architecture by implication. NPM-3a retains token-registration ownership." | None. | None until NPM-3a. |
+
+Every [Next] that opens a row:
+  - Line 429, NPM-2 NOTIFICATION-SETTINGS-TRUTHFULNESS (quoted above). This is the only roadmap-table row whose status cell opens with [Next].
+  - Line 10292, "| **7k** | **[Next]** | `supportingPracticeIds` mapping, R7 5 -> 2, R1's copy edit. Sentinel flat. |". This is a row in an older, historical sub-table, not the board. It is reported because it matches the pattern; it is stale history.
+  Every other [Next] occurrence is in a "Was:" chain or in prose blocks.
+
+Related operational record (roadmap lines 2546-2555, from Kyle's 2026-10-01 console state): no config collection exists, so config/notifications.serverPushEnabled is missing. All eight notification functions are deployed. Kyle paused sendDailyRhythm, sendHabitReminders, sendInsights and sendMilestones at 5:50 PM Eastern on 2026-10-01. The event-triggered Community functions were left running. Line 5236: "sendDailyRhythm logs on every run in the repo's source, so 96 runs with no logs suggests the deployed version may differ."
+
+======================================================================
+1. WHAT EXISTS ON THE SERVER
+======================================================================
+firebase.json "functions" array (two codebases):
+  - source "functions", codebase "api", runtime nodejs22. predeploy: npm ci || npm install, then lint (failures ignored).
+  - source "functions-notifications", codebase "notifications", runtime nodejs22. predeploy: npm run lint.
+
+api codebase notification exports (functions/index.js:21-26), all from functions/src/notifications/index.js:
+  sendDailyRhythm (21), sendInsights (22), onNewDirectMessage (23), onNewConnection (24), sendMilestones (25), sendHabitReminders (26).
+notifications codebase exports: notifyOnInviteCreated (functions-notifications/index.js:192) and notifyOnDirectMessageCreated (:230).
+That makes 6 + 2 = 8 notification functions, which matches Kyle's "all eight".
+
+The four functions in question:
+  onNewDirectMessage (functions/src/notifications/social.js:17)
+    codebase api; onDocumentCreated "directMessages/{messageId}", region us-central1.
+    Sends one FCM message via admin.messaging().send (utils/fcmSender.js:20) to fcmToken. title = sender displayName, body = text truncated to 97 chars + "...". data {type:"message", category:"social_connection", conversationId, senderId}. apns sound default.
+  onNewConnection (social.js:70)
+    codebase api; onDocumentCreated "connections/{connectionId}", region us-central1.
+    Only when status == "pending". Reads connection.a (sender) and connection.b (receiver) (lines 81-82). Sends FCM: title "<name> would like to connect", body "Tap to view their profile.", data {type:"connection", category:"social_connection", senderId}.
+  notifyOnDirectMessageCreated (functions-notifications/index.js:230)
+    codebase notifications; onDocumentCreated "directMessages/{messageId}" (default region us-central1, maxInstances 10).
+    Writes a bell doc to notifications/ (recipientId, type "message", title "New message", body "<name>: <text[0..120]>", link "/community?tab=messages", read false, createdAt). Sends an Expo push (expo-server-sdk) to expoPushToken: title "New message", same body, data {type:"message", conversationId, senderId}, sound default, priority high, channelId default. Sends an email only if a SENDGRID_API_KEY secret exists (it would also need @sendgrid/mail, which is not in package.json).
+  notifyOnInviteCreated (functions-notifications/index.js:192)
+    codebase notifications; onDocumentCreated "connectionInvites/{inviteId}". Only when status pending and from/to are set.
+    Writes a bell doc (type "invite", "New connection request", "<name> sent you a connection request.", link "/community") and an optional email. It sends NO push.
+
+Checks Kyle should run to see what is deployed (deploy state cannot be inferred from the repo):
+  a) Firebase console > Functions (or `firebase functions:list`): confirm the eight names and their regions, and that onNewDirectMessage, onNewConnection, notifyOnDirectMessageCreated and notifyOnInviteCreated each show a Firestore trigger on the paths above. Note each one's "last deployed" time.
+  b) Google Cloud console > Cloud Scheduler (project [Firebase project ID], region us-central1): jobs named firebase-schedule-sendDailyRhythm-us-central1, -sendHabitReminders-, -sendInsights-, -sendMilestones-. State must read "Paused". The analytics and cleanup jobs (aggregateAnalytics, aggregateAnalyticsFull, cleanupExpiredSuspensions) are separate and are not part of the four.
+  c) Firestore console: confirm there is still no config collection, or that config/notifications.serverPushEnabled is absent or false.
+  d) Optional: Cloud console > Cloud Functions > each function > Source tab, to see whether the deployed sendDailyRhythm source matches the repo (see line 5236).
+  e) Logs Explorer filtered on onNewDirectMessage and notifyOnDirectMessageCreated over the last 7 days. If onNewDirectMessage logged "FCM send error" or "Invalid FCM token" for an iOS recipient, that confirms H1 from production (read-only).
+
+======================================================================
+2. DIRECT MESSAGE PUSHES, END TO END
+======================================================================
+Sender A, onNewDirectMessage (api, social.js):
+  - Recipient: message.receiverId (line 27). Returns if receiverId or senderId is missing.
+  - Preferences: reads notificationPreferences/{receiverId}. If the doc is missing it returns and sends nothing (line 32). Requires allNotificationsEnabled AND socialConnection.directMessages (line 35). Returns if isWithinQuietHours(prefs.quietHours) (line 36).
+  - serverPushEnabled: NOT checked.
+  - Token: getFcmToken (functions/src/lib/userFields.js:57) reads userPrivate/{uid}.fcmToken, falling back to users/{uid}.fcmToken. Also requires that users/{receiverId} exists (lines 43-44).
+  - Payload: see item 1.
+  - De-duplication: none. No idempotency marker, and Firestore triggers are at-least-once.
+Sender B, notifyOnDirectMessageCreated (notifications codebase):
+  - Recipient: data.receiverId (line 236).
+  - Preferences: none read at all. allNotificationsEnabled, quietHours and serverPushEnabled are all unchecked.
+  - Token: userPrivate/{uid}.expoPushToken, falling back to users/{uid}.expoPushToken (lines 108-119). It skips the send if Expo.isExpoPushToken fails.
+  - Payload: see item 1. The ticket is logged; receipts are never fetched, so DeviceNotRegistered is never acted on.
+  - De-duplication: none. The bell doc and the push repeat on a retried trigger.
+
+Tokens the phone stores, and what each is on iOS:
+  - expoPushToken: Notifications.getExpoPushTokenAsync({projectId:'63c2515a-...'}) (mobile/src/services/notifications.service.ts:123). On iOS it returns an Expo push token ("ExponentPushToken[...]"). Expo's service delivers it to APNs using the APNs key held in EAS credentials. Sender B CAN deliver to an iPhone.
+  - fcmToken: Notifications.getDevicePushTokenAsync() (notifications.service.ts:369). On iOS this returns the native APNs device token (a hex string). The app has no @react-native-firebase/messaging; package.json has only the "firebase" JS SDK and expo-notifications, so no FCM registration token is ever minted on iOS. The code comment at :368 ("returns the native FCM/APNs token") is accurate: FCM on Android, APNs on iOS. admin.messaging().send({token}) accepts only FCM registration tokens, so given an APNs hex string it fails with an invalid-argument or invalid-registration-token error. fcmSender.js:39-47 logs it and returns null. SENDER A CANNOT DELIVER ON iOS. (This is derived, not device-verified; see item 12, check P0.)
+
+What an iPhone recipient receives today for one message (assuming both functions are deployed and running, per Kyle's state):
+  - Both tokens stored: ONE push from Sender B ("New message" / "<name>: <text>"). Sender A's FCM send fails silently. Plus one bell doc.
+  - Only expoPushToken: one push (B).
+  - Only fcmToken: NO push. A fails and B finds no token. Bell doc only.
+  - No token: no push. Bell doc only.
+  Preferences change none of these outcomes on iOS, because B ignores them. (On Android, if any exist, both would deliver: two pushes per message, and the FCM one is subject to prefs and UTC Quiet Hours.)
+
+Blocked or not connected: neither sender checks either one. No block model exists (no blocks collection in firestore.rules, nothing in mobile/src/services). Neither function reads connections. Neither the rule nor the senders require the two users to be connected.
+
+The document the app writes (mobile/src/services/firebase/messaging.service.ts:193-202, sendDirectMessage, called from mobile/src/hooks/useConversations.ts:129):
+    const messageData = {
+      conversationId,
+      senderId,
+      receiverId,
+      text,
+      read: false,
+      createdAt: serverTimestamp(),
+    };
+    const docRef = await addDoc(collection(db, MESSAGES_COLLECTION), messageData);   // 'directMessages'
+  Fields: conversationId (string), senderId (string, the current uid), receiverId (string), text (string), read (false), createdAt (server timestamp). It then updates conversations/{conversationId} with lastMessage {text, senderId, createdAt}, unreadCount.<receiverId> + 1 and updatedAt.
+The rule (firestore.rules:674-688):
+    allow create: if isAuthenticated() && isActiveUser() &&
+      request.auth.uid == request.resource.data.senderId &&
+      request.auth.uid in get(/databases/$(database)/documents/conversations/$(request.resource.data.conversationId)).data.participants;
+  Who may create: a signed-in, non-suspended user who sets senderId to their own uid and names a conversation they participate in.
+  Arbitrary recipient with arbitrary text: YES. receiverId is not constrained to the conversation's participants, and text is not constrained in type or size. Separately, conversations create (line 664) only requires the caller to be in participants, so a user can open a conversation with any uid. The push body carries the sender's user-controlled displayName (for example a user named "Vara"). Existing rules tests (firestore.rules.test.js:~690-720) cover sender spoofing only, not receiverId.
+
+======================================================================
+3. CONNECTION REQUESTS AND INVITES
+======================================================================
+Senders:
+  - onNewConnection (api) on connections/{id}: pushes over FCM, so it could not deliver on iOS anyway (item 2).
+  - notifyOnInviteCreated (notifications) on connectionInvites/{id}: bell doc and optional email, no push.
+  - mobile/src/services/notificationScheduler.service.ts:473 sendConnectionRequestNotification is a LOCAL notification helper exposed as NotificationContext.notifyConnectionRequest (NotificationContext.tsx:322). It has no callers, so it is dead.
+Field mismatch, precisely:
+  - Written by the app (mobile/src/services/firebase/community.service.ts:507-513, sendConnectionRequest, called from useConnections.ts:72):
+        const connectionData = {
+          requesterId: requesterId,
+          addresseeId: addresseeId,
+          participants: [requesterId, addresseeId],
+          status: 'pending' as const,
+          createdAt: serverTimestamp(),
+        };
+        const docRef = await addDoc(connectionsRef, connectionData);   // 'connections'
+    Fields: requesterId, addresseeId, participants [requesterId, addresseeId], status 'pending', createdAt.
+  - Read by onNewConnection (social.js:81-82): connection.a as the sender and connection.b as the receiver. Both are undefined on an app-written doc, so the function returns at line 83 before reading any preference.
+  - connectionInvites is written only by the dormant web app (src/pages/Profile/ProfilePage.jsx:143, fields {from, to, status ...}). Mobile never writes it.
+  - Adjacent, out of scope, recorded: mobile/src/screens/ProfileScreen.tsx:163-164 counts accepted connections with where('a'...) and where('b'...), so it never matches app-written connections either.
+What a recipient receives today: nothing. No push and no bell doc, on any platform. The request appears only in-app under People > Requests.
+The rule (firestore.rules:614-635):
+    allow create: if isAuthenticated() && (
+      request.auth.uid == request.resource.data.a ||
+      request.auth.uid == request.resource.data.b ||
+      request.auth.uid == request.resource.data.requesterId ||
+      request.auth.uid == request.resource.data.requester ||
+      request.auth.uid in request.resource.data.participants
+    );
+  Who may create: any signed-in user named in any one of five fields. There is no isActiveUser(), so a suspended user can create one. status is unconstrained (a user can create status 'accepted' directly), and addresseeId is unconstrained (an arbitrary recipient). Because one field is enough, {requesterId: me, a: X, b: Y, status:'pending'} passes. Today onNewConnection would push to Y as if it came from X. Any fix that reads requesterId/addresseeId must tighten the rule to: requesterId == auth.uid, addresseeId != requesterId, participants == [requesterId, addresseeId], status == 'pending', and no a/b/requester on create.
+
+======================================================================
+4. PREFERENCE ENFORCEMENT
+======================================================================
+socialConnection.directMessages:
+  Enforced only in social.js:35, the iOS-undeliverable sender. NOT enforced in functions-notifications (the iOS-delivering sender), and nowhere in rules. The dead local helper sendMessageNotification also reads it.
+socialConnection.connectionRequests:
+  Enforced only in social.js:90, which never gets that far because of the a/b mismatch. Also read by the dead local helper (notificationScheduler.service.ts:481).
+allNotificationsEnabled in Community pushes (Ruling 7 removes these):
+  - functions/src/notifications/social.js:35 (DM)
+  - functions/src/notifications/social.js:90 (connection)
+  - The client-side dead helpers notificationScheduler.service.ts:481 (connection), and the sendMessageNotification equivalent above line 460, plus :510 (group post). These are dead but would carry the same coupling if revived.
+  functions-notifications reads no preference at all.
+Stored quietHours in functions/ and functions-notifications/:
+  - functions/src/notifications/utils/quietHours.js:12 isWithinQuietHours. It uses d.getHours()/getMinutes() on `new Date()` in the Cloud Functions runtime, which is UTC; the stored hour/minute is compared against the UTC clock. The default {enabled:true, 21:00-08:00} (mobile notificationPreferences.service.ts:40-44) therefore suppresses 17:00-04:00 Eastern (EDT) and 16:00-03:00 (EST).
+  - Callers: social.js:36 (DM), social.js:91 (connection), dailyRhythm.js:100, habitReminders.js:111, insights.js:111, milestones.js:62.
+  - insights.js and milestones.js run on schedule timeZone "America/New_York", but their quiet-hours check is still UTC. dailyRhythm and habitReminders have no timeZone.
+  - functions-notifications: no quietHours use.
+  For Ruling 9, the Community removals are social.js:36 and :91 (or those senders' replacements). The four scheduled callers belong to NPM-3b retirement, but the NPM-3a row's wording ("and every other isWithinQuietHours caller under functions/src/notifications/") puts them in this slice too. That is decision K9.
+
+======================================================================
+5. D1 AND serverPushEnabled
+======================================================================
+Every reader:
+  - functions/src/notifications/dailyRhythm.js:61-70: reads config/notifications. Missing doc or missing field: returns. false: returns. true: proceeds. A read error: returns.
+  - functions/src/notifications/habitReminders.js:~33-35: same pattern.
+  - functions/src/notifications/insights.js:~72-74: same.
+  - functions/src/notifications/milestones.js:~32-34: same.
+  - mobile/src/services/notifications.service.ts:395-405 isServerPushEnabled(): missing gives false, false gives false, true gives true, an error gives false. It has NO production caller; only test mocks reference it (NotificationContext tests; NotificationContext.test.tsx:227-230 asserts the daily rhythm is still reconciled locally when it is true). NotificationContext.tsx:8 and notificationScheduler.service.ts:293 are comments stating it is not read.
+  - No reader in functions-notifications/. The roadmap/docs references are prose.
+Does it gate any event-triggered Community function? NO. Neither onNewDirectMessage, onNewConnection, notifyOnDirectMessageCreated nor notifyOnInviteCreated reads it.
+
+If the flag were true and the four jobs were running:
+  - sendDailyRhythm (every 15 minutes, no timeZone): queries prefs with allNotificationsEnabled==true, dailyRhythm.enabled==true and reminderTime.hour == the server's UTC hour. A user's 20:00 reminder fires at 20:00 UTC (16:00 EDT). Quiet Hours are evaluated in UTC. Dedup is per UTC date. Copy says "routine" (dailyRhythm.js:15-27), against the taxonomy rule. It duplicates the local daily rhythm.
+  - sendHabitReminders (every 15 minutes, server clock): pushes for retired habits. Its type "habit_reminder" is routed by no listener.
+  - sendInsights (10:00 America/New_York): advertises Insights, which is hidden. Quiet Hours in UTC.
+  - sendMilestones (18:00 America/New_York). Quiet Hours in UTC.
+  - All four send through getFcmToken and admin.messaging. On iPhones they would fail, for the same reason as item 2. On Android they would deliver. They would also write notificationLog entries, but only on a successful send.
+  This is the state a careless deploy plus creating config/notifications {serverPushEnabled:true} would produce.
+
+How D1 and Community pushes coexist today: they do not conflict in code. Community senders ignore the flag, so the flag can stay OFF (missing) while Community pushes run. The conflict is latent. SOCIAL-PUSH-FLAG-BYPASS (roadmap line 373) frames the bypass as a defect. If NPM-3a "fixed" it by making Community read serverPushEnabled, Community pushes would require turning the flag ON, and that same flag is the second guard (after the Scheduler pause) keeping the four scheduled senders silent.
+Options (Kyle rules):
+  O5-1 (recommended): Community senders never read serverPushEnabled, and that is recorded as deliberate. SOCIAL-PUSH-FLAG-BYPASS is closed as "intended under D1", and serverPushEnabled stays the scheduled senders' flag only, until NPM-3b deletes them.
+  O5-2: O5-1 plus a separate Community kill switch, for example config/notifications.communityPushEnabled, where a missing field or doc means ON so that nothing has to be created at launch. It allows an emergency stop without touching anything the scheduled senders read. It costs one more read per event and one more fact on Kyle's checklist.
+  O5-3: gate Community on serverPushEnabled. Not recommended. Turning Community on would unlock all four scheduled senders whenever their schedules are running.
+  Allowing Community without unlocking the scheduled senders: yes, under O5-1 or O5-2, because they share no flag.
+
+======================================================================
+6. TOKENS ON THE PHONE AFTER NPM-2
+======================================================================
+Paths that register and save:
+  T1. NotificationContext.tsx:110-114. registerAndSaveFCMToken(user.uid) runs whenever user.uid changes (sign-in, or a cold start with a session). It only proceeds if permission is ALREADY granted (notifications.service.ts:360-361). It writes userPrivate/{uid}.fcmToken and fcmTokenUpdatedAt. It does NOT re-run on a later grant or on foreground return.
+  T2. useNotifications (mounted only by SettingsScreen.tsx:57). On mount, when user changes, and if granted, it calls registerForPushNotifications then savePushTokenToUser, writing userPrivate/{uid}.expoPushToken and pushTokenUpdatedAt.
+  T3. useNotificationPermission.requestPermission (NPM-2's device-permission row), lines 92-101. After a grant from that row it calls registerPushToken then savePushTokenToUser. Best-effort, logged on failure.
+  (Removed: NotificationOptInScreen, which is still registered at AppNavigator.tsx:1112 but no longer reachable per NPM-2.)
+Storage:
+  - userPrivate/{uid}: expoPushToken (single string) with pushTokenUpdatedAt, and fcmToken (single string) with fcmTokenUpdatedAt. setUserPrivate merges.
+  - Legacy fallback read by both codebases: users/{uid}.expoPushToken and users/{uid}.fcmToken, from old builds. Nothing writes them now.
+  - One value per user, so there is no multi-device support: a second device overwrites the first.
+  - The same device token CAN be present under two user documents at once. Nothing enforces uniqueness or clears the previous owner.
+Gaps:
+  - Grant during onboarding: OnboardingV3ReminderScreen.tsx:166 `void registerPushToken();` fetches the Expo token and DISCARDS it. Nothing is saved. T1 already ran at sign-in, before the grant, and returned null, so fcmToken is saved only at the next cold start. OnboardingAnchorScreen.tsx:137 and OnboardingV2ProtocolScreen.tsx:64 (older arcs) also grant without saving.
+  - Grant from the routine editor (RoutineEditor.tsx:340), and the focus timer's ensureNotificationPermission (notifications.service.ts:218): no token save.
+  - Net effect: a user's Expo token, the only one that delivers on iOS, is saved only if they open Settings or use the Settings permission row (H3).
+  - Token refresh: no Notifications.addPushTokenListener anywhere. A rotated APNs or Expo token is picked up only by the next T1 (FCM) or T2 run.
+On sign-out, forced sign-out, account switch and deletion:
+  - Sign-out (AuthContext.tsx:304-320 logout): signOut, then SecureStore.deleteItemAsync('userId'). NotificationContext's cleanup (NotificationContext.tsx:270-294) cancels LOCAL notifications and clears the intent journal. Tokens in Firestore are NOT touched.
+  - Forced sign-out (AuthContext.tsx:147 on a failed token refresh; services/api/client.ts:83 on a 401 refresh failure): the same, with no token handling.
+  - Account switch: A's userPrivate keeps the device token. When B signs in, T1 writes the same APNs token to B, and B writes the same Expo token if B reaches T2 or T3. The device then receives both A's and B's DM pushes.
+  - Account deletion: the deleteAccount callable deletes userPrivate/{uid} and users/{uid} on the server (functions/src/lib/accountDeletion.js:26-27, 181), so both tokens and the legacy fallbacks are gone. It requires network to call at all.
+  - So yes: a signed-out or switched iPhone still receives the previous account's DM pushes, with sender name and message text, from Sender B.
+Does any cleanup depend on a write made at sign-out? There is no cleanup at sign-out at all, so nothing is lost offline today, because nothing is attempted. Any future cleanup that is a Firestore delete at sign-out would be lost if made offline and the app is then killed (memory-only cache). After sign-out, A's credentials are gone, so the owner-only userPrivate rule prevents a later replay by anyone else.
+Purely local unregistration: none exists. No call to Notifications.unregisterForNotificationsAsync and no token listener.
+
+======================================================================
+7. TAPS AND FOREGROUND
+======================================================================
+Tap handling:
+  - NotificationContext.tsx:186-222 (always mounted) routes only 'habit-reminder', 'routine-reminder' and 'focus-complete'. A DM push (data.type 'message') or a connection push ('connection') matches no branch. The app opens or foregrounds wherever it was, and nothing navigates.
+  - useNotifications.ts:61-63 and 71-157 route type 'message' with a conversationId to Main > Community > Chat {conversationId, otherUserId: senderId}, and 'connection' to Main > Community > UserProfile. Sender B's payload has no category, so it hits the default branch, which routes the same way. This listener exists only while SettingsScreen is mounted, so in practice a tap almost never routes. When it does, it uses a screen-scoped `navigation` and not the root navigationRef. Chat (AppNavigator.tsx:381) and UserProfile (:388) are registered on CommunityStack. Arrival via this nested navigate was not exercised in Step 0.
+  - Cold start: NotificationContext.tsx:230-262 reads getLastNotificationResponse but acts only on 'focus-complete'. A DM or connection tap from a killed app lands on the default landing screen and is never routed.
+Foreground (notifications.service.ts:43-69): while _isForeground, the system banner is suppressed and the handler calls NotificationContext's foreground callback (NotificationContext.tsx:100-107), which shows showNotificationToast(title, body) with NO onTap. The user sees an in-app toast for about 3.5 s ("New message" / "<name>: <text>" from Sender B). Tapping it does nothing. It is dropped silently if another toast is visible (ToastContext.tsx:131). It shows even while the user is already in that conversation.
+
+======================================================================
+8. PUSH CONTENT
+======================================================================
+Every title and body the Community senders can send:
+  functions-notifications/index.js:
+    DM push and bell:     title "New message"; body `${fromName}: ${text.slice(0, 120)}`  (fromName falls back to "Someone")
+    DM email:             subject "You have a new message"; text `${fromName} sent: ${text}`   (only if the SendGrid secret is set)
+    Invite bell:          title "New connection request"; body `${fromName} sent you a connection request.`
+    Invite email:         subject "You have a new connection request"; same body
+  functions/src/notifications/social.js:
+    DM:                   title `${senderName}` (fallback "Someone"); body = text, or text[0..97] + "..." when over 100 chars
+    Connection:           title `${senderName} would like to connect`; body "Tap to view their profile."
+  Client dead helpers (notificationScheduler.service.ts) mirror social.js. Group post: title `New in ${groupName}`, body `${authorName} shared something new.`
+DM includes message text and sender name: yes, both senders include both. The email includes the full untruncated text.
+Conflicts:
+  - Taxonomy: none of these uses "routine". (The server daily rhythm copy does; that belongs to NPM-3b.)
+  - Copy rules: no em dashes. Truncation uses three ASCII dots "..." rather than an ellipsis character; worth a ruling only if the copy rules specify one. "Tap to view their profile." is a UI instruction in a push body, and the tap does not actually route there today (item 7). The fallback "Someone" is acceptable but generic. The bell links ("/community?tab=messages", "/community") are web-app paths.
+  - Safety: the sender name is a user-controlled displayName shown with Vara's app icon, with arbitrary text (H5).
+Lock-screen exposure (Kyle decides):
+  L1 Name and text (today). Most useful, but exposes private message content on a lock screen, including to whoever holds a signed-out or shared phone (H6), and makes the impersonation vector effective.
+  L2 (recommended) Name only: title "<name>", body "sent you a message". No content leaves the server, and the user opens Vara to read it. This is consistent with a wellness app's privacy posture.
+  L3 Generic: "You have a new message", with no name and no text. The most private; the least useful.
+  (iOS's own "Show Previews: When Unlocked" setting already hides bodies for users who choose it; L2 makes it unnecessary.)
+
+======================================================================
+9. TARGET DESIGN (options and recommendations; Kyle rules)
+======================================================================
+9a. One sender per event, and which codebase survives.
+  S1 (recommended): the notifications codebase survives as the single Community sender. It already uses Expo and already delivers on iOS. Add preference reads (directMessages and connectionRequests only; no allNotificationsEnabled, no quietHours, no serverPushEnabled), the connections trigger with the right fields, and idempotency. Delete onNewDirectMessage and onNewConnection from the api codebase. Benefit: a Community deploy can be scoped to `--only functions:notifications`, which never touches the api codebase and its four paused schedules. Cost: this codebase has no test harness today; the build would add jest as a devDependency (an install during the build, not now) and refactor index.js into testable units.
+  S2: the api codebase survives. Rewrite social.js to send through Expo (add expo-server-sdk to functions/) and delete the notifications codebase's two functions. Benefit: the existing jest and emulator harness and userFields helpers. Cost: every Community deploy is an api deploy, which re-deploys the four scheduled senders (item 10).
+  S3: keep both and gate one off. Not recommended; it leaves the duplicate architecture the ruling says to resolve.
+  For connections, notifyOnInviteCreated is retired either way (mobile never writes connectionInvites), or left as a dormant-web-only bell writer. That is decision K3.
+9b. Token type.
+  K-T1 (recommended): the Expo push token. It works on iOS today with EAS-managed APNs credentials, needs no native rebuild, and the sender library is already in use.
+  K-T2: real FCM. Add @react-native-firebase/messaging and its config plugin, upload an APNs key to Firebase, and do a native rebuild. Heavy, and a new native dependency before launch.
+  K-T3: direct APNs from the server using the raw device token. Needs APNs key handling in functions and an environment (sandbox or production) per token. Not recommended.
+  Under K-T1, the fcmToken write (T1) becomes dead for Community. Whether to stop writing it, or leave it for NPM-3b, is decision K5.
+9c. How the phone guarantees the token is registered.
+  R1 (recommended): one ensurePushTokenRegistered(uid) owned by NotificationProvider. It runs on sign-in, on every foreground return when permission is granted (compare with a locally cached last-saved value, write only on change), and immediately after every grant path (onboarding V3, the routine editor, the Settings row, the focus timer). Plus Notifications.addPushTokenListener for rotation. useNotifications' token save goes away (its routing moves to NotificationContext, item 7).
+  R2: patch each grant path individually. Simpler to reason about one at a time, but it repeats today's failure mode where one path is forgotten.
+9d. One push per event.
+  - A single trigger per collection (9a).
+  - Idempotency: before sending, create notificationLog/{recipientUid}/community/{eventDocId} with .create(), which fails if it already exists. Skip on ALREADY_EXISTS. This is at-most-once: a crash between marker and send loses one push rather than duplicating it. Recommended. The alternative, marking after the send, is at-least-once and allows duplicates on retry.
+  - Rules tighten so one user action makes exactly one valid doc: DM receiverId must be the conversation's other participant, and text must be a non-empty string under a size cap. Connection create as in item 3.
+  - Also skip self-sends (receiverId == senderId) and suppress when the recipient is the sender's only participant.
+9e. A token stops delivering after sign-out or account switch without relying on a write that can be lost offline.
+  X1 (recommended, server-side, offline-proof for switching): single-owner tokens. On registration, the client also claims pushTokens/{sha256(token)} = {uid, updatedAt}. The sender delivers only if pushTokens/{hash(recipient's token)}.uid == recipientUid. When B signs in on A's phone, the claim moves to B and A's pushes stop, with no write from A needed. The rule allows the claimant to set uid only to their own. The risk is claiming someone else's token, which requires knowing a private token. It is acceptable and is documented.
+  X2 (plain sign-out, offline): purely local Notifications.unregisterForNotificationsAsync() at sign-out, which stops remote delivery to the device until the next registration. MUST be device-verified first: that local notifications (the daily rhythm, routines, focus) keep working, and that the next sign-in's getExpoPushTokenAsync re-registers. Not verified in Step 0.
+  X3: a best-effort online delete of userPrivate tokens at sign-out, done before signOut while the user is still authenticated. It helps when online but is not relied on.
+  X4: client-side filtering of received pushes by recipient uid. Not viable on iOS for background pushes; the OS displays them without JS.
+  Recommendation: X1 + X2 + X3, with X2 gated on a device check. If X2 fails that check, a signed-out-but-not-switched phone keeps receiving until the account signs in elsewhere or the token is invalidated. Record that as a known residual for Kyle.
+
+======================================================================
+10. DEPLOY PLAN (Kyle deploys; CC never deploys)
+======================================================================
+What an unscoped `firebase deploy --only functions` changes:
+  - Every function in BOTH codebases is rebuilt from repo source. That includes sendDailyRhythm, sendHabitReminders, sendInsights, sendMilestones, aggregateAnalytics*, cleanupExpiredSuspensions, the AI callables, api, journalPrompt, deleteAccount and the triggers. The deployed sendDailyRhythm, which may differ from the repo (roadmap line 5236), is overwritten by the repo version.
+  - Predeploy runs npm ci (or npm install) and lint in functions/, and lint in functions-notifications/.
+Removing a function from source: when deploying a codebase, the Firebase CLI lists deployed functions of THAT codebase that are absent from source and asks whether to delete them (it defaults to No; in non-interactive mode it fails unless --force is used). Under S1 the prompt for codebase api would list onNewDirectMessage and onNewConnection, and for notifications notifyOnInviteCreated if it is retired. Kyle answers Yes only if the list is exactly the expected names. If it lists anything else (for example a function deployed outside this repo, or a codebase-label surprise), answer No and stop. Alternative under S1: run `firebase functions:delete onNewDirectMessage onNewConnection --region us-central1`, which deletes exactly those two without redeploying any api function, and deploy only `--only functions:notifications`. Then no api deploy, and no schedule exposure, is needed for NPM-3a.
+  (This is CLI behaviour as I understand it, not verified against the installed CLI version in Step 0. The prompt text itself is the check.)
+Could a deploy re-enable the four paused jobs? It cannot be ruled out from the repo. A deploy of an onSchedule function updates its Cloud Scheduler job, and the roadmap already records that "a later functions deploy may recreate or re-enable the schedules". Treat it as possible. A second guard holds as long as config/notifications.serverPushEnabled stays missing or false: all four return before sending. On iPhones they cannot deliver anyway (item 5), but Android could.
+Checks:
+  Before: (1) Cloud Scheduler: all four jobs Paused, screenshot. (2) Functions list, screenshot with update times. (3) Firestore: no config/notifications, or serverPushEnabled not true. (4) functions/ npm test green; the functions-notifications tests green, if added.
+  After: (1) Cloud Scheduler again: all four still Paused; if any shows Enabled, pause it immediately. (2) Functions list: onNewDirectMessage and onNewConnection gone (under S1), and the notifications functions updated. (3) Firestore config unchanged. (4) Logs: one DM walk event produces exactly one send log line and one marker doc.
+
+======================================================================
+11. TESTS
+======================================================================
+Existing on these paths:
+  - functions/src/__tests__: userFields.test.js (getFcmToken read-through), deleteAccountCleanup/deleteAccountSweep (userPrivate deletion and the connections and directMessages sweeps), rateLimit. Nothing covers social.js, fcmSender or quietHours.
+  - functions-notifications: none.
+  - mobile: services/__tests__/notifications.service.pushToken.test.ts (5 tests: both tokens go to userPrivate and not users/{uid}; none without permission); NotificationContext*.test.tsx (local scheduling and the serverPushEnabled-ignored test); NotificationPermissionRow.test.tsx.
+  - rules: firestore.rules.test.js directMessages (participant sender succeeds, spoofed sender fails, read and immutability); connections tests present. Nothing covers a receiverId outside the conversation, or a/b impersonation.
+Proposed (mutation target in brackets):
+  Server (the surviving codebase):
+   1. A DM sends exactly one push to the receiver's Expo token. [Delete the send call; send to the senderId token.]
+   2. A DM with directMessages:false sends nothing. [Remove the pref check.]
+   3. A DM with allNotificationsEnabled:false STILL sends (Ruling 7). [Re-add the allNotificationsEnabled check.]
+   4. A DM during stored Quiet Hours STILL sends (Ruling 9). [Re-add isWithinQuietHours.]
+   5. A DM sends with config/notifications.serverPushEnabled missing, false or true alike. [Gate on the flag.]
+   6. The same event delivered twice gives one send (marker). [Drop the .create() marker, or use .set().]
+   7. A connection doc {requesterId, addresseeId, participants, status:'pending'} gives one push to addresseeId naming requesterId. [Read a/b; swap the roles.]
+   8. A connection with status 'accepted' at create gives no push. [Drop the status check.]
+   9. A missing prefs doc follows the ruled default (K6). [Invert the default.]
+  10. No Expo token, or an invalid one, gives no send and no throw. [Remove the guard.]
+  11. A token owned by another uid (X1) gives no send. [Drop the ownership check.]
+  12. Payload copy pinned to the ruled strings (L1/L2/L3); no message text if L2 or L3. [Re-add text to the body.]
+  13. Self-send gives no push. [Remove the guard.]
+  Rules (npm run test:rules):
+  14. A DM create with a receiverId not in the conversation fails. [Remove the receiverId clause.]
+  15. A DM create with non-string or oversize text fails. [Remove the size clause.]
+  16. A connection create with requesterId != auth.uid fails; with a/b set it fails; with status != 'pending' it fails; with addresseeId == requesterId it fails. [Each clause.]
+  17. pushTokens claim: may set uid only to self. [Loosen to any uid.]
+  Mobile:
+  18. Onboarding V3 grant saves the Expo token. [Revert to `void registerPushToken()`.]
+  19. RoutineEditor grant saves the token. [Remove the call.]
+  20. Foreground return with permission granted and a changed token writes once; unchanged writes zero. [Drop the compare; drop the call.]
+  21. addPushTokenListener rotation writes the new token. [Remove the listener.]
+  22. A DM tap (warm) routes to Chat via NotificationContext with SettingsScreen unmounted. [Delete the branch.] It asserts arrival, not only the route name (see the memory note on vacuous nav tests).
+  23. Connection tap routes to the ruled destination. [Delete the branch.]
+  24. A cold-start DM tap routes. [Remove the cold-start branch.]
+  25. Sign-out calls the local unregister (X2) and the best-effort delete (X3) before signOut. [Remove each.]
+  26. The foreground toast for a DM has an onTap that routes, and is suppressed when already in that conversation (if ruled). [Drop onTap.]
+
+======================================================================
+12. PROOF ON A DEVICE (one iPhone, a second test account)
+======================================================================
+Setup: the iPhone is signed in as R (recipient). S is the second account. The sender's actions come from either:
+  (a) preferred: the iOS Simulator running the same dev client, signed in as S. This exercises the app's real write and rules. The Simulator never registers a token (Device.isDevice guard), so it only sends; or
+  (b) the Firebase console, creating the triggering document by hand. This bypasses the rules and the app's write, so the fields must match exactly:
+   DM: collection directMessages, auto-ID:
+     conversationId (string) = an existing conversations doc whose participants array contains both S's and R's uids
+     senderId       (string) = S uid
+     receiverId     (string) = R uid
+     text           (string) = "Walk test 1"
+     read           (boolean) = false
+     createdAt      (timestamp) = now   (the console cannot write serverTimestamp; a timestamp value is equivalent for the trigger)
+     (The app also updates conversations/{id}.lastMessage and unreadCount; that is not needed for the push.)
+   Connection request: collection connections, auto-ID, with no existing pending or accepted doc between S and R:
+     requesterId  (string) = S uid
+     addresseeId  (string) = R uid
+     participants (array)  = [S uid, R uid]   (in that order)
+     status       (string) = "pending"
+     createdAt    (timestamp) = now
+Pre-check P0 (read-only, before the build): in the Firestore console open userPrivate/{R uid}. Record whether expoPushToken exists (it starts "ExponentPushToken[") and what fcmToken looks like. A 64-character hex string confirms H1 (a raw APNs token).
+Common-case walk (after the deploy):
+  W1. R's app in the background, S sends a DM: exactly one banner, with copy as ruled. Check that only one notificationLog marker exists.
+  W2. Tap the banner: lands in the conversation with S.
+  W3. R's app in the foreground, S sends a DM: in-app toast as ruled, and no system banner.
+  W4. S sends a connection request: exactly one banner. Tap: lands on the ruled destination.
+  W5. R turns Direct Messages OFF in Settings, S sends a DM: no banner. Turn it back ON.
+  W6. A fresh-install or new account R granting permission in onboarding and NEVER opening Settings still receives W1. This proves the registration fix.
+  W7. (If X1/X2 are ruled in.) R signs out, S sends a DM: no banner.
+Tests-only edge cases: General OFF still delivers; Quiet Hours stored on still delivers; flag missing, false or true; duplicate trigger delivery; invalid or rotated token; account switch A to B on one phone (needs a third account); cold-start tap; deleted account; self-send; rules abuse cases; Android.
+Dev client vs standalone:
+  - Dev client (EAS development profile) has the aps-environment=development entitlement, so its APNs token is a SANDBOX token. expo-notifications reports the environment when minting the Expo token, and Expo's service routes to the APNs sandbox.
+  - Standalone (TestFlight or App Store) has aps-environment=production, a different APNs token, and therefore a different Expo token. A token saved while on the dev client goes stale on that phone once the standalone build is installed, which is why the registration-on-foreground (R1) matters.
+  - Credentials: the Expo push service uses the APNs key stored in EAS for com.vara.wellness. A token-based (.p8) key serves both environments. If EAS holds no push key, or holds a certificate for one environment only, standalone delivery fails while the dev client works, or the reverse.
+  - Recheck on the first standalone build: a fresh token is saved (userPrivate.expoPushToken changes); W1 delivers one banner; the Expo receipt shows ok, not DeviceNotRegistered or InvalidCredentials; the tap routes from both a warm and a cold start.
+
+======================================================================
+13. PROPOSAL
+======================================================================
+One slice or split?
+  Recommendation: split into two, with the server going first.
+   NPM-3a-i (server and rules): the single sender, prefs (Rulings 7 and 9), connection fields, idempotency, the token-ownership check (if X1), the rules tightening, and tests. One deploy.
+   NPM-3a-ii (phone): token registration (R1), the ownership claim, sign-out unregistration, tap and cold-start routing in NotificationContext, the foreground toast tap, and retiring useNotifications' routing and token save.
+  Reason: the deploy is the irreversible half, and the server can be proved with console-created docs before the phone changes. Ordering caveat: if X1 is ruled in, the server ownership check must not ship before the phone writes the claim, or every push stops. Either ship the check behind "claim missing = allow" in 3a-i and tighten it in 3a-ii, or ship X1 entirely in 3a-ii. Kyle rules (K1).
+File list (under S1, K-T1, X1+X2+X3, R1):
+  Server: functions-notifications/index.js (rewritten or split into src/), new functions-notifications/src/__tests__/*, functions-notifications/package.json (jest devDependency and a test script), functions/index.js (drop exports 23-24), functions/src/notifications/index.js, functions/src/notifications/social.js (deleted), firestore.rules (directMessages, connections, new pushTokens), firestore.rules.test.js.
+  Phone: mobile/src/services/notifications.service.ts, src/context/NotificationContext.tsx, src/hooks/useNotifications.ts (routing and token save removed or reduced), src/hooks/useNotificationPermission.ts, src/screens/onboarding/v3/OnboardingV3ReminderScreen.tsx, src/components/routines/RoutineEditor.tsx, src/context/AuthContext.tsx (sign-out hook), and tests under the matching __tests__.
+  Docs: the roadmap rows and a §13 entry, and a walk script under docs/walks/npm-3a-.../.
+Predicted baselines (to be re-measured after the last change):
+  mobile jest 4242/279 plus roughly 25-35 tests in 5-7 new suites (3a-ii); tsc 136, with no new errors (diff the sorted list); lint 885/1242, flat or down, with no increase from touched files; sentinel 156 (server push copy is outside the sentinel's mobile scope; if new mobile copy lands, the sentinel moves in the same commit with its owner named).
+  functions/ 55/4 (S1 removes no tested code); functions-notifications 0 to roughly 13 tests in 1-2 suites; rules 201+2 plus about 8.
+Before-state evidence on main (Kyle):
+  B1. The userPrivate/{R uid} screenshot (P0): which token fields exist, and the fcmToken shape.
+  B2. With R's app in the background, S sends one DM: record the number of banners (expected 1, from B, if R ever opened Settings; 0 otherwise) and its exact text.
+  B3. R toggles Direct Messages OFF, S sends a DM: a banner still arrives (proves H2).
+  B4. S sends a connection request: no banner (proves H4).
+  B5. R signs out, S sends a DM: a banner still arrives on the signed-out phone (proves H6).
+  B6. Logs Explorer: the onNewDirectMessage log for B2 (FCM error, or nothing because of a missing prefs doc or the UTC quiet window).
+  B7. The Cloud Scheduler page showing the four jobs Paused.
+Proposed pre-launch check row (item 12 shows one is needed):
+  | COMMUNITY-PUSH-STANDALONE-CHECK | **[PRE-LAUNCH, OPERATIONAL LAUNCH GATE, OWNER KYLE.]** Community pushes deliver on the first standalone build | On the first TestFlight or standalone install: confirm userPrivate/{uid}.expoPushToken is re-saved with a new value after first launch; one DM from the second account produces exactly one banner with the ruled copy; a tap from background and from a killed app lands in the conversation; one connection request produces one banner; the Expo push receipt for that send is "ok" (not DeviceNotRegistered or InvalidCredentials); EAS holds a production-capable APNs key for com.vara.wellness. The dev client uses the APNs sandbox, so a pass there does not carry over. | NPM-3a merged and deployed. | Kyle's device check. |
+Docs bookkeeping (proposed marker text only):
+  - NPM-2 row opening becomes:
+    **[DONE, merged at 7e8750b. WALK STEPS 9, 11, 12 AND 13 NOT RUN BY KYLE'S DECISION; TESTS ARE THE EVIDENCE.]** **[NPM-2 HIDES QUIET HOURS (Kyle's Ruling 9, 2026-10-02). NOTIFICATION BEHAVIOUR IS NOT LAUNCH-READY UNTIL NPM-3a REMOVES SERVER ENFORCEMENT OF STORED QUIET HOURS.]** Was: **[Next]** **[BUILT AND WALKED at f516f78, AWAITING MERGE. ...]** (the existing chain follows unchanged)
+  - NPM-2's build log entry gains: "Docs commit 0973b5c (built and walked at f516f78; Kyle's walk results and walk-scope statement). Merged to main at 7e8750b (parents b8c4c67, 0973b5c), pushed; origin/main = 7e8750b verified at NPM-3a Step 0."
+  - NPM-3a row opening becomes: **[Next]** **[STEP 0 DONE 2026-10-02 at 7e8750b; RULINGS PENDING.]** Was: **[READY. LAUNCH-BLOCKING.]** (the rest unchanged)
+
+======================================================================
+14. DECISIONS FOR KYLE (each with options and a recommendation)
+======================================================================
+K1  Slice shape: (a) one slice; (b) a server/phone split, server first. Recommend (b).
+K2  Surviving sender: S1 notifications codebase / S2 api codebase / S3 both. Recommend S1.
+K3  notifyOnInviteCreated and connectionInvites: (a) delete the function (mobile never writes it; the web is dormant); (b) leave it as is. Recommend (a), naming it at the deletion prompt.
+K4  Bell docs (notifications/ collection written per DM): (a) keep writing them; (b) stop. Does mobile read the collection at all? Not checked in Step 0. Recommend: the build Step 0 checks for a mobile reader; stop writing them if there is none.
+K5  Token type: K-T1 Expo / K-T2 FCM / K-T3 APNs. Recommend K-T1. Sub-question: stop writing fcmToken now, or leave it for NPM-3b? Recommend leaving it (the scheduled senders read it and NPM-3b deletes them).
+K6  Missing notificationPreferences doc: (a) treat it as the defaults (DMs and requests ON) and send; (b) send nothing (today's api behaviour). Recommend (a). The defaults say ON, and a user whose prefs write failed should not silently lose Community pushes.
+K7  Lock-screen content: L1 / L2 / L3. Recommend L2, name only, body "sent you a message". The exact strings go through the copy owner (Kyle, as UI strings).
+K8  Connection push copy: keep "<name> would like to connect" / "Tap to view their profile." or revise. Also the tap destination: UserProfile (today's intent) or People > Requests, where accept and decline live. Recommend People > Requests, with the body changed to match it (for example "Open Vara to respond.").
+K9  Quiet Hours scope: (a) remove only the Community callers (social.js:36/91, or their replacements); (b) remove every isWithinQuietHours caller in functions/src/notifications, as the row's wording says. Recommend (b) as the row states, since it is a one-line removal per paused sender and avoids a UTC quiet window if a schedule is ever resumed. Or rule that the row's "every other caller" goes to NPM-3b.
+K10 Flag relationship (item 5): O5-1 / O5-2 / O5-3. Recommend O5-1. Record SOCIAL-PUSH-FLAG-BYPASS as intended under D1, with no flag on Community.
+K11 Sign-out and switching: X1 / X2 / X3 combinations. Recommend X1+X2+X3, with X2 gated on a device check, and record the residual if X2 fails.
+K12 Rules hardening (H5), in scope or a separate row? It decides whether "one correct push per event" can be gamed. Recommend in scope for NPM-3a-i: DM receiverId bound to the conversation, a text type and size cap, and connection create pinned to requesterId == auth.uid with status 'pending'. A blocking feature is NOT proposed; record it as a product gap if wanted.
+K13 Foreground behaviour: (a) a toast with tap-to-open, suppressed while viewing that conversation; (b) the toast as now (no tap); (c) a system banner. Recommend (a).
+K14 Walk scope: W1-W6 (plus W7 if K11 includes X2), on one iPhone with the Simulator or console as sender. Recommend the Simulator as sender, and the console as fallback.
+
+STOP. Step 0 only; the build has not been started.

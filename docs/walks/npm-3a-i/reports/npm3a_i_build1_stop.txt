@@ -1,0 +1,32 @@
+NPM-3a-i BUILD PROMPT 1: STOPPED AT STEP A1/A2 (before-state gate failed)
+
+Nothing was edited, created, installed, branched or committed. No baselines were measured, because the gate comes first.
+
+A1 RESULT
+  git branch --show-current                   -> main                (expected main) OK
+  git rev-parse --short HEAD                  -> 7e8750b             (expected 7e8750b) OK
+  git rev-parse --short origin/main           -> 7e8750b             (expected 7e8750b) OK
+  git status --porcelain --untracked-files=all -> (empty)            EXPECTED exactly one untracked file,
+                                                                      docs/walks/npm-3a-i/before/before-notes.txt. NOT MET.
+
+A2 RESULT
+  docs/walks/npm-3a-i/before/before-notes.txt does not exist.
+  The folder docs/walks/npm-3a-i/before/ exists, created 2026-10-02 at 21:04 local time, and is EMPTY.
+    - git does not list it, because git does not track empty folders.
+    - It is not git-ignored: `git check-ignore` matched nothing, and `git status --ignored` on that path shows nothing.
+  A search of the repo (outside node_modules) for any file named *before-notes* found none.
+  The gate requires the file to state, in Kyle's words:
+    - the branch and hash the phone ran, and a date and time;
+    - whether a connection request produced a banner;
+    - whether a direct message produced a banner;
+    - the token shapes;
+    - the deploy dates;
+    - the SendGrid check;
+    - the scheduled jobs.
+  None of that can be quoted, because the file is not there.
+
+WHAT UNBLOCKS IT
+  Kyle saves his before-state notes as docs/walks/npm-3a-i/before/before-notes.txt (UTF-8), with at least the two banner observations, and leaves it untracked. Then re-run prompt 1 from Step A.
+  If the notes were saved under a different name or location, Kyle says where. The prompt names this exact path, so I did not go looking for alternatives beyond the filename search above.
+
+STOP.

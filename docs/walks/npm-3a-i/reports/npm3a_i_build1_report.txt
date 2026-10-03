@@ -1,0 +1,256 @@
+NPM-3a-i COMMUNITY PUSH SERVER: BUILD PROMPT 1 REPORT (server sender and tests)
+Branch journey/npm-3a-i-community-push-server, from main at 7e8750b. Three commits. Not merged, not pushed, not deployed. Nothing was written to Firestore or any remote service.
+Untouched: mobile/, firestore.rules, storage.rules, firestore.indexes.json, and every scheduled sender and its utilities (SHA-256 verified below).
+
+======================================================================
+STEP A
+======================================================================
+A1. The first attempt STOPPED: the untracked before-notes file did not exist. Kyle then sent his notes in chat. At his direction (his answer: "I ran this test on the current main, so whatever hash that is - I did that about 5 mins ago, 9:20 PM ET"), I saved them to docs/walks/npm-3a-i/before/before-notes.txt.
+  - The file contains his message verbatim, followed by his answer verbatim.
+  - DEVIATION: I added ONE heading line of my own, "Branch, hash and time:", above his answer. Every other line is Kyle's.
+  - "Current main" resolves to 7e8750b: HEAD and origin/main were both 7e8750b at the time.
+  Re-run of the gate:
+    - branch main;
+    - HEAD 7e8750b;
+    - origin/main 7e8750b;
+    - status exactly "?? docs/walks/npm-3a-i/before/before-notes.txt".
+  PASS.
+
+A2. before-notes.txt, quoted in full:
+  Device observations. One iPhone, two test accounts: R receives, S sends. R was signed out on this phone whenever S was signed in.
+  - Connection request: signed in as S, I sent R a connection request. No notification banner arrived. I then signed in as R, saw the request, and accepted it.
+  - Direct message: signed in as S, I sent R a direct message. No notification banner arrived.
+  - Phone locked after sending
+  - The cause of the missing banners was not established at the time of writing.
+
+  Firebase console facts I read:
+  - userPrivate for a test user has an expoPushToken in the ExponentPushToken[...] format and an fcmToken that is 64 hexadecimal characters. The values are left out on purpose.
+  - Last deployed 9/6/26: sendDailyRhythm, sendHabitReminders, sendInsights, sendMilestones, onNewDirectMessage, onNewConnection, deleteAccount.
+  - Last deployed 8/30/26: notifyOnDirectMessageCreated, notifyOnInviteCreated.
+  - Neither notifyondirectmessagecreated nor notifyoninvitecreated has SENDGRID_API_KEY listed as an environment variable.
+  - The four scheduled jobs paused on 2026-10-01 (sendDailyRhythm, sendHabitReminders, sendInsights, sendMilestones) are still paused.
+
+  Branch, hash and time:
+  Not sure - I ran this test on the current main, so whatever hash that is - I did that about 5 mins ago, 9:20 PM ET
+
+  Both banner observations are present. The fcmToken observation (64 hex characters) is consistent with Step 0 H1: it is a raw APNs token. As the notes themselves say, the cause of the missing banners is not established.
+
+A3. The NPM-3a row marker (roadmap line 430): **[READY. LAUNCH-BLOCKING.]**, followed by the Ruling 9 / Ruling 7 block, unchanged since Step 0.
+  [Next] opening a row:
+    - line 429, NPM-2 NOTIFICATION-SETTINGS-TRUTHFULNESS: **[Next]** **[BUILT AND WALKED at f516f78, AWAITING MERGE. ...]**
+    - line 10292, the historical "7k" sub-table row (stale).
+
+A4. Baselines at 7e8750b: all match. See the table below.
+A5. Branch created: journey/npm-3a-i-community-push-server.
+
+======================================================================
+COMMITS (git branch --show-current was journey/npm-3a-i-community-push-server before each)
+======================================================================
+08b0859  test(npm-3a-i): before-state evidence for the Community push server
+  - docs/walks/npm-3a-i/before/: before-notes.txt; regression-failing-output.txt (RG1 to RG7: 7 failed with 4 characterization passing; RG8: 1 failed); and the three failing test sources as .source.txt files (regression.directMessage, regression.connectionRequest, deleteAccountNotificationsRecipient).
+  - functions-notifications harness:
+    - jest ^30.5.2 as a devDependency, the "test": "jest --runInBand" script, and jest config limited to src/__tests__/**/*.test.js (package.json and package-lock.json);
+    - an .eslintrc.js override for test files (jest env; max-len and no-redeclare off);
+    - src/__tests__/helpers/fakeEnv.js: a fake Firestore with per-path read, query and create failure injection, plus mocks for firebase-admin, expo-server-sdk, @sendgrid/mail and the loggers;
+    - src/__tests__/helpers/world.js: fixtures in the mobile write shapes.
+  - Active: inviteCharacterization.test.js (4 tests), passing on the unchanged code.
+  - index.js and every functions/ file unchanged. All suites green.
+
+1f66c71  feat(notifications): one Community push sender, through Expo, at most once
+  - functions-notifications/index.js now exports notifyOnDirectMessageCreated, notifyOnConnectionRequestCreated (new) and notifyOnInviteCreated.
+  - New files:
+    - src/community/eligibility.js: the shared delivery-eligibility helper;
+    - src/community/send.js: the marker, the message, and the Expo send;
+    - src/community/triggers.js: both handlers;
+    - src/community/log.js: fixed-key structured logging;
+    - src/legacy/inviteCreated.js: notifyOnInviteCreated moved here unchanged.
+  - RG1 to RG7 restored unchanged; new communityPush.test.js.
+  - 62 tests in 4 suites; lint clean.
+  - functions/ is byte-identical to 7e8750b at this commit, so it measures 55/4.
+
+688d277  feat(functions): retire the FCM Community senders; sweep bells by recipient
+  - Deletes functions/src/notifications/social.js and removes onNewDirectMessage and onNewConnection from src/notifications/index.js and functions/index.js.
+  - accountDeletion.js: {collection: "notifications", field: "recipientId"} added to OWNER_FIELD_COLLECTIONS.
+  - RG8 restored unchanged. deleteAccountCleanup.test.js gains a pinned-entry test. New notificationExports.test.js.
+  - 60 tests in 6 suites.
+
+RE-CUT, disclosed. My first cut was 7e58935, 3d0fccf and 70f20c7. 7e58935 accidentally carried the staged deletion of social.js while functions/src/notifications/index.js still required "./social". The api codebase would not have loaded at that commit.
+  - These were local and unpushed. I ran `git reset --soft 08b0859` and recommitted as 1f66c71 and 688d277.
+  - The final tree is byte-identical to the first cut's final tree (`git diff 70f20c7 HEAD` is empty). The old hashes remain in the reflog, and the pre-re-cut HEAD is saved in scratchpad/pre-recut-head.txt.
+  - The self-request test fix that was 70f20c7 is folded into 1f66c71.
+
+======================================================================
+BASELINES (A4 at 7e8750b, E4 after the last change at 688d277)
+======================================================================
+                                   expected        A4 measured      E4 measured
+  mobile jest                      4242 / 279      4242 / 279       4242 / 279, no failures
+  mobile tsc                       136             136              136; sorted list IDENTICAL (diff of scratchpad a4/tsc_sorted.txt and e4/tsc_sorted.txt is empty)
+  mobile lint                      885 / 1242      885 / 1242       885 / 1242
+  sentinel                         156             156              156 (copyDraftSentinel.test.ts:819)
+  functions npm test               55 / 4          55 / 4           60 / 6 (+5 tests, +2 suites: RG8 suite 1; notificationExports 3; cleanup pin 1)
+  rules (npm run test:rules)       recorded        201 passed + 2 skipped, 1 suite     same
+  functions-notifications test     no tests        -                62 / 4 (new)
+  functions-notifications lint     -               0 errors at base 0 errors (its predeploy hook fails the deploy on errors)
+  functions lint (eslint ./index.js) -             36 errors at 7e8750b   36 errors; unchanged and pre-existing (the script ends in "|| echo lint ignored")
+  The sorted tsc list is at scratchpad\a4\tsc_sorted.txt and scratchpad\e4\tsc_sorted.txt.
+  Protected files, SHA-256 compared before and after: dailyRhythm.js, habitReminders.js, insights.js, milestones.js, notificationTier.js, utils/fcmSender.js and utils/quietHours.js. All OK.
+
+======================================================================
+E1. REGRESSIONS RESTORED
+======================================================================
+RG1 to RG8 were copied back from the .source.txt files byte for byte and pass. No assertion changed.
+
+======================================================================
+MUTATION TABLE (E3: backup to scratchpad, mutate, run, restore from backup, SHA-256 match; never git checkout)
+======================================================================
+Runner: scratchpad\mutate.js. All 43 restored with SHA match. 43 of 43 killed.
+  Before the fix, M25 SURVIVED. The self-request test gave the sender no token, so token_missing masked the guard. I fixed the test (seed the sender's token, assert shape_ignored) and re-ran: KILLED.
+  ID   file             mutation                                          result  killed by (main)
+  M1   eligibility.js   General off stops the push                         KILLED  General off still sends
+  M2   eligibility.js   stored quiet hours stop the push                   KILLED  quiet hours still send; RG tests
+  M3   eligibility.js   require serverPushEnabled true                     KILLED  flag missing/false; controls; RG2
+  M4   eligibility.js   drop the accepted-status check                     KILLED  pending-only connection
+  M5   eligibility.js   any connection of the sender counts                KILLED  third-user connection
+  M6   eligibility.js   query connections unscoped                         KILLED  only queries scoped by sender
+  M7   eligibility.js   failed connection read counts as connected         KILLED  failed connection read
+  M8   eligibility.js   failed actor read treated as absent                KILLED  failed actor-status read
+  M9   eligibility.js   expired suspension stays inactive                  KILLED  expired suspension is active
+  M10  eligibility.js   suspension without end treated as expired          KILLED  no suspendedUntil stays inactive
+  M11  eligibility.js   banned treated as active                           KILLED  banned actor
+  M12  eligibility.js   skip the actor-status check                        KILLED  RG7; suspended requester
+  M13  eligibility.js   failed preference read treated as absent           KILLED  failed preferences read
+  M14  eligibility.js   malformed preference treated as on                 KILLED  malformed preference value
+  M15  eligibility.js   requests read the directMessages field             KILLED  connection-request preference off
+  M16  eligibility.js   preference off ignored                             KILLED  RG1; request preference off
+  M17  eligibility.js   failed token read treated as missing               KILLED  failed token read logs
+  M18  eligibility.js   fall back to users/{uid} token                     KILLED  token only on users ignored
+  M19  eligibility.js   drop the Expo token shape check                    KILLED  raw APNs hex token
+  M20  eligibility.js   missing token logged at error                      KILLED  missing token is silent
+  M21  eligibility.js   no 50-character clamp                              KILLED  trimmed and cut to 50
+  M22  eligibility.js   no Someone fallback                                KILLED  Someone (empty, whitespace, non-string)
+  M23  eligibility.js   clamp by code unit                                 KILLED  emoji not split
+  M24  eligibility.js   allow a message to yourself                        KILLED  message to yourself
+  M25  eligibility.js   allow a request to yourself                        KILLED  request to yourself (after the test fix)
+  M26  eligibility.js   drop the pending check                             KILLED  created as accepted
+  M27  eligibility.js   legacy a/b fallback                                KILLED  legacy-shape connection
+  M28  eligibility.js   conversationId not required                        KILLED  missing receiverId or conversationId
+  M29  send.js          marker failure continues to send                   KILLED  marker cannot be created
+  M30  send.js          marker under the actor                             KILLED  marker path
+  M31  send.js          send before the marker                             KILLED  marker written before send
+  M32  send.js          add a badge                                        KILLED  payload: no badge
+  M33  send.js          no default sound                                   KILLED  payload: default sound
+  M34  send.js          drop messageId from the payload                    KILLED  payload: fixed data
+  M35  send.js          change the DM body copy                            KILLED  RG2
+  M36  send.js          log the actor's name                               KILLED  logs never contain names
+  M37  send.js          log the ticket message (carries the token)         KILLED  Expo error ticket logged with code only
+  M38  send.js          retry a thrown Expo send                           KILLED  not retried
+  M39  send.js          marker set() instead of create()                   KILLED  RG6
+  M40  triggers.js      DM path writes a bell document                     KILLED  RG3
+  M41  index.js         connection trigger not exported                    KILLED  RG4; exports
+  M42  accountDeletion  drop the recipientId sweep                         KILLED  RG8; cleanup pin
+  M43  functions index  re-export onNewDirectMessage                       KILLED  notificationExports
+No surviving mutations.
+
+======================================================================
+ELIGIBILITY: THE QUERY AND THE MIRRORED RULE
+======================================================================
+Order: shape -> actor status (one read of users/{actor}, used for the name too) -> DM-only accepted connection -> recipient preference -> userPrivate token -> marker -> send.
+
+Connection query (eligibility.js, hasAcceptedConnection):
+  db.collection("connections").where("participants", "array-contains", senderId).get()
+  then, in code: status === "accepted"; participants includes the recipient; and {requesterId, addresseeId} equals {sender, recipient} in either order.
+  Why this query:
+    - It is scoped to the SENDER, so it never reads the connections collection unscoped. A test pins that it is the only query run.
+    - A single-field array-contains is covered by Firestore's automatic single-field index, so it needs no composite index.
+    - It matches the shape the mobile app writes, where participants = [requesterId, addresseeId].
+    - The result set is the sender's own connections, so it is bounded.
+  No limit() is applied, because a limit could cut off the one matching document.
+
+Mirrored rule, firestore.rules lines 46 to 57 at 7e8750b, quoted in the eligibility.js header. The `let userPath` line is wrapped there for the 80-column lint.
+    function isActiveUser() {
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return !exists(userPath)
+        || !('moderationStatus' in get(userPath).data)
+        || get(userPath).data.moderationStatus == null
+        || get(userPath).data.moderationStatus == 'active'
+        || (get(userPath).data.moderationStatus == 'suspended'
+            && get(userPath).data.suspendedUntil != null
+            && get(userPath).data.suspendedUntil < request.time);
+    }
+  Mirror details:
+    - An absent document is active; the push then names the actor "Someone".
+    - An expired suspension is active.
+    - A suspension with no suspendedUntil, or a non-timestamp one, is inactive, because the comparison cannot succeed in the rules either.
+    - banned, and any other status, is inactive.
+
+======================================================================
+MANIFEST STATEMENT
+======================================================================
+New Firestore collection: none.
+New write path: notificationLog/{recipientUid}/community/{eventId}, holding {kind, sentAt}. It sits under an existing manifest entry, the recursive UID_KEYED_DOC_TREES (functions/src/lib/accountDeletion.js, now lines 185-192):
+    const UID_KEYED_DOC_TREES = [
+      "userPrivate",
+      "sleepRoutines",
+      "notificationPreferences",
+      "rateLimits",
+      "notificationLog",
+      "users",
+    ];
+  The comment above it (line 182) names notificationLog/{uid}/{category} as the recursive case. The existing rule `match /notificationLog/{userId}/{document=**} { allow read, write: if false; }` (firestore.rules:1114-1117) already covers it for clients. The Admin SDK bypasses rules.
+New field on an existing document: none. The sender reads users, connections, notificationPreferences and userPrivate, and writes only the marker.
+Manifest change: notifications swept by recipientId as well as userId.
+New locally stored key (device): none. mobile/ is untouched.
+
+======================================================================
+DEPLOYED-FUNCTION CHANGES THIS BRANCH WOULD MAKE (on Kyle's unscoped deploy; not deployed)
+======================================================================
+Codebase notifications (functions-notifications/):
+  ADDED     notifyOnConnectionRequestCreated   trigger connections/{connectionId} create
+  CHANGED   notifyOnDirectMessageCreated
+    - Eligibility gates: shape, actor status, accepted connection, preference, and the userPrivate token only, with no users fallback.
+    - Marker before send.
+    - New copy, with no message text.
+    - No bell document. No email.
+    - Fixed data payload.
+    - Structured logs.
+    - Behaviour against today's live version: the live version predates or postdates a3694ee (the inventory's H2). Either way, every rule above is new.
+  UNCHANGED notifyOnInviteCreated: moved to src/legacy with identical behaviour, pinned by the characterization test. Redeployed only because the codebase is.
+  Dependencies: package.json and package-lock.json changed (jest devDependency added; the lock was rewritten by npm). Runtime dependencies are unchanged.
+Codebase api (functions/):
+  REMOVED   onNewDirectMessage, onNewConnection. Expect the CLI deletion prompt to list exactly these two. Answer Yes only if the list is exactly that.
+  CHANGED   deleteAccount: also sweeps notifications by recipientId. On top of main's existing undeployed change, 2185d83 "moments" (inventory H1).
+  UNCHANGED in behaviour: every other api function. All are redeployed because the codebase is one bundle, including the four paused scheduled senders. Re-check that Cloud Scheduler still shows Paused (NPM-3b).
+
+======================================================================
+PROPOSED DOCS BOOKKEEPING (TEXT ONLY, NOT COMMITTED)
+======================================================================
+1. NPM-2 row marker (line 429). The opening becomes:
+   **[DONE, merged at 7e8750b. WALK STEPS 9, 11, 12 AND 13 NOT RUN BY KYLE'S DECISION; TESTS ARE THE EVIDENCE.]** **[NPM-2 HIDES QUIET HOURS (Kyle's Ruling 9, 2026-10-02). NOTIFICATION BEHAVIOUR IS NOT LAUNCH-READY UNTIL NPM-3a REMOVES SERVER ENFORCEMENT OF STORED QUIET HOURS.]** Was: **[Next]** **[BUILT AND WALKED at f516f78, AWAITING MERGE. LAUNCH-BLOCKING. WALK STEPS 9, 11, 12 AND 13 NOT RUN BY KYLE'S DECISION; TESTS ARE THE EVIDENCE.]** ...(the existing chain, unchanged)
+   And on NPM-2's build log entry: "Docs commit 0973b5c. Merged to main at 7e8750b (parents b8c4c67, 0973b5c) and pushed; origin/main = 7e8750b verified at NPM-3a Step 0."
+
+2. NPM-3a row (line 430), split into two rows using the Was: form.
+   NPM-3a COMMUNITY-NOTIFICATION-CORRECTNESS:
+     **[SPLIT 2026-10-02 into NPM-3a-i (server) and NPM-3a-ii (phone); see the two rows below.]** Was: **[READY. LAUNCH-BLOCKING.]** ...(the existing text, unchanged)
+   NPM-3a-i COMMUNITY-PUSH-SERVER, a new row:
+     **[Next]** **[BUILT on journey/npm-3a-i-community-push-server (08b0859, 1f66c71, 688d277); RULES, DOCS, DEPLOY INVENTORY AND WALK SCRIPT PENDING (prompt 2). LAUNCH-BLOCKING. NEEDS AN UNSCOPED FUNCTIONS DEPLOY AND A RULES DEPLOY BY KYLE.]** One Community push per event, from one sender *(row added 2026-10-02)* | Owns: the single Expo sender in functions-notifications (K2), the shared eligibility check, the at-most-once marker, the K7 and K8 copy, the removal of the FCM senders, the recipientId deletion sweep, Quiet Hours and General removed from Community (Rulings 7 and 9, K9), the K12 rules, and the RI-6 suspended-sender rule. Carries Kyle's K3 record: notifyOnInviteCreated is dormant legacy web infrastructure, unchanged and not reviewed for mobile V1. Comments, likes, non-connection write hardening, request rate limits and the remaining suspension gaps stay in COMMUNITY-RULES-INTEGRITY. | NPM-2 merged. | Yes, Kyle's walk with two accounts after the deploy.
+   NPM-3a-ii COMMUNITY-PUSH-PHONE, a new row:
+     **[QUEUED. LAUNCH-BLOCKING. STARTS AFTER NPM-3a-i MERGES.]** The phone registers the token and routes the tap *(row added 2026-10-02)* | Owns: Expo token registration (every grant path, foreground refresh, rotation), sign-out and account-switch token handling, tap and cold-start routing for direct_message and connection_request (People > Requests per K8), and the foreground toast. Inherits JOURNAL-OPTIN-TOKEN-SAVE-REMOVED and NPM3A-NOTIFICATION-FINDINGS findings 3 and 4. | NPM-3a-i merged. | Yes, Kyle's device walk.
+
+3. [Next] moves from NPM-2 to NPM-3a-i, as in the marker texts above.
+
+4. New ledger item:
+   | EXPO-RECEIPTS-AND-STALE-TOKENS | **[RECORDED, LEDGER. Row added 2026-10-02 at NPM-3a-i's build, Kyle's ruling 7. POST-V1 UNLESS RULED OTHERWISE.]** Expo delivery receipts and stale or unregistered token cleanup *(row added 2026-10-02)* | NPM-3a-i logs Expo send errors and error tickets with Expo's code (for example DeviceNotRegistered) and does not poll receipts. A stale or unregistered userPrivate.expoPushToken is never cleared, so pushes to it keep failing quietly until the phone re-registers. The work: fetch push receipts (getPushNotificationReceiptsAsync) on a schedule or a short delay, and clear a token that Expo reports as DeviceNotRegistered. This is coordinated with NPM-3a-ii's re-registration, so a cleared token is replaced. | NPM-3a-i deployed. | None until built. |
+
+======================================================================
+COULD NOT DO AS WRITTEN, OR DEVIATIONS
+======================================================================
+D1. The gate file did not exist on the first attempt, and I stopped. I then created it from Kyle's chat message at his direction, adding one heading line of mine. It records "current main" rather than a hash, and "about 9:20 PM ET" with no date. The date is 2026-10-02, the day of the session.
+D2. Re-cut of commits 2 and 3 after a staging mistake. Disclosed above. The final tree is unchanged.
+D3. The direct-message shape also requires conversationId to be a non-empty string. C3 lists only senderId and receiverId. I added conversationId because the fixed payload must carry it, and a push with an empty conversationId could not route. A test and mutation M28 pin it.
+D4. A present but non-boolean preference value, or a non-object socialConnection, is treated as indeterminate: no push, and an error log with reason preference_malformed. It is not treated as on. The mobile Settings screen shows such a value as off (useNotificationSettingsState reads === true), so sending would contradict what the user sees. Tell me if you want this changed.
+D5. The marker document ID is exactly the triggering document's ID, as specified. A direct message and a connection request with the same auto-ID for the same recipient would collide and the second would be skipped. With Firestore auto-IDs this is negligible. I am recording it rather than prefixing the ID, which the spec did not allow.
+D6. The quoted isActiveUser rule in the code comment wraps one line for lint. The report quotes it unwrapped.
+D7. npm install rewrote functions-notifications/package-lock.json, which was last generated on 2026-01-31: about 2,500 changed lines. Runtime dependency versions are unchanged; only jest and its tree were added.
+D8. functions-notifications/src/__tests__ ships in the deploy upload. firebase.json's ignore list for that codebase does not exclude it. It is harmless at runtime because nothing requires it.
+
+STOP. Rules, docs, the deploy inventory and the walk script are prompt 2.
