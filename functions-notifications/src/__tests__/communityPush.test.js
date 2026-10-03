@@ -9,6 +9,7 @@
 /* global jest, describe, it, expect, beforeEach, afterEach */
 
 const world = require("./helpers/world");
+const PAYLOADS = require("./fixtures/communityPayloads.json");
 const {timestamp} = require("./helpers/fakeEnv");
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -462,17 +463,16 @@ describe("event shape", () => {
 
 describe("the push itself", () => {
   // Mutation: add a badge, change the sound, or change the data keys.
+  // NPM-3a-ii (II-D4): the data now carries recipientId, and is compared
+  // with the shared fixture rather than an inline object.
   it("direct message: default sound, no badge, fixed data", async () => {
     await runDm(undefined, "msg-9");
     const [message] = env.sentMessages();
     expect(message.sound).toBe("default");
     expect("badge" in message).toBe(false);
-    expect(message.data).toEqual({
-      type: "direct_message",
-      conversationId: "conv-1",
-      messageId: "msg-9",
-      senderId: world.SENDER,
-    });
+    // NPM-3a-ii: the shared fixture the mobile router's tests also read.
+    expect(message.data).toEqual(PAYLOADS.direct_message);
+    expect(message.data.recipientId).toBe(world.RECIPIENT);
   });
 
   it("connection request: default sound, no badge, fixed data", async () => {
@@ -480,11 +480,8 @@ describe("the push itself", () => {
     const [message] = env.sentMessages();
     expect(message.sound).toBe("default");
     expect("badge" in message).toBe(false);
-    expect(message.data).toEqual({
-      type: "connection_request",
-      connectionId: "conn-9",
-      requesterId: world.SENDER,
-    });
+    expect(message.data).toEqual(PAYLOADS.connection_request);
+    expect(message.data.recipientId).toBe(world.RECIPIENT);
   });
 
   it("an Expo error ticket is logged with Expo's code only", async () => {
