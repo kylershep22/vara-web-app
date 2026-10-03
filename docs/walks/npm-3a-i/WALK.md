@@ -190,3 +190,114 @@ Kyle states both gate keys in his own words, the suite numbers and that the walk
 ---
 
 ## Results (Kyle's words only)
+
+Recorded 2026-10-03. Kyle's statements are in block quotes, exactly as he gave them. Recorded facts and reviewer notes are under their own headings and are not Kyle's words.
+
+### Part 1: push check
+
+**Kyle's words:**
+
+> In my testing, I sent a note from R to S and I did get the toast banner.
+
+> Sent another message and minimized Vara - the notification popped up as an iOS push notification - looks to be working as intended
+
+**Reviewer note:** Kyle did not use the Expo push tool for Part 1. He sent messages through the sender that was live before the deploy. The reviewer treated the toast and the iOS notification as the successful visible push in ruling S3-5, so device evidence was required in Part 3. The pre-deploy toast showed the old copy, with the sender's name and the message text.
+
+**Recorded fact:** Kyle's pre-deploy screenshot was not in the repo when these results were recorded (docs/walks/npm-3a-i/predeploy/predeploy-toast.png did not exist), so it is not referenced here.
+
+### Part 2: deploy
+
+**Recorded facts, from the terminal output Kyle pasted:**
+
+- Branch journey/npm-3a-i-community-push-server, HEAD 3acafa8, clean tree. 3acafa8 is the deployed hash.
+- functions: 60 tests passed in 6 suites. functions-notifications: 109 tests passed in 6 suites.
+- firebase deploy --only functions: the deletion prompt listed exactly api:onNewConnection and api:onNewDirectMessage; Kyle answered Yes; both were deleted. notifyOnConnectionRequestCreated was created. Every other function was updated, including onUserCreate. Access to EXPO_ACCESS_TOKEN was granted. Deploy complete.
+- firebase deploy --only firestore:rules: compiled and released.
+
+**Kyle's words on the checks after the deploy (scheduled jobs; functions list; no config collection; the Expo setting):**
+
+> 1. All paused
+
+> 2. Confirmed
+
+> 3. Confirmed
+
+> 4. Toggled Enhanced security for push notifications ON
+
+**The refusal check.**
+
+Kyle's words on the web tool:
+
+> Send the notification and it came through on my phone - I left the Access Token section blank
+
+**Recorded fact:** a raw request from Kyle's terminal with no access token was then refused by Expo with code UNAUTHORIZED.
+
+Kyle's words:
+
+> Nothing arrived on my phone
+
+**Reviewer note:** the web tool delivered because Kyle was signed in to Expo in that browser; the raw request is the unauthenticated test.
+
+**Not reported:** Kyle did not report the Cloud Scheduler check before the deploy. It is recorded as not confirmed before the deploy and confirmed after it.
+
+**Deployment evidence.** 2185d83 went live with this deploy, and the repo version of onUserCreate went live accepted as reviewed, under Kyle's ruling S3-3, quoted from docs/decisions/community-v1-rulings.md:
+
+> 3. Deploy inventory: approve `2185d83` going live with the 3a-i unscoped deploy. Also accept the repo version of `onUserCreate` as reviewed based on its previously merged/walked `userPrivate` slice despite the missing console deploy date. Record both explicitly in the deployment evidence.
+
+### Part 3: events
+
+Times are as shown in the Logs Explorer on 2026-10-03.
+
+#### E1. A message between connected users
+
+**Recorded facts, from Kyle's log screenshot:** on notifyondirectmessagecreated, exactly two results: received at 11:54:49.397, and outcome sent at 11:54:50.323 with a recipient ID and a ticket ID.
+
+**Kyle's words on the marker and the phone:**
+
+> 1. confirmed I see that in firestore
+
+> 2. It was a notification box that appeared at the top of the app with the message you stated (I think that is a toast?)
+
+**Reviewer note:** the message stated to Kyle was title New message, body "Kyle Shepard62 sent you a message."
+
+#### E2. Direct messages off
+
+**Kyle's words:**
+
+> Running E2, I did not get the toast message with Direct Messages notification off - attached are the logs
+
+> I turned off the notification for 63, logged out and sent the message as 62 - no notification sent to 63 as intended - The way this is working now satisfies what I want.
+
+**Recorded facts:** received at 12:03:42.385; outcome ineligible with reason preference_off at 12:03:42.671. The query showed four results: these two and E1's two. The absence of a marker was not checked.
+
+#### E3. A connection request, and one extra event Kyle added (a connection request to an account with Connection requests off)
+
+**Kyle's words:**
+
+> I used a few different test account that I already had for this test - the first one with connections on fired a toast message, the one that had those notifications toggled off did not fire a toast - here are the logs for both. Everything worked as expected - lets close this out and move on
+
+**Recorded facts:** on notifyonconnectionrequestcreated:
+- The first event was received at 12:13:49.366, with outcome sent at 12:13:50.178 carrying a recipient ID and a ticket ID. The query showed exactly two results.
+- The second event was received at 12:18:14.963, with outcome ineligible and reason preference_off at 12:18:15.101.
+
+**Marker for the first event, Kyle's attestation:**
+
+> Marker for the connection request that sent (12:13):lAdN0VIknjuF5B6z5bFe
+
+#### E4. A message without an accepted connection
+
+**NOT RUN, by Kyle's decision.** Tests are the evidence.
+
+### Deviations from the script
+
+- Part 1 used live messages, not the Expo push tool.
+- The accounts used were not the script's R and S throughout.
+- A lock-screen banner from the new sender was not captured (the two post-deploy notifications were toasts), so that stays with the required pre-launch check COMMUNITY-PUSH-STANDALONE-CHECK.
+
+**Reviewer note on accounts:** the user ID that received E1 and the E3 request is the same ID the log shows as the sender of E2. Kyle's account of E2 names the sender as 62 and the recipient as 63. Which test account holds which ID was not checked. Neither reading changes a result.
+
+### Gate keys
+
+**Kyle's attestation, verbatim:**
+
+> Gate keys, in my own words: Suites green: functions 60 tests passed in 6 suites, functions-notifications 109 tests passed in 6 suites. Walk passed.
